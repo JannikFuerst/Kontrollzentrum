@@ -1,6 +1,7 @@
 console.log("app.js loaded ✅");
 
 document.addEventListener("DOMContentLoaded", async () => {
+
   // Tabs + State
   let activeTab = "all";
   let searchTerm = "";
@@ -15,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelectorAll(".tab").forEach(t => {
         t.classList.remove("active");
         t.setAttribute("aria-selected", "false");
-      });
+      });DOMContentLoaded
       tab.classList.add("active");
       tab.setAttribute("aria-selected", "true");
       activeTab = tab.dataset.tab || "all";
@@ -150,12 +151,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const raw = appUrl?.value?.trim() || "";
     if (!raw) return setIconNone();
 
-    // nur bei "web" oder wenn’s wie URL aussieht -> favicon versuchen
     const isWeb = (appType?.value || "web") === "web";
-    if (!isWeb){
-      // Desktop: favicon eher sinnlos, also einfach ausblenden (oder lassen wenn user will)
-      return setIconNone();
-    }
+    if (!isWeb) return setIconNone();
 
     setIconFavicon(raw);
   }
@@ -201,12 +198,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (t === "web"){
       launchLabel.innerHTML = `URL <span class="req">*</span>`;
       appUrl.placeholder = "https://...";
-      launchHelp.textContent = "Beispiel: https://notion.so";
+      launchHelp.textContent = "Beispiel: https://notion.so oder discord.com/app";
     } else {
       launchLabel.innerHTML = `Pfad / URI <span class="req">*</span>`;
-      appUrl.placeholder = "z.B. steam://run/730 oder file:///C:/...";
+      appUrl.placeholder = "z.B. discord:// oder steam://run/730 oder file:///C:/...";
       launchHelp.textContent =
-        "Empfohlen: URI (steam://, discord://, spotify://, ms-settings:...). file:/// geht je nach Browser/Windows-Einstellung.";
+        "Empfohlen: URI (discord://, steam://, spotify://, ms-settings:...). file:/// geht je nach Windows-Einstellung.";
     }
 
     refreshIconFromUrl();
@@ -228,8 +225,32 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let apps = loadApps();
 
-  function openUrl(url){
-    window.open(url, "_blank", "noopener,noreferrer");
+  function normalizeWebUrl(url){
+    const trimmed = String(url || "").trim();
+    if (!trimmed) return "";
+    if (!/^https?:\/\//i.test(trimmed)) return "https://" + trimmed;
+    return trimmed;
+  }
+
+  async function openLaunch(app){
+    const raw = String(app?.launch || "").trim();
+    if (!raw) return;
+
+    const launch = app.type === "web" ? normalizeWebUrl(raw) : raw;
+
+    // TAURI invoke -> Rust command -> Shell open (zuverlässig)
+    try{
+      const t = window.__TAURI__;
+      if (t?.core?.invoke){
+        await t.core.invoke("open_external", { url: launch });
+        return;
+      }
+    }catch(e){
+      console.error("Tauri invoke(open_external) failed:", e);
+    }
+
+    // Fallback (Live Server / Browser)
+    window.open(launch, "_blank", "noopener,noreferrer");
   }
 
   function matches(app){
@@ -276,7 +297,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     shown.forEach(app => {
       const card = document.createElement("div");
       card.className = "card";
-      card.addEventListener("click", () => openUrl(app.launch));
+      card.addEventListener("click", () => openLaunch(app));
 
       const iconSrc =
         app.icon?.type === "custom" ? app.icon.value :
@@ -349,17 +370,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Mini-Validierung
     if (type === "web"){
-      const looksLikeWeb = /^https?:\/\//i.test(launch);
-      if (!looksLikeWeb){
-        alert("Web-Apps brauchen eine URL die mit http:// oder https:// startet.");
+      const looksLikeSomething =
+        /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(launch) || /^https?:\/\//i.test(launch);
+      if (!looksLikeSomething){
+        alert("Web-Apps brauchen eine URL/Domain (z.B. discord.com/app oder https://discord.com/app).");
         return;
       }
     } else {
-      // Desktop: erlauben: protocol:// oder ms-settings: oder file:///
-      const ok =
-        /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(launch); // irgendein scheme:
+      const ok = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(launch);
       if (!ok){
-        alert("Desktop braucht eine URI wie steam://..., discord://..., ms-settings:... oder file:///C:/...");
+        alert("Desktop braucht eine URI wie discord://, steam://..., ms-settings:... oder file:///C:/...");
         return;
       }
     }

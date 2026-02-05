@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Kontrollzentrum",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "identifier": "com.jannik.kontrollzentrum",
 
   "build": {
@@ -12,6 +12,7 @@
   },
 
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "Kontrollzentrum",
@@ -39,17 +40,16 @@
     ]
   },
 
- "plugins": {
-  "updater": {
-    "endpoints": [
-      "https://github.com/JannikFuerst/Kontrollzentrum/releases/latest/download/latest.json"
-    ],
-    "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFNDM5NUU4OERDNDdBN0MKUldSOGVzU042SlZEcm4wejQzdFBJVjhkU0IxRzZrclRRYlhhV1JrWGZDUk05MzJCSU9xa205UVQK",
-    "windows": {
-      "installMode": "passive"
-    },
-    "createUpdaterArtifacts": true
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/JannikFuerst/Kontrollzentrum/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEFFNDM5NUU4OERDNDdBN0MKUldSOGVzU042SlZEcm4wejQzdFBJVjhkU0IxRzZrclRRYlhhV1JrWGZDUk05MzJCSU9xa205UVQK",
+      "windows": {
+        "installMode": "passive"
+      },
+      "createUpdaterArtifacts": true
+    }
   }
-}
-
 }

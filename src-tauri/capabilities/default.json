@@ -6,6 +6,10 @@
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "log:default",
+    "updater:default",
+    "shell:default",
+    "shell:allow-open"
   ]
 }
