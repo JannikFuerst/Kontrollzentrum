@@ -33,3 +33,4 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
+          projectPath: "src-tauri"
