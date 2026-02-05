@@ -39,27 +39,29 @@
           <select class="select" id="appType">
             <option value="web">Web (https://...)</option>
             <option value="desktop">Desktop (URI / file://)</option>
+            <option value="scan">Desktop (Scan Vorschläge)</option>
           </select>
         </div>
 
         <div class="field">
           <div class="label">Kategorie</div>
-          <select class="select" id="appCategory">
-            <option>Sonstiges</option>
-            <option>Social</option>
-            <option>Tools</option>
-            <option>Gaming</option>
-            <option>Media</option>
-            <option>Work</option>
-          </select>
+          <select class="select" id="appCategory"></select>
         </div>
       </div>
 
-      <div class="field">
+      <div class="field" id="launchField">
         <div class="label" id="launchLabel">URL <span class="req">*</span></div>
         <input class="input" id="appUrl" placeholder="https://..." />
         <div id="launchHelp" style="margin-top:8px;color:rgba(255,255,255,0.55);font-size:12px;line-height:1.35;">
           Beispiel: https://notion.so
+        </div>
+      </div>
+
+      <div class="field hidden" id="scanField">
+        <div class="label">Gefundene Apps</div>
+        <select class="select" id="scanSelect"></select>
+        <div style="margin-top:8px;color:rgba(255,255,255,0.55);font-size:12px;line-height:1.35;">
+          Wähle eine App aus dem Windows‑Scan.
         </div>
       </div>
 
@@ -79,6 +81,22 @@
     <div class="modal-foot">
       <button class="btn-ghost" id="cancelBtn" type="button">Abbrechen</button>
       <button class="btn-primary" id="submitBtn" type="button">Hinzufügen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmOverlay" aria-hidden="true">
+  <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="confirmTitle">Löschen bestätigen</div>
+      <button class="icon-btn" id="confirmClose" type="button" aria-label="Schließen">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-text" id="confirmText">Möchtest du diese App wirklich löschen?</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="confirmCancel" type="button">Abbrechen</button>
+      <button class="btn-primary" id="confirmOk" type="button">Löschen</button>
     </div>
   </div>
 </div>

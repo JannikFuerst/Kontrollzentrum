@@ -158,6 +158,69 @@ h1{
   margin-top: 6px;
 }
 
+.cat-tabs{
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.tab-cat{
+  position:relative;
+  padding-right: 30px;
+}
+.tab-cat .cat-x{
+  position:absolute;
+  right:6px;
+  top:50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  color: rgba(255,255,255,0.7);
+  cursor:pointer;
+  opacity: 0;
+  pointer-events: none;
+}
+.tab-cat:hover{
+  z-index: 2;
+  padding-right: 38px;
+}
+.tab-cat:hover .cat-x{
+  opacity: 1;
+  pointer-events: auto;
+}
+.tab-cat .cat-x:hover{ background: rgba(255,255,255,0.08); }
+
+.tab-add-btn{
+  width: 36px;
+  padding: 0;
+  justify-content:center;
+  font-size: 18px;
+}
+.cat-add-inline{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.cat-inline-input{
+  height: 34px;
+  padding: 6px 10px;
+  width: 190px;
+  font-size: 13px;
+}
+.tab-add-ok{
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 12px;
+}
+
 .tab{
   display:inline-flex;
   align-items:center;
@@ -170,8 +233,11 @@ h1{
   color: rgba(255,255,255,0.78);
   font-size: 13px;
   cursor:pointer;
-  transition: background .12s ease, border-color .12s ease;
+  transition: background .12s ease, border-color .12s ease, transform .12s ease;
   user-select:none;
+}
+.tab:hover{
+  transform: scale(1.04);
 }
 
 .tab svg{ opacity:0.85; }
@@ -261,6 +327,8 @@ main{
   .toprow{ flex-direction:column; align-items:stretch; }
   .btn{ justify-content:center; }
   .tabs{ flex-wrap:wrap; }
+  .cat-add-inline{ width:100%; }
+  .cat-inline-input{ flex:1; min-width: 0; }
   main{ min-height: 360px; }
 }
 
@@ -289,6 +357,12 @@ main{
   overflow: hidden;
   transform: translateY(6px);
   animation: pop .14s ease-out forwards;
+}
+.modal-confirm{ width: min(420px, 94vw); }
+.confirm-text{
+  color: rgba(255,255,255,0.86);
+  font-size: 14px;
+  line-height: 1.5;
 }
 
 @keyframes pop{ to { transform: translateY(0px); } }
@@ -327,6 +401,7 @@ main{
 .modal-body{ padding: 6px 18px 18px; }
 
 .field{ margin-top: 12px; }
+.hidden{ display:none !important; }
 
 .label{
   font-size: 12px;
@@ -513,8 +588,12 @@ select.select option{
 
 .card-actions{
   display:flex;
-  gap:10px;
+  gap:6px;
   align-items:center;
+  justify-content:flex-end;
+  width: 160px;
+  margin-left: 10px;
+  margin-right: -7px;
 }
 
 .card-icon{
@@ -576,6 +655,23 @@ select.select option{
   color: rgba(255,255,255,0.74);
 }
 .del:hover{
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.16);
+}
+.edit{
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+  color: rgba(255,255,255,0.8);
+}
+.edit:hover{
   transform: translateY(-1px);
   background: rgba(255,255,255,0.06);
   border-color: rgba(255,255,255,0.16);

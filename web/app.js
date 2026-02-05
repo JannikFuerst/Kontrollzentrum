@@ -10,18 +10,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   const empty = document.getElementById("emptyState");
   const search = document.getElementById("search");
 
-  // Tabs
-  document.querySelectorAll(".tab").forEach(tab => {
-    tab.addEventListener("click", () => {
-      document.querySelectorAll(".tab").forEach(t => {
-        t.classList.remove("active");
-        t.setAttribute("aria-selected", "false");
-      });
-      tab.classList.add("active");
-      tab.setAttribute("aria-selected", "true");
-      activeTab = tab.dataset.tab || "all";
-      render();
-    });
+  // Tabs (delegation)
+  const tabsEl = document.querySelector(".tabs");
+  tabsEl?.addEventListener("click", (e) => {
+    const t = e.target.closest(".tab");
+    if (!t || t.classList.contains("tab-add-btn") || t.classList.contains("tab-add-ok")) return;
+    const tabValue = t.dataset.tab || "all";
+    setActiveTab(tabValue);
   });
 
   // Search
@@ -44,16 +39,76 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Modal-Elemente
   const overlay = document.getElementById("modalOverlay");
+  const modalTitle = document.getElementById("modalTitle");
   const closeBtn = document.getElementById("modalClose");
   const cancelBtn = document.getElementById("cancelBtn");
   const submitBtn = document.getElementById("submitBtn");
 
+  const confirmOverlay = document.getElementById("confirmOverlay");
+  const confirmClose = document.getElementById("confirmClose");
+  const confirmCancel = document.getElementById("confirmCancel");
+  const confirmOk = document.getElementById("confirmOk");
+  const confirmText = document.getElementById("confirmText");
+  let confirmAction = null;
+
   const addBtn = document.getElementById("addBtn");
   const addBtn2 = document.getElementById("addBtn2");
 
+  const catTabs = document.getElementById("catTabs");
+  const catAddToggle = document.getElementById("catAddToggle");
+  const catAddInline = document.getElementById("catAddInline");
+  const catInlineInput = document.getElementById("catInlineInput");
+  const catAddApply = document.getElementById("catAddApply");
+
   const appType = document.getElementById("appType");
+  const appCategory = document.getElementById("appCategory");
   const launchLabel = document.getElementById("launchLabel");
   const launchHelp = document.getElementById("launchHelp");
+  const launchField = document.getElementById("launchField");
+  const scanField = document.getElementById("scanField");
+  const scanSelect = document.getElementById("scanSelect");
+
+  let editingId = null;
+
+  let scanApps = [];
+
+  async function loadScanApps(){
+    try{
+      const t = window.__TAURI__;
+      if (!t?.core?.invoke){
+        scanApps = [];
+        renderScanApps();
+        return;
+      }
+      scanApps = await t.core.invoke("scan_desktop_apps");
+      renderScanApps();
+    }catch(e){
+      console.error("scan_desktop_apps failed:", e);
+      scanApps = [];
+      renderScanApps();
+      alert("Scan fehlgeschlagen: " + (e?.message || e));
+    }
+  }
+
+  function renderScanApps(){
+    if (!scanSelect) return;
+    scanSelect.innerHTML = "";
+    if (!scanApps.length){
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "Keine Apps gefunden";
+      scanSelect.appendChild(opt);
+      scanSelect.disabled = true;
+      return;
+    }
+    scanSelect.disabled = false;
+    scanApps.forEach(app => {
+      const opt = document.createElement("option");
+      opt.value = app.launch || app.path || "";
+      opt.textContent = app.name || app.title || "Unbekannt";
+      scanSelect.appendChild(opt);
+    });
+  }
 
   function openModal() {
     overlay.classList.add("show");
@@ -66,6 +121,25 @@ document.addEventListener("DOMContentLoaded", async () => {
   function closeModal() {
     overlay.classList.remove("show");
     overlay.setAttribute("aria-hidden", "true");
+    editingId = null;
+    if (modalTitle) modalTitle.textContent = "Neue App hinzufügen";
+    if (submitBtn) submitBtn.textContent = "Hinzufügen";
+  }
+
+  function openConfirm(message, onOk){
+    if (!confirmOverlay || !confirmText) return;
+    confirmText.textContent = message || "Möchtest du diese App wirklich löschen?";
+    confirmAction = onOk || null;
+    confirmOverlay.classList.add("show");
+    confirmOverlay.setAttribute("aria-hidden", "false");
+    setTimeout(() => confirmOk?.focus(), 0);
+  }
+
+  function closeConfirm(){
+    if (!confirmOverlay) return;
+    confirmOverlay.classList.remove("show");
+    confirmOverlay.setAttribute("aria-hidden", "true");
+    confirmAction = null;
   }
 
   addBtn?.addEventListener("click", openModal);
@@ -78,7 +152,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (e.target === overlay) closeModal();
   });
 
+  confirmClose?.addEventListener("click", closeConfirm);
+  confirmCancel?.addEventListener("click", closeConfirm);
+  confirmOk?.addEventListener("click", () => {
+    const action = confirmAction;
+    closeConfirm();
+    if (typeof action === "function") action();
+  });
+
+  confirmOverlay?.addEventListener("click", (e) => {
+    if (e.target === confirmOverlay) closeConfirm();
+  });
+
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && confirmOverlay?.classList.contains("show")) {
+      closeConfirm();
+      return;
+    }
     if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
   });
 
@@ -103,6 +193,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
   renderColors();
+
+  function applyIconStateFromApp(app){
+    if (!app?.icon || app.icon.type === "none"){
+      setIconNone();
+      return;
+    }
+    if (app.icon.type === "custom"){
+      setIconCustom(app.icon.value || "");
+      return;
+    }
+    if (app.icon.type === "favicon"){
+      iconState = { type:"favicon", value: app.icon.value || "" };
+      if (iconPreviewImg){
+        if (iconState.value){
+          iconPreviewImg.src = iconState.value;
+          iconPreviewImg.style.opacity = "1";
+        } else {
+          iconPreviewImg.removeAttribute("src");
+          iconPreviewImg.style.opacity = "0";
+        }
+      }
+    }
+  }
+
+  function openEditModal(app){
+    if (!app) return;
+    editingId = app.id;
+    if (modalTitle) modalTitle.textContent = "App bearbeiten";
+    if (submitBtn) submitBtn.textContent = "Speichern";
+
+    document.getElementById("appName").value = app.name || "";
+    document.getElementById("appUrl").value = app.launch || "";
+    document.getElementById("appDesc").value = app.description || "";
+    if (appCategory) appCategory.value = app.category || "Sonstiges";
+    document.getElementById("appType").value = app.type === "desktop" ? "desktop" : "web";
+
+    selectedColor = app.color || palette[0];
+    renderColors();
+    applyIconStateFromApp(app);
+
+    openModal();
+  }
 
   // Icon: favicon default + upload + remove
   const appUrl = document.getElementById("appUrl");
@@ -196,14 +328,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!launchLabel || !appUrl || !launchHelp) return;
 
     if (t === "web"){
+      launchField?.classList.remove("hidden");
+      scanField?.classList.add("hidden");
       launchLabel.innerHTML = `URL <span class="req">*</span>`;
       appUrl.placeholder = "https://...";
       launchHelp.textContent = "Beispiel: https://notion.so oder discord.com/app";
-    } else {
+    } else if (t === "desktop"){
+      launchField?.classList.remove("hidden");
+      scanField?.classList.add("hidden");
       launchLabel.innerHTML = `Pfad / URI <span class="req">*</span>`;
       appUrl.placeholder = "z.B. discord:// oder steam://run/730 oder file:///C:/...";
       launchHelp.textContent =
         "Empfohlen: URI (discord://, steam://, spotify://, ms-settings:...). file:/// geht je nach Windows-Einstellung.";
+    } else if (t === "scan"){
+      launchField?.classList.add("hidden");
+      scanField?.classList.remove("hidden");
+      loadScanApps();
     }
 
     refreshIconFromUrl();
@@ -225,12 +365,125 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let apps = loadApps();
 
+  const defaultCategories = ["Sonstiges", "Social", "Tools", "Gaming", "Media", "Work"];
+
+  function normalizeCategory(name){
+    return String(name || "").trim().replace(/\s+/g, " ");
+  }
+
+  function loadCategories(){
+    let list = [];
+    try{
+      const raw = JSON.parse(localStorage.getItem("kc_categories") || "[]");
+      if (Array.isArray(raw)) list = raw.map(normalizeCategory).filter(Boolean);
+    }catch{
+      list = [];
+    }
+    if (!list.length) list = [...defaultCategories];
+    if (!list.some(c => c.toLowerCase() === "sonstiges")) list.unshift("Sonstiges");
+    const seen = new Set();
+    list = list.filter(c => {
+      const key = c.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    return list;
+  }
+
+  function saveCategories(list){
+    localStorage.setItem("kc_categories", JSON.stringify(list));
+  }
+
+  let categories = loadCategories();
+
+  // Merge any existing app categories into list (initial boot)
+  apps.forEach(a => {
+    const c = normalizeCategory(a?.category);
+    if (c && !categories.some(x => x.toLowerCase() === c.toLowerCase())){
+      categories.push(c);
+    }
+  });
+  saveCategories(categories);
+
   function normalizeWebUrl(url){
     const trimmed = String(url || "").trim();
     if (!trimmed) return "";
     if (!/^https?:\/\//i.test(trimmed)) return "https://" + trimmed;
     return trimmed;
   }
+
+  function renderCategories(){
+    if (appCategory){
+      appCategory.innerHTML = "";
+      categories.forEach(c => {
+        const opt = document.createElement("option");
+        opt.textContent = c;
+        opt.value = c;
+        appCategory.appendChild(opt);
+      });
+      if (!appCategory.value && categories.length) appCategory.value = categories[0];
+    }
+
+    if (catTabs){
+      catTabs.innerHTML = "";
+      categories
+        .filter(c => c.toLowerCase() !== "sonstiges")
+        .forEach(c => {
+          const tab = document.createElement("div");
+          tab.className = "tab tab-cat";
+          tab.setAttribute("role", "tab");
+          tab.dataset.tab = `cat:${c}`;
+          tab.innerHTML = `
+            <span>${escapeHtml(c)}</span>
+            <span class="badge" data-cat-badge="${escapeHtml(c)}">0</span>
+            <button class="cat-x" type="button" aria-label="Kategorie löschen">×</button>
+          `;
+
+          tab.querySelector(".cat-x")?.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openConfirm(`Kategorie "${c}" löschen? Apps werden nach "Sonstiges" verschoben.`, () => {
+              categories = categories.filter(x => x.toLowerCase() !== c.toLowerCase());
+              apps = apps.map(a => (a.category === c ? { ...a, category: "Sonstiges" } : a));
+              saveApps(apps);
+              saveCategories(categories);
+              if (activeTab === `cat:${c}`) setActiveTab("misc");
+              renderCategories();
+              render();
+            });
+          });
+
+          catTabs.appendChild(tab);
+        });
+    }
+  }
+
+  function addCategoryFromInput(){
+    const val = normalizeCategory(catInlineInput?.value);
+    if (!val) return;
+    if (categories.some(c => c.toLowerCase() === val.toLowerCase())){
+      catInlineInput.value = "";
+      return;
+    }
+    categories.push(val);
+    saveCategories(categories);
+    renderCategories();
+    setActiveTab(`cat:${val}`);
+    catInlineInput.value = "";
+    catAddInline?.classList.add("hidden");
+  }
+
+  catAddToggle?.addEventListener("click", () => {
+    catAddInline?.classList.toggle("hidden");
+    if (!catAddInline?.classList.contains("hidden")) {
+      setTimeout(() => catInlineInput?.focus(), 0);
+    }
+  });
+  catAddApply?.addEventListener("click", addCategoryFromInput);
+  catInlineInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addCategoryFromInput();
+    if (e.key === "Escape") catAddInline?.classList.add("hidden");
+  });
 
   async function openLaunch(app){
     const raw = String(app?.launch || "").trim();
@@ -260,6 +513,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   function matches(app){
     if (activeTab === "fav" && !app.fav) return false;
     if (activeTab === "misc" && app.category !== "Sonstiges") return false;
+    if (activeTab.startsWith("cat:")){
+      const cat = activeTab.slice(4);
+      if (app.category !== cat) return false;
+    }
 
     if (searchTerm){
       const hay = (app.name + " " + app.launch + " " + app.category + " " + (app.description || "")).toLowerCase();
@@ -277,6 +534,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       .replaceAll("'","&#039;");
   }
 
+  function setActiveTab(tabValue){
+    activeTab = tabValue || "all";
+    document.querySelectorAll(".tab").forEach(t => {
+      const isActive = t.dataset.tab === activeTab;
+      if (isActive) {
+        t.classList.add("active");
+        t.setAttribute("aria-selected", "true");
+      } else {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+      }
+    });
+    render();
+  }
+
   function render(){
     const shown = apps.filter(matches);
 
@@ -285,6 +557,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const badgeMisc = document.getElementById("badgeMisc");
     if (badgeAll) badgeAll.textContent = String(apps.length);
     if (badgeMisc) badgeMisc.textContent = String(apps.filter(a => a.category === "Sonstiges").length);
+    const catBadges = document.querySelectorAll("[data-cat-badge]");
+    catBadges.forEach(el => {
+      const cat = el.getAttribute("data-cat-badge") || "";
+      const count = apps.filter(a => a.category === cat).length;
+      el.textContent = String(count);
+    });
 
     if (!grid || !empty) return;
 
@@ -318,6 +596,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
           <div class="card-actions">
             <button class="star ${app.fav ? "active" : ""}" type="button" aria-label="Favorit">★</button>
+            <button class="edit" type="button" aria-label="Bearbeiten" title="Bearbeiten">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 20h4l10.5-10.5-4-4L4 16v4Z" stroke="white" stroke-opacity="0.9" stroke-width="1.6" stroke-linejoin="round"/>
+                <path d="M14.5 5.5 18.5 9.5" stroke="white" stroke-opacity="0.9" stroke-width="1.6" stroke-linecap="round"/>
+              </svg>
+            </button>
             <button class="del" type="button" aria-label="Löschen" title="Löschen">🗑</button>
           </div>
         </div>
@@ -344,15 +628,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         render();
       });
 
+      // Edit
+      const editBtn = card.querySelector(".edit");
+      editBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openEditModal(app);
+      });
+
       // Delete
       const del = card.querySelector(".del");
       del.addEventListener("click", (e) => {
         e.stopPropagation();
-        const ok = confirm(`"${app.name}" wirklich löschen?`);
-        if (!ok) return;
-        apps = apps.filter(a => a.id !== app.id);
-        saveApps(apps);
-        render();
+        openConfirm(`"${app.name}" wirklich löschen?`, () => {
+          apps = apps.filter(a => a.id !== app.id);
+          saveApps(apps);
+          render();
+        });
       });
 
       grid.appendChild(card);
@@ -361,15 +652,34 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Submit -> add app
   submitBtn?.addEventListener("click", () => {
-    const name = document.getElementById("appName")?.value?.trim();
-    const launch = document.getElementById("appUrl")?.value?.trim();
-    const cat  = document.getElementById("appCategory")?.value || "Sonstiges";
+    let name = document.getElementById("appName")?.value?.trim();
+    let launch = document.getElementById("appUrl")?.value?.trim();
+    let cat  = document.getElementById("appCategory")?.value || "Sonstiges";
     const desc = document.getElementById("appDesc")?.value?.trim() || "";
-    const type = document.getElementById("appType")?.value || "web";
+    const typeRaw = document.getElementById("appType")?.value || "web";
+    let type = typeRaw;
+    const isEdit = Boolean(editingId);
+
+    if (typeRaw === "scan"){
+      const selected = scanSelect?.value || "";
+      if (!selected){
+        alert("Bitte eine App aus dem Scan wählen.");
+        return;
+      }
+      launch = selected;
+      type = "desktop";
+      if (!name){
+        const opt = scanSelect?.selectedOptions?.[0];
+        name = opt?.textContent?.trim() || "";
+      }
+    }
 
     if(!name || !launch){
       alert("Bitte Name und URL/Pfad ausfüllen.");
       return;
+    }
+    if (!categories.some(c => c.toLowerCase() === String(cat).toLowerCase())){
+      cat = "Sonstiges";
     }
 
     // Mini-Validierung
@@ -388,27 +698,50 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    const app = {
-      id: (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())),
-      name,
-      type,          // "web" | "desktop"
-      launch,        // url / uri / file:///
-      category: cat,
-      description: desc,
-      color: selectedColor,
-      fav: false,
-      icon: iconState,
-      createdAt: Date.now()
-    };
+    if (isEdit){
+      const idx = apps.findIndex(a => a.id === editingId);
+      if (idx !== -1){
+        const old = apps[idx];
+        apps[idx] = {
+          ...old,
+          name,
+          type,          // "web" | "desktop"
+          launch,        // url / uri / file:///
+          category: cat,
+          description: desc,
+          color: selectedColor,
+          icon: iconState
+        };
+      }
+    } else {
+      const app = {
+        id: (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now())),
+        name,
+        type,          // "web" | "desktop"
+        launch,        // url / uri / file:///
+        category: cat,
+        description: desc,
+        color: selectedColor,
+        fav: false,
+        icon: iconState,
+        createdAt: Date.now()
+      };
 
-    apps.unshift(app);
+      apps.unshift(app);
+    }
     saveApps(apps);
 
     // reset
     document.getElementById("appName").value = "";
     document.getElementById("appUrl").value = "";
     document.getElementById("appDesc").value = "";
-    document.getElementById("appCategory").value = "Sonstiges";
+    if (appCategory){
+      if (categories.some(c => c.toLowerCase() === "sonstiges")) {
+        appCategory.value = "Sonstiges";
+      } else if (categories.length){
+        appCategory.value = categories[0];
+      }
+    }
     document.getElementById("appType").value = "web";
     iconState = { type:"favicon", value:"" };
     setIconNone();
@@ -421,6 +754,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // initial
+  renderCategories();
   setIconNone();
   syncTypeUI();
   render();
