@@ -15,11 +15,13 @@ pub fn run() {
     .plugin(tauri_plugin_shell::init())
     .setup(|app| {
       if cfg!(debug_assertions) {
-        app.handle().plugin(
-          tauri_plugin_log::Builder::default()
-            .level(log::LevelFilter::Info)
-            .build(),
-        )?;
+        // Logging in dev disabled to keep terminal clean.
+        // Uncomment to re-enable:
+        // app.handle().plugin(
+        //   tauri_plugin_log::Builder::default()
+        //     .level(log::LevelFilter::Warn)
+        //     .build(),
+        // )?;
       }
       Ok(())
     })

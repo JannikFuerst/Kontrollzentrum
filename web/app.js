@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.querySelectorAll(".tab").forEach(t => {
         t.classList.remove("active");
         t.setAttribute("aria-selected", "false");
-      });DOMContentLoaded
+      });
       tab.classList.add("active");
       tab.setAttribute("aria-selected", "true");
       activeTab = tab.dataset.tab || "all";
@@ -237,16 +237,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!raw) return;
 
     const launch = app.type === "web" ? normalizeWebUrl(raw) : raw;
+    console.log("[openLaunch]", { id: app?.id, type: app?.type, raw, launch });
 
     // TAURI invoke -> Rust command -> Shell open (zuverlässig)
     try{
       const t = window.__TAURI__;
-      if (t?.core?.invoke){
-        await t.core.invoke("open_external", { url: launch });
+      if (!t?.core?.invoke){
+        alert("Tauri API nicht verfÃ¼gbar (window.__TAURI__.core.invoke fehlt).");
         return;
       }
+      await t.core.invoke("open_external", { url: launch });
+      return;
     }catch(e){
       console.error("Tauri invoke(open_external) failed:", e);
+      alert("Konnte nicht öffnen: " + (e?.message || e));
     }
 
     // Fallback (Live Server / Browser)

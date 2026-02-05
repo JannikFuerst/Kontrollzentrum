@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Kontrollzentrum",
-  "version": "0.1.8",
+  "version": "1.0.9",
   "identifier": "com.jannik.kontrollzentrum",
 
   "build": {
