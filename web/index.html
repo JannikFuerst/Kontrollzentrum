@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Control Center</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Control Center</h1>
+        <p class="subtitle">Alle deine Apps an einem Ort</p>
+      </div>
+    </header>
+
+    <div class="toprow">
+      <div class="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="white" stroke-opacity="0.8" stroke-width="1.7"/>
+          <path d="M16.2 16.2 21 21" stroke="white" stroke-opacity="0.8" stroke-width="1.7" stroke-linecap="round"/>
+        </svg>
+        <input id="search" placeholder="Apps durchsuchen..." />
+      </div>
+
+      <button class="btn" id="addBtn" type="button">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        App hinzufügen
+      </button>
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Filter">
+      <div class="tab active" data-tab="all" role="tab" aria-selected="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z"
+                stroke="white" stroke-opacity="0.8" stroke-width="1.6" />
+        </svg>
+        Alle <span class="badge" id="badgeAll">0</span>
+      </div>
+
+      <div class="tab" data-tab="fav" role="tab" aria-selected="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3.6 14.6 9l5.9.8-4.3 4.2 1 5.9L12 17.2 6.8 20l1-5.9-4.3-4.2 5.9-.8L12 3.6Z"
+                stroke="white" stroke-opacity="0.8" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+        Favoriten
+      </div>
+
+      <div class="tab" data-tab="misc" role="tab" aria-selected="false">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M6 12h.01M12 12h.01M18 12h.01" stroke="white" stroke-opacity="0.8" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        Sonstiges <span class="badge" id="badgeMisc">0</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <main>
+      <section class="empty" id="emptyState">
+        <div class="iconwrap" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <rect x="6" y="3" width="12" height="18" rx="2.8" stroke="white" stroke-opacity="0.75" stroke-width="1.6"/>
+            <path d="M9 7h.01M12 7h.01M15 7h.01M9 10h.01M12 10h.01M15 10h.01M9 13h.01M12 13h.01M15 13h.01M12 18h0"
+                  stroke="white" stroke-opacity="0.75" stroke-width="2.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h2>Noch keine Apps</h2>
+        <p>Füge deine erste App hinzu</p>
+        <button class="btn secondary" type="button" id="addBtn2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          App hinzufügen
+        </button>
+      </section>
+
+      <section class="grid" id="appGrid" style="display:none;"></section>
+    </main>
+  </div>
+
+  <div id="modalRoot"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

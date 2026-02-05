@@ -1,0 +1,49 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "Kontrollzentrum",
+  "version": "0.1.0",
+  "identifier": "com.jannik.kontrollzentrum",
+
+  "build": {
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "",
+    "devUrl": null,
+    "frontendDist": "../web"
+  },
+
+  "app": {
+    "windows": [
+      {
+        "title": "Kontrollzentrum",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://example.com/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVGM0JFMUJCRjdCNDZFRUYKUldUdmJyVDN1K0U3WDBWTVhHaEEvb3VxTTJBR2dJU2M0S1dVYmtSTTd2a0JPU3dpdytjM1VTSVEK"
+    }
+  }
+}
