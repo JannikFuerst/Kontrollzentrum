@@ -685,15 +685,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     const input = e.target.closest("input[name='bgMode']");
     if (!input) return;
     const mode = input.value || "theme";
-    if (mode === "custom" && !localStorage.getItem("kc_bg_custom")){
-      showBgError(true);
-      applyBackground("theme");
-      syncBackgroundUI("theme");
-      return;
-    }
     showBgError(false);
     applyBackground(mode);
     syncBackgroundUI(mode);
+    if (mode === "custom" && !localStorage.getItem("kc_bg_custom")){
+      bgUpload?.click();
+    }
   });
 
   function showBgError(show){
