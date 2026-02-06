@@ -39,7 +39,7 @@
           <select class="select" id="appType">
             <option value="web">Web (https://...)</option>
             <option value="desktop">Desktop (URI / file://)</option>
-            <option value="scan">Desktop (Scan Vorschläge)</option>
+            <option value="scan" selected>Desktop (Scan Vorschläge)</option>
           </select>
         </div>
 
@@ -59,7 +59,10 @@
 
       <div class="field hidden" id="scanField">
         <div class="label">Gefundene Apps</div>
-        <select class="select" id="scanSelect"></select>
+        <div class="scan-row">
+          <select class="select" id="scanSelect"></select>
+          <button class="icon-btn scan-refresh" id="scanRefresh" type="button" title="Scan aktualisieren" aria-label="Scan aktualisieren">↻</button>
+        </div>
         <div class="help-text">
           Wähle eine App aus dem Windows‑Scan.
         </div>
@@ -68,16 +71,9 @@
         </div>
       </div>
 
-      <div class="row2">
-        <div class="field">
-          <div class="label">Farbe</div>
-          <div class="colors" id="colorRow"></div>
-        </div>
-
-        <div class="field">
-          <div class="label">Beschreibung</div>
-          <input class="input" id="appDesc" placeholder="Optional" />
-        </div>
+      <div class="field">
+        <div class="label">Beschreibung</div>
+        <input class="input" id="appDesc" placeholder="Optional" />
       </div>
     </div>
 
@@ -100,6 +96,32 @@
     <div class="modal-foot">
       <button class="btn-ghost" id="confirmCancel" type="button">Abbrechen</button>
       <button class="btn-primary" id="confirmOk" type="button">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="catManageOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="catManageTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="catManageTitle">Kategorien verwalten</div>
+      <button class="icon-btn" id="catManageClose" type="button" aria-label="Schließen">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="label">Neue Kategorie</div>
+        <div class="row2">
+          <input class="input" id="catManageInput" placeholder="z.B. Lernen, Finanzen..." />
+          <button class="btn-primary" id="catManageAdd" type="button">Hinzufügen</button>
+        </div>
+        <div class="help-text">Löschen verschiebt Apps automatisch nach "Sonstiges".</div>
+      </div>
+      <div class="field">
+        <div class="label">Vorhandene Kategorien</div>
+        <div class="cat-manage-list" id="catManageList"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="catManageCancel" type="button">Schließen</button>
     </div>
   </div>
 </div>
@@ -143,7 +165,51 @@
           <button class="accent-btn" data-accent="orange" title="Orange"></button>
           <button class="accent-btn" data-accent="red" title="Rot"></button>
           <button class="accent-btn" data-accent="cyan" title="Cyan"></button>
+          <button class="accent-btn" data-accent="gray" title="Grau"></button>
         </div>
+      </div>
+      <div class="field">
+        <div class="label">Hintergrund</div>
+        <div class="bg-choices" id="bgChoices">
+          <label class="bg-choice">
+            <input type="radio" name="bgMode" value="theme" />
+            <span class="bg-thumb bg-theme"></span>
+            <span class="bg-label">Standard</span>
+          </label>
+          <label class="bg-choice">
+            <input type="radio" name="bgMode" value="mono" />
+            <span class="bg-thumb bg-mono"></span>
+            <span class="bg-label">Mono</span>
+          </label>
+          <label class="bg-choice bg-choice-duo">
+            <input type="radio" name="bgMode" value="duo" />
+            <span class="bg-thumb bg-duo"></span>
+            <span class="bg-label">Duo</span>
+          </label>
+          <label class="bg-choice">
+            <input type="radio" name="bgMode" value="custom" />
+            <span class="bg-thumb bg-custom"></span>
+            <span class="bg-label">Custom</span>
+          </label>
+        </div>
+        <div class="bg-duo hidden" id="bgDuoControls">
+          <div class="label">Duo Farben</div>
+          <div class="bg-duo-row">
+            <span class="bg-duo-label">Oben rechts</span>
+            <div class="bg-duo-palette" id="bgDuoTop"></div>
+          </div>
+          <div class="bg-duo-row">
+            <span class="bg-duo-label">Unten links</span>
+            <div class="bg-duo-palette" id="bgDuoBottom"></div>
+          </div>
+        </div>
+        <div class="bg-upload hidden" id="bgUploadRow">
+          <input class="input" id="bgUploadName" placeholder="Kein Bild gewaehlt" readonly />
+          <button class="btn-primary" id="bgUploadBtn" type="button">Bild hochladen</button>
+          <input id="bgUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
+        </div>
+        <div class="help-text">Erlaubte Groesse: 1920x1080, 2560x1440, 3840x2160, 5184x3456</div>
+        <div class="error-box hidden" id="bgError">Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.</div>
       </div>
     </div>
     <div class="modal-foot">

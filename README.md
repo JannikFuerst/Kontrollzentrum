@@ -1,19 +1,25 @@
-# Kontrollzentrum — Open Beta 1.1.1
+# Kontrollzentrum — Open Beta 1.1.2
 
-Dein persönliches Control Center für Web‑ und Desktop‑Apps. Schnell, sauber, anpassbar.
+Dein persoenliches Control Center fuer Web- und Desktop-Apps. Schnell, clean, anpassbar.
 
-## Highlights
-- Web‑Apps und Desktop‑Apps an einem Ort
-- Windows‑Scan für Apps/Shortcuts (inkl. Microsoft Store / Start Apps)
-- Angepinnt‑Leiste für Schnellzugriff
-- Kategorien erstellen, verschieben, löschen
-- Drag & Drop Sortierung innerhalb von Kategorien
-- App bearbeiten direkt auf der Karte
+## Warum Kontrollzentrum?
+- Alles an einem Ort: Web-Apps, Desktop-Apps und Store-Apps
+- Sofortiger Zugriff durch Favoriten und Pin-Leiste
+- Kategorien und Drag & Drop fuer perfekte Ordnung
+- Ein Klick: App starten, bearbeiten oder loeschen
 - Globaler Hotkey zum Ein-/Ausblenden
-- Light/Dark‑Mode + frei wählbare Akzentfarben
+- Starker Look: Light/Dark, Akzentfarben, Backgrounds
+
+## Was du machen kannst
+- Apps manuell hinzufuegen oder per Windows-Scan finden
+- Kategorien erstellen, sortieren und verwalten
+- Favoriten anpinnen fuer schnellen Zugriff
+- Apps direkt auf der Karte bearbeiten
+- Hintergrund und Akzentfarben individuell anpassen
+- Hotkey setzen (z.B. zum schnellen Ein- und Ausblenden)
 
 ## Screens
-Siehe `web/` für UI‑Assets und Styling.
+Siehe `web/` fuer UI-Assets und Styling.
 
 ## Voraussetzungen
 - Node.js + npm
@@ -31,7 +37,7 @@ npm run tauri build
 ```
 
 ## Open Beta
-Diese Version ist **Open Beta 1.1.1**.  
+Diese Version ist **Open Beta 1.1.2**.  
 Feedback zu UX, Bugs und Ideen ist sehr willkommen.
 
 ## License

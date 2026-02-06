@@ -336,9 +336,18 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
   Ok(())
 }
     fn scan_start_apps() -> Vec<ScannedApp> {
+      #[cfg(windows)]
+      use std::os::windows::process::CommandExt;
+
+      #[cfg(windows)]
+      const CREATE_NO_WINDOW: u32 = 0x08000000;
+
       let output = Command::new("powershell")
+        .creation_flags(CREATE_NO_WINDOW)
         .args([
           "-NoProfile",
+          "-WindowStyle",
+          "Hidden",
           "-Command",
           "Get-StartApps | Select-Object Name,AppID | ConvertTo-Json",
         ])

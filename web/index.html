@@ -42,33 +42,33 @@
       </div>
     </div>
 
-    <div class="tabs" role="tablist" aria-label="Filter">
-      <div class="tab active" data-tab="all" role="tab" aria-selected="true">
+    <div class="tabs-wrap">
+      <div class="tabs" role="tablist" aria-label="Filter">
+        <div class="tab active" data-tab="all" role="tab" aria-selected="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z"
                 stroke="currentColor" stroke-width="1.6" />
         </svg>
         Alle <span class="badge" id="badgeAll">0</span>
+        </div>
+
+        <div class="tab" data-tab="fav" role="tab" aria-selected="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3.6 14.6 9l5.9.8-4.3 4.2 1 5.9L12 17.2 6.8 20l1-5.9-4.3-4.2 5.9-.8L12 3.6Z"
+                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          </svg>
+        Favoriten <span class="badge" id="badgeFav">0</span>
       </div>
 
-      <div class="tab" data-tab="fav" role="tab" aria-selected="false">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3.6 14.6 9l5.9.8-4.3 4.2 1 5.9L12 17.2 6.8 20l1-5.9-4.3-4.2 5.9-.8L12 3.6Z"
-                stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-        </svg>
-        Favoriten
+        <div id="catTabs" class="cat-tabs"></div>
+
+        <div class="tab" data-tab="misc" role="tab" aria-selected="false">
+          Sonstiges <span class="badge" id="badgeMisc">0</span>
+        </div>
       </div>
 
-      <div id="catTabs" class="cat-tabs"></div>
-
-      <div class="tab" data-tab="misc" role="tab" aria-selected="false">
-        Sonstiges <span class="badge" id="badgeMisc">0</span>
-      </div>
-
-      <button class="tab tab-add-btn" id="catAddToggle" type="button" aria-label="Kategorie hinzufügen">+</button>
-      <div class="cat-add-inline hidden" id="catAddInline">
-        <input id="catInlineInput" class="input cat-inline-input" placeholder="Neue Kategorie..." />
-        <button class="tab tab-add-ok" id="catAddApply" type="button">OK</button>
+      <div class="tabs-actions">
+        <button class="tab tab-add-btn" id="catAddToggle" type="button" aria-label="Kategorien verwalten">+</button>
       </div>
     </div>
 
@@ -103,7 +103,7 @@
   </div>
 
   <div class="corner-meta">
-    <div id="versionTag">v1.1.0</div>
+    <div id="versionTag">v1.1.2</div>
     <div class="credit">made by Jannik Fürst</div>
   </div>
 

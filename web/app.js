@@ -56,6 +56,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   const hotkeyCancel = document.getElementById("hotkeyCancel");
   const themeToggle = document.getElementById("themeToggle");
   const accentRow = document.getElementById("accentRow");
+  const bgChoices = document.getElementById("bgChoices");
+  const bgUpload = document.getElementById("bgUpload");
+  const bgUploadBtn = document.getElementById("bgUploadBtn");
+  const bgUploadName = document.getElementById("bgUploadName");
+  const bgUploadRow = document.getElementById("bgUploadRow");
+  const bgDuoControls = document.getElementById("bgDuoControls");
+  const bgDuoTop = document.getElementById("bgDuoTop");
+  const bgDuoBottom = document.getElementById("bgDuoBottom");
+  const bgError = document.getElementById("bgError");
 
   const confirmOverlay = document.getElementById("confirmOverlay");
   const confirmClose = document.getElementById("confirmClose");
@@ -69,9 +78,12 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const catTabs = document.getElementById("catTabs");
   const catAddToggle = document.getElementById("catAddToggle");
-  const catAddInline = document.getElementById("catAddInline");
-  const catInlineInput = document.getElementById("catInlineInput");
-  const catAddApply = document.getElementById("catAddApply");
+  const catManageOverlay = document.getElementById("catManageOverlay");
+  const catManageClose = document.getElementById("catManageClose");
+  const catManageCancel = document.getElementById("catManageCancel");
+  const catManageList = document.getElementById("catManageList");
+  const catManageInput = document.getElementById("catManageInput");
+  const catManageAdd = document.getElementById("catManageAdd");
 
   const appType = document.getElementById("appType");
   const appCategory = document.getElementById("appCategory");
@@ -81,12 +93,33 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scanField = document.getElementById("scanField");
   const scanSelect = document.getElementById("scanSelect");
   const scanLoading = document.getElementById("scanLoading");
+  const scanRefresh = document.getElementById("scanRefresh");
 
   let editingId = null;
 
   let scanApps = [];
+  const SCAN_CACHE_KEY = "kc_scan_cache";
+  const SCAN_CACHE_TTL = 1000 * 60 * 60 * 6; // 6h
 
-  async function loadScanApps(){
+  function loadScanCache(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(SCAN_CACHE_KEY) || "null");
+      if (!raw || !Array.isArray(raw.apps) || typeof raw.ts !== "number") return null;
+      return raw;
+    }catch{
+      return null;
+    }
+  }
+
+  function saveScanCache(list){
+    try{
+      localStorage.setItem(SCAN_CACHE_KEY, JSON.stringify({ ts: Date.now(), apps: list }));
+    }catch{
+      // ignore cache write errors
+    }
+  }
+
+  async function loadScanApps(force = false){
     try{
       if (scanSelect){
         scanSelect.disabled = true;
@@ -97,6 +130,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         scanSelect.appendChild(opt);
       }
       if (scanLoading) scanLoading.classList.remove("hidden");
+
+      const cache = force ? null : loadScanCache();
+      if (cache){
+        scanApps = cache.apps || [];
+        renderScanApps();
+        const age = Date.now() - cache.ts;
+        if (age < SCAN_CACHE_TTL){
+          if (scanLoading) scanLoading.classList.add("hidden");
+          return;
+        }
+      }
+
       const t = window.__TAURI__;
       if (!t?.core?.invoke){
         scanApps = [];
@@ -105,11 +150,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
       scanApps = await t.core.invoke("scan_desktop_apps");
+      saveScanCache(scanApps);
       renderScanApps();
     }catch(e){
       console.error("scan_desktop_apps failed:", e);
-      scanApps = [];
-      renderScanApps();
+      const cache = loadScanCache();
+      if (cache && Array.isArray(cache.apps)){
+        scanApps = cache.apps;
+        renderScanApps();
+      } else {
+        scanApps = [];
+        renderScanApps();
+      }
       alert("Scan fehlgeschlagen: " + (e?.message || e));
     } finally {
       if (scanLoading) scanLoading.classList.add("hidden");
@@ -128,6 +180,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     scanSelect.disabled = false;
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "";
+    placeholder.selected = true;
+    scanSelect.appendChild(placeholder);
     scanApps.forEach(app => {
       const opt = document.createElement("option");
       opt.value = app.launch || app.path || "";
@@ -182,7 +239,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     teal:   { rgb: "20,184,166", rgb2: "13,148,136" },
     orange: { rgb: "249,115,22", rgb2: "234,88,12" },
     red:    { rgb: "239,68,68", rgb2: "220,38,38" },
-    cyan:   { rgb: "6,182,212", rgb2: "8,145,178" }
+    cyan:   { rgb: "6,182,212", rgb2: "8,145,178" },
+    gray:   { rgb: "100,116,139", rgb2: "71,85,105" }
   };
 
   function applyAccent(name){
@@ -204,6 +262,98 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (themeToggle) themeToggle.checked = savedTheme === "light";
   const savedAccent = localStorage.getItem("kc_accent") || "purple";
   applyAccent(savedAccent);
+
+  const BG_MODES = ["theme", "mono", "duo", "custom"];
+  const BG_SIZES = [
+    { w: 1920, h: 1080 }, // FHD
+    { w: 2560, h: 1440 }, // WQHD
+    { w: 3840, h: 2160 }, // 4K
+    { w: 5184, h: 3456 }  // 5K 3:2
+  ];
+
+  function applyBackground(mode){
+    let m = mode || "theme";
+    if (m === "calm") m = "mono";
+    if (m === "warm") m = "duo";
+    if (!BG_MODES.includes(m)) m = "theme";
+    document.body.classList.remove("bg-theme", "bg-mono", "bg-duo", "bg-custom");
+    document.body.classList.add("bg-" + m);
+    localStorage.setItem("kc_bg_mode", m);
+  }
+
+  function applyCustomBackground(dataUrl){
+    if (!dataUrl) {
+      document.documentElement.style.removeProperty("--custom-bg");
+      localStorage.removeItem("kc_bg_custom");
+      return;
+    }
+    document.documentElement.style.setProperty("--custom-bg", `url("${dataUrl}")`);
+    localStorage.setItem("kc_bg_custom", dataUrl);
+  }
+
+  function syncBackgroundUI(mode){
+    if (!bgChoices) return;
+    const m = BG_MODES.includes(mode) ? mode : "theme";
+    bgChoices.querySelectorAll("input[name='bgMode']").forEach((input) => {
+      input.checked = input.value === m;
+    });
+    if (bgUploadRow){
+      bgUploadRow.classList.toggle("hidden", m !== "custom");
+    }
+    if (bgDuoControls){
+      bgDuoControls.classList.toggle("hidden", m !== "duo");
+    }
+    if (bgUploadName){
+      const has = Boolean(localStorage.getItem("kc_bg_custom"));
+      bgUploadName.value = has ? "Custom Hintergrund aktiv" : "Kein Bild gewaehlt";
+    }
+  }
+
+  function applyDuoColors(topKey, bottomKey){
+    const top = ACCENTS[topKey] ? topKey : "purple";
+    const bottom = ACCENTS[bottomKey] ? bottomKey : "blue";
+    const topRgb = ACCENTS[top].rgb;
+    const bottomRgb = ACCENTS[bottom].rgb;
+    document.documentElement.style.setProperty("--duo-top", `rgba(${topRgb},0.22)`);
+    document.documentElement.style.setProperty("--duo-bottom", `rgba(${bottomRgb},0.20)`);
+    localStorage.setItem("kc_bg_duo_top", top);
+    localStorage.setItem("kc_bg_duo_bottom", bottom);
+    if (bgDuoTop){
+      bgDuoTop.querySelectorAll(".bg-duo-color").forEach(btn => {
+        btn.classList.toggle("selected", btn.dataset.accent === top);
+      });
+    }
+    if (bgDuoBottom){
+      bgDuoBottom.querySelectorAll(".bg-duo-color").forEach(btn => {
+        btn.classList.toggle("selected", btn.dataset.accent === bottom);
+      });
+    }
+  }
+
+  function renderDuoPalette(container, onPick){
+    if (!container) return;
+    container.innerHTML = "";
+    Object.keys(ACCENTS).forEach(key => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "color bg-duo-color";
+      btn.dataset.accent = key;
+      btn.style.background = `rgb(${ACCENTS[key].rgb})`;
+      btn.addEventListener("click", () => onPick(key));
+      container.appendChild(btn);
+    });
+  }
+
+  const savedBgMode = localStorage.getItem("kc_bg_mode") || "theme";
+  const savedBgCustom = localStorage.getItem("kc_bg_custom") || "";
+  const savedDuoTop = localStorage.getItem("kc_bg_duo_top") || "purple";
+  const savedDuoBottom = localStorage.getItem("kc_bg_duo_bottom") || "blue";
+  if (savedBgCustom) applyCustomBackground(savedBgCustom);
+  renderDuoPalette(bgDuoTop, (key) => applyDuoColors(key, localStorage.getItem("kc_bg_duo_bottom") || "blue"));
+  renderDuoPalette(bgDuoBottom, (key) => applyDuoColors(localStorage.getItem("kc_bg_duo_top") || "purple", key));
+  applyDuoColors(savedDuoTop, savedDuoBottom);
+  applyBackground(savedBgMode);
+  syncBackgroundUI(savedBgMode);
 
   // Apply saved hotkey on boot (Tauri)
   try{
@@ -232,6 +382,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (hotkeyInput) hotkeyInput.value = saved;
     if (themeToggle) themeToggle.checked = (localStorage.getItem("kc_theme") || "dark") === "light";
     applyAccent(localStorage.getItem("kc_accent") || "purple");
+    const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
+    syncBackgroundUI(bgMode);
+    showBgError(false);
     settingsOverlay.classList.add("show");
     settingsOverlay.setAttribute("aria-hidden", "false");
     setTimeout(() => hotkeyInput?.focus(), 0);
@@ -242,6 +395,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     settingsOverlay.classList.remove("show");
     settingsOverlay.setAttribute("aria-hidden", "true");
     stopHotkeyCapture();
+  }
+
+  function openCatManage(){
+    if (!catManageOverlay) return;
+    renderCategoryManager();
+    catManageOverlay.classList.add("show");
+    catManageOverlay.setAttribute("aria-hidden", "false");
+    setTimeout(() => catManageInput?.focus(), 0);
+  }
+
+  function closeCatManage(){
+    if (!catManageOverlay) return;
+    catManageOverlay.classList.remove("show");
+    catManageOverlay.setAttribute("aria-hidden", "true");
   }
 
   function openConfirm(message, onOk){
@@ -263,17 +430,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   addBtn?.addEventListener("click", openModal);
   addBtn2?.addEventListener("click", openModal);
   settingsBtn?.addEventListener("click", openSettings);
+  catAddToggle?.addEventListener("click", openCatManage);
 
   closeBtn?.addEventListener("click", closeModal);
   cancelBtn?.addEventListener("click", closeModal);
   settingsClose?.addEventListener("click", closeSettings);
   hotkeyCancel?.addEventListener("click", closeSettings);
+  catManageClose?.addEventListener("click", closeCatManage);
+  catManageCancel?.addEventListener("click", closeCatManage);
 
   overlay?.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
   });
   settingsOverlay?.addEventListener("click", (e) => {
     if (e.target === settingsOverlay) closeSettings();
+  });
+  catManageOverlay?.addEventListener("click", (e) => {
+    if (e.target === catManageOverlay) closeCatManage();
   });
 
   confirmClose?.addEventListener("click", closeConfirm);
@@ -295,6 +468,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (e.key === "Escape" && settingsOverlay?.classList.contains("show")) {
       closeSettings();
+      return;
+    }
+    if (e.key === "Escape" && catManageOverlay?.classList.contains("show")) {
+      closeCatManage();
       return;
     }
     if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
@@ -385,27 +562,63 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyAccent(btn.dataset.accent);
   });
 
-  // Color Picker
-  const colorRow = document.getElementById("colorRow");
-  const palette = ["#7c3aed","#3b82f6","#10b981","#f59e0b","#ec4899","#06b6d4","#ef4444","#eab308"];
-  let selectedColor = palette[0];
+  bgChoices?.addEventListener("change", (e) => {
+    const input = e.target.closest("input[name='bgMode']");
+    if (!input) return;
+    const mode = input.value || "theme";
+    if (mode === "custom" && !localStorage.getItem("kc_bg_custom")){
+      showBgError(true);
+      applyBackground("theme");
+      syncBackgroundUI("theme");
+      return;
+    }
+    showBgError(false);
+    applyBackground(mode);
+    syncBackgroundUI(mode);
+  });
 
-  function renderColors() {
-    if (!colorRow) return;
-    colorRow.innerHTML = "";
-    palette.forEach((val) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "color" + (selectedColor === val ? " selected" : "");
-      b.style.background = val;
-      b.addEventListener("click", () => {
-        selectedColor = val;
-        renderColors();
-      });
-      colorRow.appendChild(b);
-    });
+  function showBgError(show){
+    if (!bgError) return;
+    bgError.classList.toggle("hidden", !show);
   }
-  renderColors();
+
+  bgUploadBtn?.addEventListener("click", () => bgUpload?.click());
+
+  bgUpload?.addEventListener("change", async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ok = /image\/(png|jpeg|jpg|webp)/.test(file.type);
+    if (!ok){
+      showBgError(true);
+      if (bgUploadName) bgUploadName.value = "Falsches Dateiformat";
+      bgUpload.value = "";
+      return;
+    }
+    try{
+      const dataUrl = await fileToDataUrl(file);
+      const size = await getImageSize(dataUrl);
+      const match = size && BG_SIZES.some(s => s.w === size.w && s.h === size.h);
+      if (!match){
+        showBgError(true);
+        if (bgUploadName) bgUploadName.value = `Falsche Groesse (${size?.w || "?"}x${size?.h || "?"})`;
+        bgUpload.value = "";
+        return;
+      }
+      showBgError(false);
+      applyCustomBackground(dataUrl);
+      applyBackground("custom");
+      syncBackgroundUI("custom");
+      if (bgUploadName) bgUploadName.value = file.name;
+      bgUpload.value = "";
+    }catch{
+      showBgError(true);
+      if (bgUploadName) bgUploadName.value = "Bild konnte nicht gelesen werden";
+      bgUpload.value = "";
+    }
+  });
+
+  // Default card color (no picker UI)
+  let selectedColor = "#7c3aed";
 
   function applyIconStateFromApp(app){
     if (!app?.icon || app.icon.type === "none"){
@@ -442,8 +655,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (appCategory) appCategory.value = app.category || "Sonstiges";
     document.getElementById("appType").value = app.type === "desktop" ? "desktop" : "web";
 
-    selectedColor = app.color || palette[0];
-    renderColors();
+    selectedColor = app.color || "#7c3aed";
     applyIconStateFromApp(app);
 
     openModal();
@@ -535,6 +747,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
+  function getImageSize(dataUrl){
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    });
+  }
+
   // Typ UI (Label/Placeholder/Help)
   function syncTypeUI(){
     const t = appType?.value || "web";
@@ -563,6 +784,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   appType?.addEventListener("change", syncTypeUI);
   scanSelect?.addEventListener("change", applyScanSelectionIcon);
+  scanRefresh?.addEventListener("click", () => loadScanApps(true));
 
   // Storage
   function loadApps(){
@@ -718,34 +940,52 @@ document.addEventListener("DOMContentLoaded", async () => {
           tab.innerHTML = `
             <span>${escapeHtml(c)}</span>
             <span class="badge" data-cat-badge="${escapeHtml(c)}">0</span>
-            <button class="cat-x" type="button" aria-label="Kategorie löschen">×</button>
           `;
-
-          tab.querySelector(".cat-x")?.addEventListener("click", (e) => {
-            e.stopPropagation();
-            openConfirm(`Kategorie "${c}" löschen? Apps werden nach "Sonstiges" verschoben.`, () => {
-              categories = categories.filter(x => x.toLowerCase() !== c.toLowerCase());
-              apps = apps.map(a => (a.category === c ? { ...a, category: "Sonstiges" } : a));
-              saveApps(apps);
-              saveCategories(categories);
-              categoryTabOrder = categoryTabOrder.filter(x => x.toLowerCase() !== c.toLowerCase());
-              saveCategoryTabOrder(categoryTabOrder);
-              if (activeTab === `cat:${c}`) setActiveTab("misc");
-              renderCategories();
-              render();
-            });
-          });
 
           catTabs.appendChild(tab);
         });
     }
   }
 
+  function renderCategoryManager(){
+    if (!catManageList) return;
+    catManageList.innerHTML = "";
+    const sorted = [...categories]
+      .filter(c => c.toLowerCase() !== "sonstiges")
+      .sort((a, b) => a.localeCompare(b, "de"));
+    sorted.forEach((c) => {
+      const row = document.createElement("div");
+      row.className = "cat-item";
+      row.innerHTML = `
+        <div class="cat-name">${escapeHtml(c)}</div>
+        <button class="cat-del" type="button" ${c === "Sonstiges" ? "disabled" : ""}>Löschen</button>
+      `;
+      const delBtn = row.querySelector(".cat-del");
+      if (delBtn && c !== "Sonstiges") {
+        delBtn.addEventListener("click", () => {
+          openConfirm(`Kategorie "${c}" löschen? Apps werden nach "Sonstiges" verschoben.`, () => {
+            categories = categories.filter(x => x.toLowerCase() !== c.toLowerCase());
+            apps = apps.map(a => (a.category === c ? { ...a, category: "Sonstiges" } : a));
+            saveApps(apps);
+            saveCategories(categories);
+            categoryTabOrder = categoryTabOrder.filter(x => x.toLowerCase() !== c.toLowerCase());
+            saveCategoryTabOrder(categoryTabOrder);
+            if (activeTab === `cat:${c}`) setActiveTab("misc");
+            renderCategories();
+            render();
+            renderCategoryManager();
+          });
+        });
+      }
+      catManageList.appendChild(row);
+    });
+  }
+
   function addCategoryFromInput(){
-    const val = normalizeCategory(catInlineInput?.value);
+    const val = normalizeCategory(catManageInput?.value);
     if (!val) return;
     if (categories.some(c => c.toLowerCase() === val.toLowerCase())){
-      catInlineInput.value = "";
+      if (catManageInput) catManageInput.value = "";
       return;
     }
     categories.push(val);
@@ -754,20 +994,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveCategoryTabOrder(categoryTabOrder);
     renderCategories();
     setActiveTab(`cat:${val}`);
-    catInlineInput.value = "";
-    catAddInline?.classList.add("hidden");
+    if (catManageInput) catManageInput.value = "";
+    renderCategoryManager();
   }
 
-  catAddToggle?.addEventListener("click", () => {
-    catAddInline?.classList.toggle("hidden");
-    if (!catAddInline?.classList.contains("hidden")) {
-      setTimeout(() => catInlineInput?.focus(), 0);
-    }
-  });
-  catAddApply?.addEventListener("click", addCategoryFromInput);
-  catInlineInput?.addEventListener("keydown", (e) => {
+  catManageAdd?.addEventListener("click", addCategoryFromInput);
+  catManageInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") addCategoryFromInput();
-    if (e.key === "Escape") catAddInline?.classList.add("hidden");
   });
 
   async function openLaunch(app){
@@ -819,6 +1052,73 @@ document.addEventListener("DOMContentLoaded", async () => {
       .replaceAll("'","&#039;");
   }
 
+  function getInitials(name){
+    const raw = String(name || "").trim();
+    if (!raw) return "?";
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+
+  function faviconAltUrl(url){
+    try{
+      const u = new URL(url);
+      return `https://icons.duckduckgo.com/ip3/${encodeURIComponent(u.hostname)}.ico`;
+    }catch{
+      return "";
+    }
+  }
+
+  function getIconCandidates(app){
+    if (app?.icon?.type === "custom" && app.icon.value){
+      return { primary: app.icon.value, alt: "" };
+    }
+    if (app?.type === "web"){
+      const primary = faviconUrl(app.launch || "");
+      const alt = faviconAltUrl(app.launch || "");
+      return { primary, alt };
+    }
+    if (app?.icon?.type === "favicon" && app.icon.value){
+      return { primary: app.icon.value, alt: "" };
+    }
+    return { primary: "", alt: "" };
+  }
+
+  function fillIcon(iconBox, app){
+    if (!iconBox) return;
+    iconBox.innerHTML = "";
+    const { primary, alt } = getIconCandidates(app);
+    const fallback = document.createElement("div");
+    fallback.className = "icon-fallback";
+    fallback.textContent = getInitials(app?.name);
+    if (primary){
+      const img = document.createElement("img");
+      img.src = primary;
+      img.alt = "";
+      img.decoding = "async";
+      img.loading = "lazy";
+      img.dataset.alt = alt || "";
+      img.addEventListener("load", () => {
+        iconBox.classList.add("has-img");
+      });
+      img.addEventListener("error", () => {
+        const next = img.dataset.alt || "";
+        if (next){
+          img.dataset.alt = "";
+          img.src = next;
+          return;
+        }
+        img.remove();
+        iconBox.classList.remove("has-img");
+      });
+      iconBox.appendChild(img);
+      iconBox.classList.add("has-img");
+    } else {
+      iconBox.classList.remove("has-img");
+    }
+    iconBox.appendChild(fallback);
+  }
+
   function setActiveTab(tabValue){
     activeTab = tabValue || "all";
     document.querySelectorAll(".tab").forEach(t => {
@@ -841,8 +1141,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // badges
     const badgeAll = document.getElementById("badgeAll");
+    const badgeFav = document.getElementById("badgeFav");
     const badgeMisc = document.getElementById("badgeMisc");
     if (badgeAll) badgeAll.textContent = String(apps.length);
+    if (badgeFav) badgeFav.textContent = String(apps.filter(a => a.fav).length);
     if (badgeMisc) badgeMisc.textContent = String(apps.filter(a => a.category === "Sonstiges").length);
     const catBadges = document.querySelectorAll("[data-cat-badge]");
     catBadges.forEach(el => {
@@ -866,18 +1168,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           card.dataset.id = app.id;
           card.classList.add("draggable");
           card.addEventListener("click", () => openLaunch(app));
-          const iconSrc =
-            app.icon?.type === "custom" ? app.icon.value :
-            app.icon?.type === "favicon" ? app.icon.value :
-            "";
           card.innerHTML = `
             <div class="card-top">
               <div class="card-icon">
-                ${iconSrc ? `<img src="${iconSrc}" alt="">` : ""}
               </div>
             </div>
             <div class="card-name">${escapeHtml(app.name)}</div>
           `;
+          fillIcon(card.querySelector(".card-icon"), app);
           pinnedRow.appendChild(card);
         });
       } else {
@@ -915,17 +1213,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         openLaunch(app);
       });
 
-      const iconSrc =
-        app.icon?.type === "custom" ? app.icon.value :
-        app.icon?.type === "favicon" ? app.icon.value :
-        "";
-
       const typeBadge = app.type === "desktop" ? "Desktop" : "Web";
 
       card.innerHTML = `
         <div class="card-top">
           <div class="card-icon">
-            ${iconSrc ? `<img src="${iconSrc}" alt="">` : ""}
           </div>
 
           <div class="card-actions">
@@ -952,6 +1244,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         <div class="card-desc">${escapeHtml(app.description || "")}</div>
       `;
+      fillIcon(card.querySelector(".card-icon"), app);
 
       // Fav
       const star = card.querySelector(".star");
@@ -1003,14 +1296,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   let tabDrag = null;
   let tabGhost = null;
   let tabSlot = null;
+  let tabReflowRaf = 0;
+  let tabReflowRects = null;
+  let tabLastReorderTs = 0;
+  const TAB_REORDER_INTERVAL = 70;
   catTabs?.addEventListener("pointerdown", (e) => {
     const tab = e.target.closest(".tab-cat");
     if (!tab) return;
-    if (e.target.closest(".cat-x")) return;
     if (e.button !== 0) return;
     tabDrag = {
       tab,
       startX: e.clientX,
+      startY: e.clientY,
       moved: false
     };
     tab.setPointerCapture?.(e.pointerId);
@@ -1027,12 +1324,24 @@ document.addEventListener("DOMContentLoaded", async () => {
       createTabGhost(tabDrag.tab, e.clientX, e.clientY);
       createTabSlot(tabDrag.tab);
     }
+    const now = performance.now();
+    if (now - tabLastReorderTs < TAB_REORDER_INTERVAL) {
+      if (tabGhost){
+        tabGhost.style.left = (e.clientX - tabGhost.offsetWidth / 2) + "px";
+        tabGhost.style.top = (e.clientY - tabGhost.offsetHeight / 2) + "px";
+      }
+      return;
+    }
+    tabLastReorderTs = now;
+
     const target = document.elementFromPoint(e.clientX, e.clientY)?.closest(".tab-cat");
     if (!target || target === tabDrag.tab) return;
     const rect = target.getBoundingClientRect();
     const before = e.clientX < rect.left + rect.width / 2;
     if (tabSlot){
+      const rects = recordTabRects();
       catTabs.insertBefore(tabSlot, before ? target : target.nextSibling);
+      scheduleTabReflow(rects);
     }
     if (tabGhost){
       tabGhost.style.left = (e.clientX - tabGhost.offsetWidth / 2) + "px";
@@ -1043,7 +1352,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   catTabs?.addEventListener("pointerup", () => {
     if (!tabDrag) return;
     if (tabDrag.moved && tabSlot){
+      const rects = recordTabRects();
       catTabs.insertBefore(tabDrag.tab, tabSlot);
+      scheduleTabReflow(rects);
       tabDrag.tab.style.display = "";
       tabSlot.remove();
     }
@@ -1078,6 +1389,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     catTabs.insertBefore(tabSlot, tab.nextSibling);
   }
 
+  function recordTabRects(){
+    const rects = new Map();
+    catTabs?.querySelectorAll(".tab-cat").forEach(t => {
+      rects.set(t, t.getBoundingClientRect());
+    });
+    return rects;
+  }
+
+  function animateTabReflow(rects){
+    if (!rects) return;
+    catTabs?.querySelectorAll(".tab-cat").forEach(t => {
+      const first = rects.get(t);
+      if (!first) return;
+      const last = t.getBoundingClientRect();
+      const dx = first.left - last.left;
+      const dy = first.top - last.top;
+      if (dx || dy){
+        t.animate(
+          [
+            { transform: `translate(${dx}px, ${dy}px)` },
+            { transform: "translate(0, 0)" }
+          ],
+          { duration: 220, easing: "cubic-bezier(0.2,0,0,1)" }
+        );
+      }
+    });
+  }
+
+  function scheduleTabReflow(rects){
+    tabReflowRects = rects;
+    if (tabReflowRaf) return;
+    tabReflowRaf = requestAnimationFrame(() => {
+      tabReflowRaf = 0;
+      const r = tabReflowRects;
+      tabReflowRects = null;
+      animateTabReflow(r);
+    });
+  }
+
   function beginPointerDrag(e, container, mode){
     if (e.button !== 0) return;
     const card = e.target.closest(".card");
@@ -1093,14 +1443,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       draggingId: card.dataset.id,
       moved: false,
       axis: mode === "pinned" ? "x" : "auto",
+      startX: e.clientX,
+      startY: e.clientY,
       offsetX: e.clientX - card.getBoundingClientRect().left,
       offsetY: e.clientY - card.getBoundingClientRect().top
     };
     dragId = card.dataset.id;
-    card.classList.add("dragging");
-    container.classList.add("dragging-active");
-    createGhost(card, e.clientX, e.clientY);
-    createDropSlot(card, container);
     card.setPointerCapture?.(e.pointerId);
   }
 
@@ -1127,8 +1475,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function onPointerMove(e){
     if (!pointerDrag) return;
-    pointerDrag.moved = true;
-    const { container, draggingEl, axis, offsetX, offsetY } = pointerDrag;
+    const { container, draggingEl, axis, offsetX, offsetY, startX, startY } = pointerDrag;
+    if (!pointerDrag.moved){
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < 6) return;
+      pointerDrag.moved = true;
+      draggingEl.classList.add("dragging");
+      container.classList.add("dragging-active");
+      createGhost(draggingEl, e.clientX, e.clientY);
+      createDropSlot(draggingEl, container);
+    }
     if (dragGhost){
       dragGhost.style.left = (e.clientX - offsetX) + "px";
       dragGhost.style.top = (e.clientY - offsetY) + "px";
@@ -1167,6 +1525,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     draggingEl.classList.remove("dragging");
     container.classList.remove("dragging-active");
     document.querySelectorAll(".card.drag-over").forEach(el => el.classList.remove("drag-over"));
+
+    if (!moved){
+      pointerDrag = null;
+      dragId = null;
+      dragOverId = null;
+      return;
+    }
 
     if (moved){
       suppressClickId = draggingEl.dataset.id || null;
@@ -1304,11 +1669,10 @@ document.addEventListener("DOMContentLoaded", async () => {
         appCategory.value = categories[0];
       }
     }
-    document.getElementById("appType").value = "web";
+    document.getElementById("appType").value = "scan";
     iconState = { type:"favicon", value:"" };
     setIconNone();
-    selectedColor = palette[0];
-    renderColors();
+    selectedColor = "#7c3aed";
     syncTypeUI();
 
     closeModal();
