@@ -20,8 +20,8 @@
             <img id="iconPreviewImg" class="icon-img" alt="">
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
-            <div style="color:rgba(255,255,255,0.85);font-size:13px;">Standard: automatisch aus URL (Favicon)</div>
-            <div style="color:rgba(255,255,255,0.55);font-size:12px;">Oder eigenes PNG/JPG hochladen.</div>
+            <div class="help-strong">Standard: automatisch aus URL (Favicon)</div>
+            <div class="help-text">Oder eigenes PNG/JPG hochladen.</div>
           </div>
         </div>
 
@@ -52,7 +52,7 @@
       <div class="field" id="launchField">
         <div class="label" id="launchLabel">URL <span class="req">*</span></div>
         <input class="input" id="appUrl" placeholder="https://..." />
-        <div id="launchHelp" style="margin-top:8px;color:rgba(255,255,255,0.55);font-size:12px;line-height:1.35;">
+        <div id="launchHelp" class="help-text">
           Beispiel: https://notion.so
         </div>
       </div>
@@ -60,8 +60,11 @@
       <div class="field hidden" id="scanField">
         <div class="label">Gefundene Apps</div>
         <select class="select" id="scanSelect"></select>
-        <div style="margin-top:8px;color:rgba(255,255,255,0.55);font-size:12px;line-height:1.35;">
+        <div class="help-text">
           Wähle eine App aus dem Windows‑Scan.
+        </div>
+        <div class="scan-loading hidden" id="scanLoading">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
         </div>
       </div>
 
@@ -97,6 +100,55 @@
     <div class="modal-foot">
       <button class="btn-ghost" id="confirmCancel" type="button">Abbrechen</button>
       <button class="btn-primary" id="confirmOk" type="button">Löschen</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="settingsOverlay" aria-hidden="true">
+  <div class="modal modal-settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="settingsTitle">Einstellungen</div>
+      <button class="icon-btn" id="settingsClose" type="button" aria-label="Schließen">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="label">Hotkey (App ein/ausblenden)</div>
+        <div class="row2">
+          <input class="input" id="hotkeyInput" placeholder="Drücke 'Aufnehmen'…" readonly />
+          <button class="btn-primary" id="hotkeyCapture" type="button">Aufnehmen</button>
+        </div>
+        <div class="help-text">
+          Klicke auf „Aufnehmen“ und drücke die gewünschte Kombination.
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Theme</div>
+        <div class="theme-row">
+          <span class="theme-label">Light Mode</span>
+          <label class="switch">
+            <input type="checkbox" id="themeToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="field">
+        <div class="label">Akzentfarbe</div>
+        <div class="accent-row" id="accentRow">
+          <button class="accent-btn" data-accent="purple" title="Lila"></button>
+          <button class="accent-btn" data-accent="blue" title="Blau"></button>
+          <button class="accent-btn" data-accent="green" title="Grün"></button>
+          <button class="accent-btn" data-accent="yellow" title="Gelb"></button>
+          <button class="accent-btn" data-accent="pink" title="Pink"></button>
+          <button class="accent-btn" data-accent="teal" title="Türkis"></button>
+          <button class="accent-btn" data-accent="orange" title="Orange"></button>
+          <button class="accent-btn" data-accent="red" title="Rot"></button>
+          <button class="accent-btn" data-accent="cyan" title="Cyan"></button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="hotkeyCancel" type="button">Abbrechen</button>
+      <button class="btn-primary" id="hotkeySave" type="button">Speichern</button>
     </div>
   </div>
 </div>
