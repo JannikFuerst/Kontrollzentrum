@@ -1,4 +1,4 @@
-# Kontrollzentrum — Open Beta 1.1.2
+# Kontrollzentrum — Open Beta 1.1.3
 
 Dein persoenliches Control Center fuer Web- und Desktop-Apps. Schnell, clean, anpassbar.
 
@@ -37,8 +37,13 @@ npm run tauri build
 ```
 
 ## Open Beta
-Diese Version ist **Open Beta 1.1.2**.  
+Diese Version ist **Open Beta 1.1.3**.  
 Feedback zu UX, Bugs und Ideen ist sehr willkommen.
 
 ## License
 ISC
+
+## Neu in 1.1.3
+- App-Icon Auswahl in den Einstellungen (Standard, Schwarz, Weiss, Blau/Lila)
+- Auswahl bleibt gespeichert und wird beim Start automatisch gesetzt
+

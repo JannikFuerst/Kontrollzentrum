@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
+use base64::Engine;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
 use walkdir::WalkDir;
@@ -22,6 +23,27 @@ fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
     .shell()
     .open(url, None)
     .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_window_icon(app: tauri::AppHandle, data_url: String) -> Result<(), String> {
+  let b64 = if let Some(idx) = data_url.find(',') {
+    &data_url[(idx + 1)..]
+  } else {
+    data_url.as_str()
+  };
+  let bytes = base64::engine::general_purpose::STANDARD
+    .decode(b64)
+    .map_err(|e| e.to_string())?;
+  let img = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
+  let rgba = img.to_rgba8();
+  let width = rgba.width();
+  let height = rgba.height();
+  let icon = tauri::image::Image::new_owned(rgba.into_raw(), width, height);
+  if let Some(w) = app.get_webview_window("main") {
+    w.set_icon(icon).map_err(|e| e.to_string())?;
+  }
+  Ok(())
 }
 
 #[tauri::command]
@@ -284,7 +306,7 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![open_external, scan_desktop_apps, set_global_shortcut])
+    .invoke_handler(tauri::generate_handler![open_external, scan_desktop_apps, set_window_icon, set_global_shortcut])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
