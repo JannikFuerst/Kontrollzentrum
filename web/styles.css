@@ -845,37 +845,6 @@ body[data-theme="light"] .accent-btn.selected{
 .accent-btn[data-accent="red"]{ background: #ef4444; }
 .accent-btn[data-accent="cyan"]{ background: #06b6d4; }
 .accent-btn[data-accent="gray"]{ background: #64748b; }
-.app-icon-row{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-.app-icon-btn{
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
-  border: 2px solid rgba(255,255,255,0.25);
-  background: rgba(255,255,255,0.04);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 70% 70%;
-  cursor:pointer;
-  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
-}
-.app-icon-btn.selected{
-  border-color: rgba(255,255,255,0.85);
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 8px 18px rgba(0,0,0,0.22);
-}
-body[data-theme="light"] .app-icon-btn{
-  border-color: rgba(0,0,0,0.2);
-  box-shadow: 0 8px 18px rgba(0,0,0,0.08);
-}
-body[data-theme="light"] .app-icon-btn.selected{
-  border-color: rgba(0,0,0,0.65);
-  box-shadow: 0 0 0 3px rgba(0,0,0,0.12), 0 8px 18px rgba(0,0,0,0.12);
-}
 .switch{
   position:relative;
   display:inline-block;

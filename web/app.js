@@ -65,7 +65,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const bgDuoTop = document.getElementById("bgDuoTop");
   const bgDuoBottom = document.getElementById("bgDuoBottom");
   const bgError = document.getElementById("bgError");
-  const appIconRow = document.getElementById("appIconRow");
 
   const confirmOverlay = document.getElementById("confirmOverlay");
   const confirmClose = document.getElementById("confirmClose");
@@ -356,116 +355,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyBackground(savedBgMode);
   syncBackgroundUI(savedBgMode);
 
-  const APP_ICON_BASE = "./assets/app-icon-base.png";
-  const APP_ICON_VARIANTS = [
-    { key: "default" },
-    { key: "black" },
-    { key: "white" },
-    { key: "duo" }
-  ];
-  let appIconBasePromise = null;
-  const appIconCache = new Map();
-
-  function normalizeAppIconKey(key){
-    return APP_ICON_VARIANTS.some(v => v.key === key) ? key : "default";
-  }
-
-  function getSavedAppIconKey(){
-    return localStorage.getItem("kc_app_icon") || "default";
-  }
-
-  function loadAppIconBase(){
-    if (appIconBasePromise) return appIconBasePromise;
-    appIconBasePromise = new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error("app icon base load failed"));
-      img.src = APP_ICON_BASE;
-    });
-    return appIconBasePromise;
-  }
-
-  async function renderAppIconVariant(key, size){
-    const base = await loadAppIconBase();
-    const w = size || base.naturalWidth || base.width || 256;
-    const h = size || base.naturalHeight || base.height || 256;
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return "";
-    ctx.clearRect(0, 0, w, h);
-    if (key === "default"){
-      ctx.drawImage(base, 0, 0, w, h);
-      return canvas.toDataURL("image/png");
-    }
-    ctx.drawImage(base, 0, 0, w, h);
-    ctx.globalCompositeOperation = "source-in";
-    if (key === "duo"){
-      const g = ctx.createLinearGradient(0, 0, w, h);
-      g.addColorStop(0, "#3b82f6");
-      g.addColorStop(1, "#7c3aed");
-      ctx.fillStyle = g;
-    } else if (key === "white"){
-      ctx.fillStyle = "#ffffff";
-    } else {
-      ctx.fillStyle = "#0b0b0b";
-    }
-    ctx.fillRect(0, 0, w, h);
-    ctx.globalCompositeOperation = "source-over";
-    return canvas.toDataURL("image/png");
-  }
-
-  async function getAppIconDataUrl(key, size){
-    const k = normalizeAppIconKey(key);
-    const cacheKey = k + ":" + (size || "full");
-    if (appIconCache.has(cacheKey)) return appIconCache.get(cacheKey);
-    try{
-      const url = await renderAppIconVariant(k, size);
-      appIconCache.set(cacheKey, url);
-      return url;
-    }catch(e){
-      console.error("app icon render failed:", e);
-      return "";
-    }
-  }
-
-  function syncAppIconUI(key){
-    if (!appIconRow) return;
-    appIconRow.querySelectorAll(".app-icon-btn").forEach(btn => {
-      btn.classList.toggle("selected", btn.dataset.icon === key);
-    });
-  }
-
-  async function applyAppIcon(key, save = true){
-    const k = normalizeAppIconKey(key);
-    if (save) localStorage.setItem("kc_app_icon", k);
-    syncAppIconUI(k);
-    const t = window.__TAURI__;
-    if (!t?.core?.invoke) return;
-    const dataUrl = await getAppIconDataUrl(k);
-    if (!dataUrl) return;
-    try{
-      await t.core.invoke("set_window_icon", { dataUrl });
-    }catch(e){
-      console.error("set_window_icon failed:", e);
-    }
-  }
-
-  async function initAppIcon(){
-    if (!appIconRow) return;
-    const buttons = appIconRow.querySelectorAll(".app-icon-btn");
-    for (const btn of buttons){
-      const key = btn.dataset.icon || "default";
-      const preview = await getAppIconDataUrl(key, 96);
-      if (preview) btn.style.backgroundImage = `url("${preview}")`;
-    }
-    const saved = getSavedAppIconKey();
-    await applyAppIcon(saved, false);
-  }
-
-  initAppIcon();
-
   // Apply saved hotkey on boot (Tauri)
   try{
     const savedHotkey = localStorage.getItem("kc_hotkey") || "";
@@ -495,7 +384,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
     syncBackgroundUI(bgMode);
-    syncAppIconUI(getSavedAppIconKey());
     showBgError(false);
     settingsOverlay.classList.add("show");
     settingsOverlay.setAttribute("aria-hidden", "false");
@@ -675,12 +563,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyAccent(btn.dataset.accent);
   });
 
-  appIconRow?.addEventListener("click", (e) => {
-    const btn = e.target.closest(".app-icon-btn");
-    if (!btn) return;
-    applyAppIcon(btn.dataset.icon);
-  });
-
   bgChoices?.addEventListener("change", (e) => {
     const input = e.target.closest("input[name='bgMode']");
     if (!input) return;
@@ -733,8 +615,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Default card color (no picker UI)
-  let selectedColor = "#7c3aed";
 
   function applyIconStateFromApp(app){
     if (!app?.icon || app.icon.type === "none"){
@@ -771,7 +651,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (appCategory) appCategory.value = app.category || "Sonstiges";
     document.getElementById("appType").value = app.type === "desktop" ? "desktop" : "web";
 
-    selectedColor = app.color || "#7c3aed";
     applyIconStateFromApp(app);
 
     openModal();
@@ -1351,10 +1230,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="card-name">${escapeHtml(app.name)}</div>
 
         <div class="card-meta">
-          <span class="pill">
-            <span class="dot" style="background:${app.color}"></span>
-            ${escapeHtml(app.category)}
-          </span>
+          <span class="pill">${escapeHtml(app.category)}</span>
           <span class="pill">${escapeHtml(typeBadge)}</span>
         </div>
 
@@ -1752,7 +1628,6 @@ document.addEventListener("DOMContentLoaded", async () => {
           launch,        // url / uri / file:///
           category: cat,
           description: desc,
-          color: selectedColor,
           icon: iconState
         };
       }
@@ -1764,7 +1639,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         launch,        // url / uri / file:///
         category: cat,
         description: desc,
-        color: selectedColor,
         fav: false,
         icon: iconState,
         createdAt: Date.now()
@@ -1788,7 +1662,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.getElementById("appType").value = "scan";
     iconState = { type:"favicon", value:"" };
     setIconNone();
-    selectedColor = "#7c3aed";
     syncTypeUI();
 
     closeModal();
