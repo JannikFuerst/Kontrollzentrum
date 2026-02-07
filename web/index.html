@@ -8,7 +8,44 @@
 </head>
 
 <body>
-  <div class="wrap">
+  <div class="layout">
+    <aside class="notes-bar">
+      <div class="notes-dock">
+        <button class="notes-toggle" id="notesToggle" type="button" aria-expanded="false" aria-controls="notesPanel">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 4h7l3 3v13H7V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+            <path d="M14 4v3h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            <path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+          Notizen
+        </button>
+        <div class="notes-panel" id="notesPanel" aria-hidden="true">
+        <div class="notes-head">Notizen</div>
+        <div class="notes-pages" id="notesPages" role="tablist" aria-label="Notizseiten">
+          <button class="notes-page active" type="button" data-page="1" role="tab" aria-selected="true">1</button>
+          <button class="notes-page-add" type="button" aria-label="Seite hinzufuegen">+</button>
+        </div>
+        <textarea id="notesText" class="notes-text" placeholder="Deine Notizen..." spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+        <div class="notes-actions">
+          <button class="notes-delete" id="notesDelete" type="button">Seite löschen</button>
+          <button class="notes-clear" id="notesClear" type="button">Seite leeren</button>
+          <button class="notes-lock" id="notesLock" type="button" aria-pressed="false" aria-label="Bearbeitung entsperrt">
+            <svg class="lock-open" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 10V8a5 5 0 0 1 9.5-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <rect x="5" y="10" width="14" height="10" rx="2.4" stroke="currentColor" stroke-width="1.6"/>
+            </svg>
+            <svg class="lock-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="5" y="10" width="14" height="10" rx="2.4" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <div class="notes-status" id="notesStatus">Gespeichert</div>
+        </div>
+      </div>
+      </div>
+    </aside>
+
+    <div class="wrap">
     <header>
       <div class="title">
         <h1>Kontrollzentrum</h1>
@@ -22,7 +59,7 @@
           <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.7"/>
           <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
         </svg>
-        <input id="search" placeholder="Apps durchsuchen..." />
+        <input id="search" placeholder="Apps durchsuchen (STRG+F)..." />
       </div>
 
       <div class="top-actions">
@@ -100,6 +137,7 @@
 
       <section class="grid" id="appGrid" style="display:none;"></section>
     </main>
+    </div>
   </div>
 
   <div class="corner-meta">

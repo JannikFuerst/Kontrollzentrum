@@ -12,6 +12,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const pinnedRow = document.getElementById("pinnedRow");
   const search = document.getElementById("search");
   const versionTag = document.getElementById("versionTag");
+  const notesToggle = document.getElementById("notesToggle");
+  const notesPanel = document.getElementById("notesPanel");
+  const notesText = document.getElementById("notesText");
+  const notesClear = document.getElementById("notesClear");
+  const notesDelete = document.getElementById("notesDelete");
+  const notesLock = document.getElementById("notesLock");
+  const notesStatus = document.getElementById("notesStatus");
+  const notesPages = document.getElementById("notesPages");
 
   // Tabs (delegation)
   const tabsEl = document.querySelector(".tabs");
@@ -22,10 +30,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     setActiveTab(tabValue);
   });
 
+  // Horizontal scroll with mouse wheel on category/tabs row
+  tabsEl?.addEventListener("wheel", (e) => {
+    if (!tabsEl) return;
+    const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    if (!isHorizontal && e.deltaY === 0) return;
+    // Prevent page scroll when the tabs can scroll horizontally
+    if (tabsEl.scrollWidth > tabsEl.clientWidth){
+      e.preventDefault();
+      const delta = isHorizontal ? e.deltaX : e.deltaY;
+      tabsEl.scrollLeft += delta;
+    }
+  }, { passive: false });
+
   // Search
   search?.addEventListener("input", () => {
     searchTerm = (search.value || "").toLowerCase();
     render();
+  });
+
+  // Ctrl+F / Cmd+F focuses app search (prevent system find-in-page)
+  document.addEventListener("keydown", (e) => {
+    const isFind = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f";
+    if (!isFind) return;
+    e.preventDefault();
+    if (search){
+      search.focus();
+      search.select();
+    }
   });
 
   // Modal HTML reinladen (Cache-buster)
@@ -223,6 +255,232 @@ document.addEventListener("DOMContentLoaded", async () => {
   }catch{
     // keep default text
   }
+
+  // Notes (localStorage)
+  const NOTES_KEY = "kc_notes";
+  const NOTES_PAGE_KEY = "kc_notes_page";
+  const NOTES_PAGE_COUNT_KEY = "kc_notes_pages";
+  const NOTES_LOCK_KEY = "kc_notes_lock";
+  let notesSaveTimer = null;
+  let activeNotesPage = localStorage.getItem(NOTES_PAGE_KEY) || "1";
+  let notesPageCount = parseInt(localStorage.getItem(NOTES_PAGE_COUNT_KEY) || "1", 10);
+  let notesLocked = false;
+  if (Number.isNaN(notesPageCount) || notesPageCount < 1) notesPageCount = 1;
+  if (notesPageCount > 9) notesPageCount = 9;
+
+  function openNotes(){
+    if (!notesPanel) return;
+    notesPanel.classList.add("show");
+    notesPanel.setAttribute("aria-hidden", "false");
+    if (notesToggle) notesToggle.setAttribute("aria-expanded", "true");
+    setTimeout(() => notesText?.focus(), 0);
+  }
+
+  function closeNotes(){
+    if (!notesPanel) return;
+    notesPanel.classList.remove("show");
+    notesPanel.setAttribute("aria-hidden", "true");
+    if (notesToggle) notesToggle.setAttribute("aria-expanded", "false");
+  }
+
+  function setNotesStatus(text){
+    if (notesStatus) notesStatus.textContent = text;
+  }
+
+  function notesKeyForPage(page){
+    return `${NOTES_KEY}_${page}`;
+  }
+  function notesLockKeyForPage(page){
+    return `${NOTES_LOCK_KEY}_${page}`;
+  }
+
+  function setActiveNotesPage(page){
+    const p = String(page || "1");
+    activeNotesPage = p;
+    localStorage.setItem(NOTES_PAGE_KEY, p);
+    if (notesPages){
+      notesPages.querySelectorAll(".notes-page").forEach(btn => {
+        const isActive = btn.dataset.page === p;
+        btn.classList.toggle("active", isActive);
+        btn.setAttribute("aria-selected", isActive ? "true" : "false");
+      });
+    }
+    notesLocked = localStorage.getItem(notesLockKeyForPage(activeNotesPage)) === "1";
+    syncNotesDeleteState();
+    syncNotesLockState();
+  }
+
+  function saveNotesPageCount(){
+    localStorage.setItem(NOTES_PAGE_COUNT_KEY, String(notesPageCount));
+  }
+
+  function syncNotesDeleteState(){
+    if (!notesDelete) return;
+    const disabled = notesPageCount <= 1 || notesLocked;
+    notesDelete.disabled = disabled;
+    if (notesLocked){
+      notesDelete.title = "Bearbeitung gesperrt";
+    } else if (notesPageCount <= 1){
+      notesDelete.title = "Mindestens eine Seite muss bleiben";
+    } else {
+      notesDelete.title = "Seite löschen";
+    }
+  }
+
+  function syncNotesLockState(){
+    if (!notesLock) return;
+    notesLock.dataset.locked = notesLocked ? "true" : "false";
+    notesLock.setAttribute("aria-pressed", notesLocked ? "true" : "false");
+    notesLock.setAttribute("aria-label", notesLocked ? "Bearbeitung gesperrt" : "Bearbeitung entsperrt");
+    if (notesClear) notesClear.disabled = notesLocked;
+    if (notesDelete) notesDelete.disabled = notesLocked || notesPageCount <= 1;
+  }
+
+  function rebuildNotesPages(){
+    if (!notesPages) return;
+    notesPages.innerHTML = "";
+    for (let i = 1; i <= notesPageCount; i++){
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "notes-page";
+      btn.dataset.page = String(i);
+      btn.setAttribute("role", "tab");
+      btn.setAttribute("aria-selected", "false");
+      btn.textContent = String(i);
+      notesPages.appendChild(btn);
+    }
+    if (notesPageCount < 9){
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "notes-page-add";
+      add.setAttribute("aria-label", "Seite hinzufuegen");
+      add.textContent = "+";
+      notesPages.appendChild(add);
+    }
+    setActiveNotesPage(activeNotesPage);
+    syncNotesDeleteState();
+    syncNotesLockState();
+  }
+
+  function loadNotes(){
+    const saved = localStorage.getItem(notesKeyForPage(activeNotesPage)) || "";
+    if (notesText) notesText.value = saved;
+    setNotesStatus(saved ? "Gespeichert" : "Leer");
+  }
+
+  function saveNotes(value){
+    localStorage.setItem(notesKeyForPage(activeNotesPage), value || "");
+    setNotesStatus(value ? "Gespeichert" : "Leer");
+  }
+
+  if (notesToggle && notesPanel){
+    notesToggle.addEventListener("click", () => {
+      if (notesPanel.classList.contains("show")){
+        closeNotes();
+      } else {
+        openNotes();
+      }
+    });
+  }
+
+  notesText?.addEventListener("input", () => {
+    const value = notesText.value || "";
+    setNotesStatus("Speichert...");
+    if (notesSaveTimer) clearTimeout(notesSaveTimer);
+    notesSaveTimer = setTimeout(() => saveNotes(value), 300);
+  });
+
+  notesClear?.addEventListener("click", () => {
+    if (!notesText) return;
+    if (notesLocked) return;
+    const doClear = () => {
+      notesText.value = "";
+      saveNotes("");
+      notesText.focus();
+    };
+    if (typeof openConfirm === "function"){
+      openConfirm("Diese Seite wirklich leeren?", doClear);
+    } else {
+      doClear();
+    }
+  });
+
+  notesDelete?.addEventListener("click", () => {
+    if (notesPageCount <= 1 || notesLocked) return;
+    const doDelete = () => {
+      if (notesSaveTimer) {
+        clearTimeout(notesSaveTimer);
+        notesSaveTimer = null;
+      }
+      const currentPage = parseInt(activeNotesPage, 10) || 1;
+      saveNotes(notesText?.value || "");
+      localStorage.removeItem(notesKeyForPage(currentPage));
+      for (let i = currentPage; i < notesPageCount; i++){
+        const nextVal = localStorage.getItem(notesKeyForPage(i + 1)) || "";
+        localStorage.setItem(notesKeyForPage(i), nextVal);
+      }
+      localStorage.removeItem(notesKeyForPage(notesPageCount));
+      notesPageCount -= 1;
+      if (notesPageCount < 1) notesPageCount = 1;
+      saveNotesPageCount();
+      if (currentPage > notesPageCount) {
+        activeNotesPage = String(notesPageCount);
+      }
+      rebuildNotesPages();
+      loadNotes();
+    };
+    if (typeof openConfirm === "function"){
+      openConfirm("Diese Seite wirklich loeschen?", doDelete);
+    } else {
+      doDelete();
+    }
+  });
+
+  notesLock?.addEventListener("click", () => {
+    notesLocked = !notesLocked;
+    localStorage.setItem(notesLockKeyForPage(activeNotesPage), notesLocked ? "1" : "0");
+    syncNotesLockState();
+    syncNotesDeleteState();
+  });
+
+  notesPages?.addEventListener("click", (e) => {
+    const target = e.target.closest("button");
+    if (!target) return;
+    if (target.classList.contains("notes-page-add")){
+      if (notesPageCount >= 9) return;
+      if (notesSaveTimer) {
+        clearTimeout(notesSaveTimer);
+        notesSaveTimer = null;
+        saveNotes(notesText?.value || "");
+      }
+      notesPageCount += 1;
+      saveNotesPageCount();
+      activeNotesPage = String(notesPageCount);
+      rebuildNotesPages();
+      loadNotes();
+      return;
+    }
+    if (!target.classList.contains("notes-page")) return;
+    const page = target.dataset.page || "1";
+    if (page === activeNotesPage) return;
+    if (notesSaveTimer) {
+      clearTimeout(notesSaveTimer);
+      notesSaveTimer = null;
+      saveNotes(notesText?.value || "");
+    }
+    setActiveNotesPage(page);
+    loadNotes();
+  });
+
+  if (notesPageCount < 1) notesPageCount = 1;
+  if (notesPageCount > 9) notesPageCount = 9;
+  if ((parseInt(activeNotesPage, 10) || 1) > notesPageCount){
+    activeNotesPage = String(notesPageCount);
+  }
+  saveNotesPageCount();
+  rebuildNotesPages();
+  setActiveNotesPage(activeNotesPage);
+  loadNotes();
 
   function applyTheme(theme){
     const t = theme === "light" ? "light" : "dark";
