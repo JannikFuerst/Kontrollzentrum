@@ -43,6 +43,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }, { passive: false });
 
+  // Horizontal scroll with mouse wheel on pinned row (hover over cards)
+  pinnedRow?.addEventListener("wheel", (e) => {
+    if (!pinnedRow) return;
+    const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+    if (!isHorizontal && e.deltaY === 0) return;
+    if (pinnedRow.scrollWidth > pinnedRow.clientWidth){
+      e.preventDefault();
+      const delta = isHorizontal ? e.deltaX : e.deltaY;
+      pinnedRow.scrollLeft += delta;
+    }
+  }, { passive: false });
+
   // Search
   search?.addEventListener("input", () => {
     searchTerm = (search.value || "").toLowerCase();
@@ -484,6 +496,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function applyTheme(theme){
     const t = theme === "light" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", t);
     document.body.setAttribute("data-theme", t);
     localStorage.setItem("kc_theme", t);
   }
@@ -534,8 +547,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (m === "calm") m = "mono";
     if (m === "warm") m = "duo";
     if (!BG_MODES.includes(m)) m = "theme";
-    document.body.classList.remove("bg-theme", "bg-mono", "bg-duo", "bg-custom");
-    document.body.classList.add("bg-" + m);
+    document.documentElement.classList.remove("bg-theme", "bg-mono", "bg-duo", "bg-custom");
+    document.documentElement.classList.add("bg-" + m);
     localStorage.setItem("kc_bg_mode", m);
   }
 

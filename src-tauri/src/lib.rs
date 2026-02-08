@@ -243,6 +243,14 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
     let mut out: Vec<ScannedApp> = Vec::new();
     let mut seen: HashSet<String> = HashSet::new();
 
+    // Prefer Start Menu AppIDs (more stable than .lnk targets)
+    for app in scan_start_apps() {
+      let key = app.name.to_lowercase();
+      if seen.insert(key) {
+        out.push(app);
+      }
+    }
+
     for root in roots {
       if !root.exists() {
         continue;
@@ -271,14 +279,6 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
         if seen.insert(key) {
           out.push(ScannedApp { name, launch, icon });
         }
-      }
-    }
-
-    // Add Microsoft Store / Start Apps
-    for app in scan_start_apps() {
-      let key = app.name.to_lowercase();
-      if seen.insert(key) {
-        out.push(app);
       }
     }
 
