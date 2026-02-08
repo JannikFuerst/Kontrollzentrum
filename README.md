@@ -37,7 +37,7 @@ npm run tauri build
 ```
 
 ## Release 1.0.0
-Kontrollzentrum ist jetzt offiziell veroeffentlicht. Danke fuer die Beta-Phase und das Feedback.
+Kontrollzentrum ist jetzt offiziell veroeffentlicht.
 
 ## License
 ISC
