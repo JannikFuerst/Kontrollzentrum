@@ -14,12 +14,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const versionTag = document.getElementById("versionTag");
   const notesToggle = document.getElementById("notesToggle");
   const notesPanel = document.getElementById("notesPanel");
+  const clipboardToggle = document.getElementById("clipboardToggle");
+  const clipboardPanel = document.getElementById("clipboardPanel");
   const notesText = document.getElementById("notesText");
   const notesClear = document.getElementById("notesClear");
   const notesDelete = document.getElementById("notesDelete");
   const notesLock = document.getElementById("notesLock");
   const notesStatus = document.getElementById("notesStatus");
   const notesPages = document.getElementById("notesPages");
+  const clipboardList = document.getElementById("clipboardList");
+  const clipboardEmpty = document.getElementById("clipboardEmpty");
+  const clipboardClearAll = document.getElementById("clipboardClearAll");
+  const clipboardModeBadge = document.getElementById("clipboardModeBadge");
+  const layout = document.querySelector(".layout");
 
   // Tabs (delegation)
   const tabsEl = document.querySelector(".tabs");
@@ -109,12 +116,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const bgDuoTop = document.getElementById("bgDuoTop");
   const bgDuoBottom = document.getElementById("bgDuoBottom");
   const bgError = document.getElementById("bgError");
+  const clipboardRetentionMode = document.getElementById("clipboardRetentionMode");
+  const clipboardTimeCycle = document.getElementById("clipboardTimeCycle");
+  const clipboardMaxItems = document.getElementById("clipboardMaxItems");
+  const clipboardTimeWrap = document.getElementById("clipboardTimeWrap");
+  const clipboardCountWrap = document.getElementById("clipboardCountWrap");
 
   const confirmOverlay = document.getElementById("confirmOverlay");
   const confirmClose = document.getElementById("confirmClose");
   const confirmCancel = document.getElementById("confirmCancel");
   const confirmOk = document.getElementById("confirmOk");
   const confirmText = document.getElementById("confirmText");
+  const confirmTitle = document.getElementById("confirmTitle");
   let confirmAction = null;
 
   const addBtn = document.getElementById("addBtn");
@@ -142,7 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let editingId = null;
 
   let scanApps = [];
-  const SCAN_CACHE_KEY = "kc_scan_cache";
+  const SCAN_CACHE_KEY = "kc_scan_cache_v5";
   const SCAN_CACHE_TTL = 1000 * 60 * 60 * 6; // 6h
 
   function loadScanCache(){
@@ -280,11 +293,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (Number.isNaN(notesPageCount) || notesPageCount < 1) notesPageCount = 1;
   if (notesPageCount > 9) notesPageCount = 9;
 
+  function syncSidePanelsLayout(){
+    if (!layout) return;
+    const notesOpen = Boolean(notesPanel?.classList.contains("show"));
+    const clipboardOpen = Boolean(clipboardPanel?.classList.contains("show"));
+    layout.classList.toggle("notes-open", notesOpen);
+    layout.classList.toggle("clipboard-open", clipboardOpen);
+  }
+
   function openNotes(){
     if (!notesPanel) return;
+    closeClipboard();
     notesPanel.classList.add("show");
     notesPanel.setAttribute("aria-hidden", "false");
     if (notesToggle) notesToggle.setAttribute("aria-expanded", "true");
+    syncSidePanelsLayout();
     setTimeout(() => notesText?.focus(), 0);
   }
 
@@ -293,6 +316,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     notesPanel.classList.remove("show");
     notesPanel.setAttribute("aria-hidden", "true");
     if (notesToggle) notesToggle.setAttribute("aria-expanded", "false");
+    syncSidePanelsLayout();
   }
 
   function setNotesStatus(text){
@@ -365,7 +389,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const add = document.createElement("button");
       add.type = "button";
       add.className = "notes-page-add";
-      add.setAttribute("aria-label", "Seite hinzufuegen");
+      add.setAttribute("aria-label", "Seite hinzufügen");
       add.textContent = "+";
       notesPages.appendChild(add);
     }
@@ -411,7 +435,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       notesText.focus();
     };
     if (typeof openConfirm === "function"){
-      openConfirm("Diese Seite wirklich leeren?", doClear);
+      openConfirm("Diese Seite wirklich leeren?", doClear, "Leeren", "Leeren bestätigen");
     } else {
       doClear();
     }
@@ -442,7 +466,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       loadNotes();
     };
     if (typeof openConfirm === "function"){
-      openConfirm("Diese Seite wirklich loeschen?", doDelete);
+      openConfirm("Diese Seite wirklich löschen?", doDelete);
     } else {
       doDelete();
     }
@@ -493,6 +517,309 @@ document.addEventListener("DOMContentLoaded", async () => {
   rebuildNotesPages();
   setActiveNotesPage(activeNotesPage);
   loadNotes();
+  syncSidePanelsLayout();
+
+  const CLIPBOARD_ITEMS_KEY = "kc_clipboard_items";
+  const CLIPBOARD_RETENTION_MODE_KEY = "kc_clipboard_retention_mode";
+  const CLIPBOARD_RETENTION_TIME_KEY = "kc_clipboard_retention_hours";
+  const CLIPBOARD_RETENTION_COUNT_KEY = "kc_clipboard_retention_count";
+  let clipboardItems = [];
+  let clipboardPollTimer = null;
+  let clipboardPruneTimer = null;
+  let clipboardPolling = false;
+  let lastClipboardText = "";
+  let suppressClipboardText = "";
+  let suppressClipboardUntil = 0;
+
+  function loadClipboardItems(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(CLIPBOARD_ITEMS_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .map((item) => ({
+          id: String(item?.id || ""),
+          text: String(item?.text || ""),
+          ts: Number(item?.ts || 0)
+        }))
+        .filter((item) => item.id && item.text && Number.isFinite(item.ts));
+    }catch{
+      return [];
+    }
+  }
+
+  function saveClipboardItems(){
+    localStorage.setItem(CLIPBOARD_ITEMS_KEY, JSON.stringify(clipboardItems));
+  }
+
+  function getClipboardRetentionSettings(){
+    const modeRaw = (localStorage.getItem(CLIPBOARD_RETENTION_MODE_KEY) || "count").toLowerCase();
+    const mode = ["count", "time", "unlimited"].includes(modeRaw) ? modeRaw : "count";
+    const hours = Math.max(1, parseInt(localStorage.getItem(CLIPBOARD_RETENTION_TIME_KEY) || "24", 10) || 24);
+    const maxItems = Math.max(1, parseInt(localStorage.getItem(CLIPBOARD_RETENTION_COUNT_KEY) || "100", 10) || 100);
+    return { mode, hours, maxItems };
+  }
+
+  function saveClipboardRetentionSettings({ mode, hours, maxItems }){
+    const safeMode = ["count", "time", "unlimited"].includes(mode) ? mode : "count";
+    const safeHours = Math.max(1, parseInt(hours, 10) || 24);
+    const safeMaxItems = Math.max(1, parseInt(maxItems, 10) || 100);
+    localStorage.setItem(CLIPBOARD_RETENTION_MODE_KEY, safeMode);
+    localStorage.setItem(CLIPBOARD_RETENTION_TIME_KEY, String(safeHours));
+    localStorage.setItem(CLIPBOARD_RETENTION_COUNT_KEY, String(safeMaxItems));
+  }
+
+  function syncClipboardSettingsUI(){
+    const cfg = getClipboardRetentionSettings();
+    if (clipboardRetentionMode) clipboardRetentionMode.value = cfg.mode;
+    if (clipboardTimeCycle) clipboardTimeCycle.value = String(cfg.hours);
+    if (clipboardMaxItems) clipboardMaxItems.value = String(cfg.maxItems);
+    if (clipboardTimeWrap) clipboardTimeWrap.classList.toggle("hidden", cfg.mode !== "time");
+    if (clipboardCountWrap) clipboardCountWrap.classList.toggle("hidden", cfg.mode !== "count");
+  }
+
+  function updateClipboardModeBadge(){
+    if (!clipboardModeBadge) return;
+    const cfg = getClipboardRetentionSettings();
+    if (cfg.mode === "time"){
+      clipboardModeBadge.textContent = `Zeit: ${cfg.hours}h`;
+      return;
+    }
+    if (cfg.mode === "count"){
+      clipboardModeBadge.textContent = `Anzahl: ${cfg.maxItems}`;
+      return;
+    }
+    clipboardModeBadge.textContent = "Nur manuell";
+  }
+
+  function formatClipboardTime(ts){
+    const d = new Date(ts);
+    return d.toLocaleString("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function pruneClipboardByPolicy(){
+    const cfg = getClipboardRetentionSettings();
+    const now = Date.now();
+    if (cfg.mode === "count"){
+      if (clipboardItems.length > cfg.maxItems){
+        clipboardItems = clipboardItems.slice(0, cfg.maxItems);
+      }
+    } else if (cfg.mode === "time"){
+      const cutoff = now - (cfg.hours * 60 * 60 * 1000);
+      clipboardItems = clipboardItems.filter((item) => item.ts >= cutoff);
+    }
+  }
+
+  function persistAndRenderClipboard(){
+    pruneClipboardByPolicy();
+    saveClipboardItems();
+    renderClipboardItems();
+  }
+
+  function renderClipboardItems(){
+    if (!clipboardList || !clipboardEmpty) return;
+    clipboardList.innerHTML = "";
+    clipboardEmpty.style.display = clipboardItems.length ? "none" : "block";
+
+    clipboardItems.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "clip-item";
+      row.innerHTML = `
+        <div class="clip-text">${escapeHtml(item.text)}</div>
+        <div class="clip-actions">
+          <button class="clip-btn" type="button" data-action="copy">Kopieren</button>
+          <button class="clip-btn danger" type="button" data-action="delete">Löschen</button>
+          <span class="clip-time">${escapeHtml(formatClipboardTime(item.ts))}</span>
+        </div>
+      `;
+
+      const copyBtn = row.querySelector("[data-action='copy']");
+      copyBtn?.addEventListener("click", async () => {
+        if (copyBtn.disabled) return;
+        const text = item.text || "";
+        try{
+          const t = window.__TAURI__;
+          if (t?.core?.invoke){
+            await t.core.invoke("set_clipboard_text", { text });
+          } else if (navigator.clipboard?.writeText){
+            await navigator.clipboard.writeText(text);
+          }
+          suppressClipboardText = text;
+          suppressClipboardUntil = Date.now() + 3000;
+          copyBtn.disabled = true;
+          copyBtn.textContent = "Kopiert";
+          setTimeout(() => {
+            copyBtn.disabled = false;
+            copyBtn.textContent = "Kopieren";
+          }, 3000);
+        }catch(e){
+          console.error("clipboard copy failed:", e);
+        }
+      });
+
+      row.querySelector("[data-action='delete']")?.addEventListener("click", () => {
+        clipboardItems = clipboardItems.filter((x) => x.id !== item.id);
+        persistAndRenderClipboard();
+      });
+
+      clipboardList.appendChild(row);
+    });
+  }
+
+  function addClipboardEntry(text){
+    const normalized = String(text || "").replace(/\r\n/g, "\n");
+    if (!normalized.trim()) return;
+    const existingIdx = clipboardItems.findIndex((item) => item.text === normalized);
+    if (existingIdx === 0){
+      clipboardItems[0].ts = Date.now();
+      persistAndRenderClipboard();
+      return;
+    }
+    if (existingIdx > 0){
+      clipboardItems.splice(existingIdx, 1);
+    }
+    clipboardItems.unshift({
+      id: (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)),
+      text: normalized,
+      ts: Date.now()
+    });
+    persistAndRenderClipboard();
+  }
+
+  async function readClipboardText(){
+    const t = window.__TAURI__;
+    if (t?.core?.invoke){
+      try{
+        const value = await t.core.invoke("get_clipboard_text");
+        return typeof value === "string" ? value : "";
+      }catch(e){
+        console.error("get_clipboard_text failed:", e);
+        return "";
+      }
+    }
+    return "";
+  }
+
+  async function pollClipboardNow(){
+    if (clipboardPolling) return;
+    clipboardPolling = true;
+    try{
+      const text = await readClipboardText();
+      if (!text) return;
+      const now = Date.now();
+      if (text === suppressClipboardText && now < suppressClipboardUntil) return;
+      if (text === suppressClipboardText && now >= suppressClipboardUntil){
+        suppressClipboardText = "";
+        suppressClipboardUntil = 0;
+      }
+      if (text === lastClipboardText) return;
+      lastClipboardText = text;
+      addClipboardEntry(text);
+    } finally {
+      clipboardPolling = false;
+    }
+  }
+
+  function startClipboardPolling(){
+    if (clipboardPollTimer) clearInterval(clipboardPollTimer);
+    if (clipboardPruneTimer) clearInterval(clipboardPruneTimer);
+    pollClipboardNow();
+    clipboardPollTimer = setInterval(pollClipboardNow, 1300);
+    clipboardPruneTimer = setInterval(() => {
+      const before = clipboardItems.length;
+      pruneClipboardByPolicy();
+      if (clipboardItems.length !== before){
+        saveClipboardItems();
+        renderClipboardItems();
+      }
+    }, 60 * 1000);
+  }
+
+  function openClipboard(){
+    if (!clipboardPanel) return;
+    closeNotes();
+    clipboardPanel.classList.add("show");
+    clipboardPanel.setAttribute("aria-hidden", "false");
+    if (clipboardToggle) clipboardToggle.setAttribute("aria-expanded", "true");
+    syncSidePanelsLayout();
+    updateClipboardModeBadge();
+    renderClipboardItems();
+  }
+
+  function closeClipboard(){
+    if (!clipboardPanel) return;
+    clipboardPanel.classList.remove("show");
+    clipboardPanel.setAttribute("aria-hidden", "true");
+    if (clipboardToggle) clipboardToggle.setAttribute("aria-expanded", "false");
+    syncSidePanelsLayout();
+  }
+
+  if (clipboardToggle && clipboardPanel){
+    clipboardToggle.addEventListener("click", () => {
+      if (clipboardPanel.classList.contains("show")){
+        closeClipboard();
+      } else {
+        openClipboard();
+      }
+    });
+  }
+
+  clipboardClearAll?.addEventListener("click", () => {
+    const doClearAll = () => {
+      clipboardItems = [];
+      saveClipboardItems();
+      renderClipboardItems();
+    };
+    if (typeof openConfirm === "function"){
+      openConfirm("Clipboard-Verlauf wirklich leeren?", doClearAll, "Leeren", "Leeren bestätigen");
+    } else {
+      doClearAll();
+    }
+  });
+
+  clipboardRetentionMode?.addEventListener("change", () => {
+    saveClipboardRetentionSettings({
+      mode: clipboardRetentionMode.value,
+      hours: clipboardTimeCycle?.value || "24",
+      maxItems: clipboardMaxItems?.value || "100"
+    });
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
+    persistAndRenderClipboard();
+  });
+
+  clipboardTimeCycle?.addEventListener("change", () => {
+    saveClipboardRetentionSettings({
+      mode: clipboardRetentionMode?.value || "time",
+      hours: clipboardTimeCycle.value,
+      maxItems: clipboardMaxItems?.value || "100"
+    });
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
+    persistAndRenderClipboard();
+  });
+
+  clipboardMaxItems?.addEventListener("change", () => {
+    saveClipboardRetentionSettings({
+      mode: clipboardRetentionMode?.value || "count",
+      hours: clipboardTimeCycle?.value || "24",
+      maxItems: clipboardMaxItems.value
+    });
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
+    persistAndRenderClipboard();
+  });
+
+  saveClipboardRetentionSettings(getClipboardRetentionSettings());
+  clipboardItems = loadClipboardItems();
+  persistAndRenderClipboard();
+  syncClipboardSettingsUI();
+  updateClipboardModeBadge();
+  startClipboardPolling();
 
   function applyTheme(theme){
     const t = theme === "light" ? "light" : "dark";
@@ -576,7 +903,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (bgUploadName){
       const has = Boolean(localStorage.getItem("kc_bg_custom"));
-      bgUploadName.value = has ? "Custom Hintergrund aktiv" : "Kein Bild gewaehlt";
+      bgUploadName.value = has ? "Custom Hintergrund aktiv" : "Kein Bild gewählt";
     }
   }
 
@@ -655,6 +982,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
     syncBackgroundUI(bgMode);
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
     showBgError(false);
     settingsOverlay.classList.add("show");
     settingsOverlay.setAttribute("aria-hidden", "false");
@@ -682,9 +1011,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     catManageOverlay.setAttribute("aria-hidden", "true");
   }
 
-  function openConfirm(message, onOk){
+  function openConfirm(message, onOk, okLabel = "Löschen", title = "Löschen bestätigen"){
     if (!confirmOverlay || !confirmText) return;
     confirmText.textContent = message || "Möchtest du diese App wirklich löschen?";
+    if (confirmOk) confirmOk.textContent = okLabel || "Löschen";
+    if (confirmTitle) confirmTitle.textContent = title || "Löschen bestätigen";
     confirmAction = onOk || null;
     confirmOverlay.classList.add("show");
     confirmOverlay.setAttribute("aria-hidden", "false");
@@ -695,6 +1026,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!confirmOverlay) return;
     confirmOverlay.classList.remove("show");
     confirmOverlay.setAttribute("aria-hidden", "true");
+    if (confirmOk) confirmOk.textContent = "Löschen";
+    if (confirmTitle) confirmTitle.textContent = "Löschen bestätigen";
     confirmAction = null;
   }
 
@@ -745,7 +1078,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       closeCatManage();
       return;
     }
-    if (e.key === "Escape" && overlay.classList.contains("show")) closeModal();
+    if (e.key === "Escape" && overlay.classList.contains("show")) {
+      closeModal();
+      return;
+    }
+    if (e.key === "Escape" && notesPanel?.classList.contains("show")) {
+      closeNotes();
+      return;
+    }
+    if (e.key === "Escape" && clipboardPanel?.classList.contains("show")) {
+      closeClipboard();
+    }
   });
 
   async function applyHotkey(value){
@@ -821,6 +1164,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   hotkeySave?.addEventListener("click", async () => {
     const val = hotkeyInput?.value || "";
     await applyHotkey(val);
+    saveClipboardRetentionSettings({
+      mode: clipboardRetentionMode?.value || "count",
+      hours: clipboardTimeCycle?.value || "24",
+      maxItems: clipboardMaxItems?.value || "100"
+    });
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
+    persistAndRenderClipboard();
     closeSettings();
   });
 
@@ -869,7 +1220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const match = size && BG_SIZES.some(s => s.w === size.w && s.h === size.h);
       if (!match){
         showBgError(true);
-        if (bgUploadName) bgUploadName.value = `Falsche Groesse (${size?.w || "?"}x${size?.h || "?"})`;
+        if (bgUploadName) bgUploadName.value = `Falsche Größe (${size?.w || "?"}x${size?.h || "?"})`;
         bgUpload.value = "";
         return;
       }
@@ -938,7 +1289,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function faviconUrl(url){
     try{
-      const u = new URL(url);
+      const normalized = normalizeWebUrl(url);
+      const u = new URL(normalized);
       return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(u.hostname)}&sz=128`;
     }catch{
       return "";
@@ -1328,7 +1680,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function faviconAltUrl(url){
     try{
-      const u = new URL(url);
+      const normalized = normalizeWebUrl(url);
+      const u = new URL(normalized);
       return `https://icons.duckduckgo.com/ip3/${encodeURIComponent(u.hostname)}.ico`;
     }catch{
       return "";
@@ -1880,6 +2233,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         alert("Web-Apps brauchen eine URL/Domain (z.B. discord.com/app oder https://discord.com/app).");
         return;
       }
+      launch = normalizeWebUrl(launch);
     } else {
       const ok = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(launch);
       if (!ok){

@@ -1,4 +1,4 @@
-<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+﻿<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-head">
       <div class="modal-title" id="modalTitle">Neue App hinzufügen</div>
@@ -144,6 +144,33 @@
         </div>
       </div>
       <div class="field">
+        <div class="label">Clipboard Verlauf</div>
+        <select class="select" id="clipboardRetentionMode">
+          <option value="count">Nach Anzahl löschen</option>
+          <option value="time">Nach Zeit löschen</option>
+          <option value="unlimited">Unbegrenzt (manuell)</option>
+        </select>
+        <div class="clipboard-setting-extra hidden" id="clipboardTimeWrap">
+          <div class="label">Zeitfenster</div>
+          <select class="select" id="clipboardTimeCycle">
+            <option value="4">4 Stunden</option>
+            <option value="8">8 Stunden</option>
+            <option value="24">24 Stunden</option>
+            <option value="48">48 Stunden</option>
+          </select>
+        </div>
+        <div class="clipboard-setting-extra hidden" id="clipboardCountWrap">
+          <div class="label">Max. Einträge</div>
+          <select class="select" id="clipboardMaxItems">
+            <option value="50">50</option>
+            <option value="100">100</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+          </select>
+        </div>
+        <div class="help-text">Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit "Leeren" gelöscht werden.</div>
+      </div>
+      <div class="field">
         <div class="label">Theme</div>
         <div class="theme-row">
           <span class="theme-label">Light Mode</span>
@@ -218,3 +245,4 @@
     </div>
   </div>
 </div>
+

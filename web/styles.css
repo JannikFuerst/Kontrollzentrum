@@ -20,6 +20,9 @@
 
   --shadow: 0 18px 60px rgba(0,0,0,0.55);
   --shadow2: 0 8px 26px rgba(0,0,0,0.45);
+
+  --side-panel-width: 360px;
+  --side-content-shift: 180px;
 }
 
 *{ box-sizing:border-box; }
@@ -41,6 +44,31 @@ body{
   min-height: 100vh;
   background: none;
   overflow-x:hidden;
+}
+
+/* Global page scrollbar: transparent track, subtle thumb */
+html, body{
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.20) transparent;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar{
+  width: 10px;
+}
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track{
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.20);
+  border-radius: 999px;
+}
+body[data-theme="light"]{
+  scrollbar-color: rgba(0,0,0,0.20) transparent;
+}
+body[data-theme="light"]::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.20);
 }
 
 body[data-theme="light"]{
@@ -145,9 +173,16 @@ html.bg-custom{
   z-index:1;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 26px 20px 0;
+  padding: 52px 20px 0;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* Keep page title/search clear of the fixed Notes/Clipboard dock on laptop widths */
+@media (min-width: 861px) and (max-width: 1500px){
+  .wrap{
+    padding-top: 52px;
+  }
 }
 
 .corner-meta{
@@ -168,11 +203,26 @@ html.bg-custom{
 }
 
 .notes-bar{
+  width: auto;
+  flex: 0 0 auto;
+  position: fixed;
+  left: 24px;
+  top: 22px;
+  z-index: 6;
+}
+
+.layout.sidebar-open .notes-bar,
+.layout.notes-open .notes-bar,
+.layout.clipboard-open .notes-bar{
   width: 360px;
   flex: 0 0 360px;
   position: sticky;
   top: 18px;
-  z-index: 6;
+  left: auto;
+}
+
+.wrap{
+  transition: transform .18s ease;
 }
 .notes-dock{
   position: relative;
@@ -190,6 +240,12 @@ html.bg-custom{
   gap: 10px;
   margin-bottom: 14px;
   z-index: 6;
+}
+.side-toggles{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 .notes-toggle{
   height: 38px;
@@ -219,15 +275,130 @@ body[data-theme="light"] .notes-toggle{
 .notes-panel{
   position: static;
   width: 100%;
+  background: rgba(16,16,20,0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.42);
+  padding: 12px;
+  display: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  overflow: hidden;
+  isolation: isolate;
+}
+.notes-panel.show{ display: block; animation: notesDrop .14s ease-out; }
+.clipboard-panel{
+  position: static;
+  width: 100%;
   background: rgba(16,16,20,0.92);
   border: 1px solid rgba(255,255,255,0.12);
   border-radius: 16px;
-  box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+  box-shadow: 0 14px 32px rgba(0,0,0,0.42);
   padding: 12px;
   display: none;
   backdrop-filter: blur(12px);
+  overflow: hidden;
+  isolation: isolate;
 }
-.notes-panel.show{ display: block; animation: notesDrop .14s ease-out; }
+.clipboard-panel.show{ display: block; animation: notesDrop .14s ease-out; }
+.clipboard-top{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.clipboard-mode{
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(var(--accent-rgb),0.45);
+  background: rgba(var(--accent-rgb),0.18);
+  color: rgba(255,255,255,0.92);
+  font-size: 11px;
+  font-weight: 700;
+}
+.clipboard-top .notes-delete{
+  margin-left: auto;
+  height: 30px;
+  padding: 0 10px;
+}
+.clipboard-empty{
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  padding: 8px 2px 6px;
+}
+.clipboard-list{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.20) transparent;
+}
+.clipboard-list::-webkit-scrollbar{
+  width: 6px;
+}
+.clipboard-list::-webkit-scrollbar-track{
+  background: transparent;
+}
+.clipboard-list::-webkit-scrollbar-thumb{
+  background: rgba(255,255,255,0.20);
+  border-radius: 999px;
+}
+.clip-item{
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px;
+  padding: 10px;
+}
+.clip-text{
+  color: rgba(255,255,255,0.9);
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 96px;
+  overflow: auto;
+}
+.clip-actions{
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.clip-time{
+  color: rgba(255,255,255,0.48);
+  font-size: 11px;
+}
+.clip-btn{
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.88);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.clip-btn:hover{
+  border-color: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.1);
+}
+.clip-btn:disabled{
+  opacity: 0.6;
+  cursor: default;
+  border-color: rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.06);
+}
+.clip-btn.danger{
+  border-color: rgba(239,68,68,0.5);
+  background: rgba(239,68,68,0.12);
+}
 @keyframes notesDrop{ to { transform: translateY(0); } }
 .notes-head{
   font-size: 13px;
@@ -370,6 +541,11 @@ body[data-theme="light"] .notes-panel{
   border-color: rgba(0,0,0,0.12);
   box-shadow: 0 20px 50px rgba(0,0,0,0.18);
 }
+body[data-theme="light"] .clipboard-panel{
+  background: rgba(255,255,255,0.95);
+  border-color: rgba(0,0,0,0.12);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+}
 body[data-theme="light"] .notes-head{
   color: rgba(10,12,18,0.8);
 }
@@ -416,19 +592,56 @@ body[data-theme="light"] .notes-lock{
 body[data-theme="light"] .notes-status{
   color: rgba(10,12,18,0.5);
 }
+body[data-theme="light"] .clipboard-mode{
+  color: rgba(10,12,18,0.9);
+}
+body[data-theme="light"] .clipboard-empty,
+body[data-theme="light"] .clip-time{
+  color: rgba(10,12,18,0.48);
+}
+body[data-theme="light"] .clip-item{
+  border-color: rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.03);
+}
+body[data-theme="light"] .clip-text{
+  color: rgba(10,12,18,0.9);
+}
+body[data-theme="light"] .clip-btn{
+  border-color: rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.04);
+  color: rgba(10,12,18,0.86);
+}
+body[data-theme="light"] .clip-btn.danger{
+  border-color: rgba(239,68,68,0.45);
+  background: rgba(239,68,68,0.1);
+}
 @media (max-width: 860px){
   .layout{
     flex-direction: column;
     padding: 18px 18px 64px;
   }
+  .layout.sidebar-open .notes-bar,
+  .layout.notes-open .notes-bar,
+  .layout.clipboard-open .notes-bar,
   .notes-bar{
     width: 100%;
     flex: 0 0 auto;
     position: relative;
+    left: auto;
     top: auto;
   }
   .notes-dock{ margin-bottom: 6px; }
-  .wrap{ padding: 10px 0 0; }
+  .wrap{ padding: 24px 0 0; }
+
+  #clipboardToggle{ position: static; }
+  #clipboardPanel{ position: static; width: 100%; max-height: none; }
+}
+
+@media (min-width: 861px) and (max-width: 1400px){
+  :root{
+    --side-panel-width: 330px;
+    --side-content-shift: 235px;
+  }
 }
 
 header{
@@ -838,7 +1051,7 @@ body[data-theme="light"] .pinned-row .card{
 
 /* responsive */
 @media (max-width: 860px){
-  .wrap{ padding: 34px 18px 64px; }
+  .wrap{ padding: 52px 18px 64px; }
   header{ align-items:flex-start; flex-direction:column; }
   h1{ font-size: 36px; }
   .toprow{ flex-direction:column; align-items:stretch; }
@@ -1164,6 +1377,9 @@ body[data-theme="light"] .slider{
 
 .field{ margin-top: 12px; }
 .hidden{ display:none !important; }
+.clipboard-setting-extra{
+  margin-top: 10px;
+}
 
 .scan-loading{
   display:flex;

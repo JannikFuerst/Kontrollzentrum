@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Mutex;
@@ -47,6 +47,28 @@ fn set_window_icon(app: tauri::AppHandle, data_url: String) -> Result<(), String
 }
 
 #[tauri::command]
+fn get_clipboard_text() -> Result<Option<String>, String> {
+  let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+  match clipboard.get_text() {
+    Ok(text) => {
+      if text.trim().is_empty() {
+        Ok(None)
+      } else {
+        Ok(Some(text))
+      }
+    }
+    Err(arboard::Error::ContentNotAvailable) => Ok(None),
+    Err(e) => Err(e.to_string()),
+  }
+}
+
+#[tauri::command]
+fn set_clipboard_text(text: String) -> Result<(), String> {
+  let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+  clipboard.set_text(text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn scan_desktop_apps() -> Vec<ScannedApp> {
   #[cfg(not(windows))]
   {
@@ -57,14 +79,22 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
   {
     use base64::Engine;
     use image::ImageEncoder;
-    use windows::core::PCWSTR;
+    use windows::core::{Interface, PCWSTR};
     use windows::Win32::Foundation::HWND;
     use windows::Win32::Graphics::Gdi::{
       DeleteObject, GetDC, GetDIBits, GetObjectW, ReleaseDC, BITMAP, BITMAPINFO, BITMAPINFOHEADER,
       BI_RGB, DIB_RGB_COLORS,
     };
     use windows::Win32::Storage::FileSystem::FILE_FLAGS_AND_ATTRIBUTES;
-    use windows::Win32::UI::Shell::{SHGetFileInfoW, SHFILEINFOW, SHGFI_ICON, SHGFI_LARGEICON};
+    use windows::Win32::Storage::FileSystem::WIN32_FIND_DATAW;
+    use windows::Win32::System::Com::{
+      CoCreateInstance, CoInitializeEx, CoUninitialize, IPersistFile, STGM, CLSCTX_INPROC_SERVER,
+      COINIT_APARTMENTTHREADED,
+    };
+    use windows::Win32::UI::Shell::{
+      ExtractIconExW, IShellLinkW, ShellLink, SHGetFileInfoW, SHFILEINFOW, SHGFI_ICON,
+      SHGFI_ICONLOCATION, SHGFI_LARGEICON,
+    };
     use windows::Win32::UI::WindowsAndMessaging::{DestroyIcon, GetIconInfo, HICON, ICONINFO};
 
     fn path_to_file_url(path: &Path) -> String {
@@ -76,6 +106,11 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
       let mut v: Vec<u16> = s.encode_utf16().collect();
       v.push(0);
       v
+    }
+
+    fn wide_buf_to_string(buf: &[u16]) -> String {
+      let end = buf.iter().position(|&c| c == 0).unwrap_or(buf.len());
+      String::from_utf16_lossy(&buf[..end])
     }
 
     fn icon_to_data_url(hicon: HICON) -> Option<String> {
@@ -204,6 +239,96 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
       data
     }
 
+    fn extract_icon_from_location(icon_path: &str, icon_index: i32) -> Option<String> {
+      if icon_path.trim().is_empty() {
+        return None;
+      }
+      let icon_path_wide = to_wide(icon_path);
+      let mut large_icon = HICON::default();
+      let extracted = unsafe {
+        ExtractIconExW(
+          PCWSTR(icon_path_wide.as_ptr()),
+          icon_index,
+          Some(&mut large_icon),
+          None,
+          1,
+        )
+      };
+      if extracted == 0 || large_icon.0.is_null() {
+        return None;
+      }
+      let data = icon_to_data_url(large_icon);
+      unsafe { let _ = DestroyIcon(large_icon); };
+      data
+    }
+
+    fn shortcut_info(path: &Path) -> Option<(String, i32, String)> {
+      unsafe {
+        let coinited = CoInitializeEx(None, COINIT_APARTMENTTHREADED).is_ok();
+        let shell_link: IShellLinkW =
+          CoCreateInstance(&ShellLink, None, CLSCTX_INPROC_SERVER).ok()?;
+        let persist: IPersistFile = shell_link.cast().ok()?;
+        let wide = to_wide(&path.to_string_lossy());
+        if persist.Load(PCWSTR(wide.as_ptr()), STGM(0)).is_err() {
+          if coinited {
+            CoUninitialize();
+          }
+          return None;
+        }
+
+        let mut icon_buf = [0u16; 1024];
+        let mut icon_idx = 0i32;
+        let _ = shell_link.GetIconLocation(&mut icon_buf, &mut icon_idx as *mut i32);
+
+        let mut target_buf = [0u16; 1024];
+        let mut find_data = WIN32_FIND_DATAW::default();
+        let _ = shell_link.GetPath(&mut target_buf, &mut find_data as *mut WIN32_FIND_DATAW, 0);
+
+        let icon_path = wide_buf_to_string(&icon_buf);
+        let target_path = wide_buf_to_string(&target_buf);
+        if coinited {
+          CoUninitialize();
+        }
+        Some((icon_path, icon_idx, target_path))
+      }
+    }
+
+    fn icon_from_shortcut(path: &Path) -> Option<String> {
+      if let Some((icon_path, icon_idx, target_path)) = shortcut_info(path) {
+        if let Some(data) = extract_icon_from_location(&icon_path, icon_idx) {
+          return Some(data);
+        }
+        if !target_path.trim().is_empty() {
+          if let Some(data) = icon_from_path(Path::new(target_path.trim())) {
+            return Some(data);
+          }
+        }
+      }
+
+      // Legacy fallback: ask shell for icon location from .lnk itself.
+      let wide = to_wide(&path.to_string_lossy());
+      let mut info = SHFILEINFOW::default();
+      let res = unsafe {
+        SHGetFileInfoW(
+          PCWSTR(wide.as_ptr()),
+          FILE_FLAGS_AND_ATTRIBUTES(0),
+          Some(&mut info),
+          std::mem::size_of::<SHFILEINFOW>() as u32,
+          SHGFI_ICONLOCATION,
+        )
+      };
+      if res == 0 {
+        return None;
+      }
+
+      let icon_path = wide_buf_to_string(&info.szDisplayName);
+      if icon_path.is_empty() {
+        return None;
+      }
+
+      extract_icon_from_location(&icon_path, info.iIcon)
+    }
+
     let mut roots: Vec<PathBuf> = Vec::new();
     if let Ok(appdata) = std::env::var("APPDATA") {
       let ad = PathBuf::from(appdata);
@@ -241,12 +366,17 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
     }
 
     let mut out: Vec<ScannedApp> = Vec::new();
-    let mut seen: HashSet<String> = HashSet::new();
+    let mut seen_by_name: HashMap<String, usize> = HashMap::new();
 
     // Prefer Start Menu AppIDs (more stable than .lnk targets)
     for app in scan_start_apps() {
       let key = app.name.to_lowercase();
-      if seen.insert(key) {
+      if let Some(idx) = seen_by_name.get(&key).copied() {
+        if out[idx].icon.is_none() && app.icon.is_some() {
+          out[idx].icon = app.icon;
+        }
+      } else {
+        seen_by_name.insert(key, out.len());
         out.push(app);
       }
     }
@@ -274,9 +404,18 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
           .unwrap_or("Unbekannt")
           .to_string();
         let launch = path_to_file_url(path);
-        let icon = if ext == "lnk" { icon_from_path(path) } else { None };
+        let icon = if ext == "lnk" {
+          icon_from_shortcut(path).or_else(|| icon_from_path(path))
+        } else {
+          None
+        };
         let key = name.to_lowercase();
-        if seen.insert(key) {
+        if let Some(idx) = seen_by_name.get(&key).copied() {
+          if out[idx].icon.is_none() && icon.is_some() {
+            out[idx].icon = icon;
+          }
+        } else {
+          seen_by_name.insert(key, out.len());
           out.push(ScannedApp { name, launch, icon });
         }
       }
@@ -306,7 +445,14 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![open_external, scan_desktop_apps, set_window_icon, set_global_shortcut])
+    .invoke_handler(tauri::generate_handler![
+      open_external,
+      scan_desktop_apps,
+      set_window_icon,
+      set_global_shortcut,
+      get_clipboard_text,
+      set_clipboard_text
+    ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
@@ -364,6 +510,86 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
       #[cfg(windows)]
       const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+      let ps_script = r#"
+$apps = Get-StartApps
+$allPkgs = Get-AppxPackage
+$pkgMap = @{}
+foreach($p in $allPkgs){
+  if($p.PackageFamilyName -and -not $pkgMap.ContainsKey($p.PackageFamilyName)){
+    $pkgMap[$p.PackageFamilyName] = $p
+  }
+}
+
+function Get-IconDataUrlFromAppId([string]$appId){
+  if (-not $appId -or -not ($appId -match '^(?<pf>[^!]+)!(?<id>.+)$')) { return $null }
+  $pf = $Matches['pf']
+  $aid = $Matches['id']
+  $pkg = $pkgMap[$pf]
+  if (-not $pkg) { return $null }
+
+  $manifest = Get-AppxPackageManifest -Package $pkg.PackageFullName -ErrorAction SilentlyContinue
+  if (-not $manifest) { return $null }
+
+  $appNode = $manifest.Package.Applications.Application | Where-Object { $_.Id -eq $aid } | Select-Object -First 1
+  if (-not $appNode) { $appNode = $manifest.Package.Applications.Application | Select-Object -First 1 }
+  if (-not $appNode) { return $null }
+
+  $logoRel = $null
+  if ($appNode.VisualElements) {
+    $logoRel = $appNode.VisualElements.Square44x44Logo
+    if (-not $logoRel) { $logoRel = $appNode.VisualElements.Square150x150Logo }
+  }
+  if (-not $logoRel) { return $null }
+
+  $install = $pkg.InstallLocation
+  if (-not $install) { return $null }
+  $logoRel = ($logoRel -replace '/', '\')
+  $base = Join-Path $install $logoRel
+  $dir = Split-Path $base -Parent
+  $name = [System.IO.Path]::GetFileNameWithoutExtension($base)
+  $ext = [System.IO.Path]::GetExtension($base)
+
+  $cands = @()
+  if (Test-Path $base) { $cands += Get-Item $base }
+  if (Test-Path $dir) {
+    $cands += Get-ChildItem -Path $dir -File -Filter ($name + '*' + $ext) -ErrorAction SilentlyContinue
+  }
+  if (-not $cands -or $cands.Count -eq 0) { return $null }
+
+  $best = $cands | Sort-Object {
+    $n = $_.Name.ToLower()
+    if ($n -match 'targetsize-256') { 0 }
+    elseif ($n -match 'targetsize-128') { 1 }
+    elseif ($n -match 'scale-400') { 2 }
+    elseif ($n -match 'scale-200') { 3 }
+    elseif ($n -match 'scale-150') { 4 }
+    elseif ($n -match 'scale-100') { 5 }
+    else { 10 }
+  } | Select-Object -First 1
+
+  if (-not $best) { return $null }
+  $bytes = [System.IO.File]::ReadAllBytes($best.FullName)
+  if (-not $bytes -or $bytes.Length -eq 0) { return $null }
+
+  $mime = 'image/png'
+  $e = $best.Extension.ToLower()
+  if ($e -eq '.jpg' -or $e -eq '.jpeg') { $mime = 'image/jpeg' }
+  elseif ($e -eq '.webp') { $mime = 'image/webp' }
+  elseif ($e -eq '.bmp') { $mime = 'image/bmp' }
+
+  return ('data:' + $mime + ';base64,' + [Convert]::ToBase64String($bytes))
+}
+
+$out = foreach($a in $apps){
+  [pscustomobject]@{
+    Name = $a.Name
+    AppID = $a.AppID
+    Icon = (Get-IconDataUrlFromAppId $a.AppID)
+  }
+}
+$out | ConvertTo-Json -Depth 4
+"#;
+
       let output = Command::new("powershell")
         .creation_flags(CREATE_NO_WINDOW)
         .args([
@@ -371,7 +597,7 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
           "-WindowStyle",
           "Hidden",
           "-Command",
-          "Get-StartApps | Select-Object Name,AppID | ConvertTo-Json",
+          ps_script,
         ])
         .output();
 
@@ -411,6 +637,11 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
           .unwrap_or("")
           .trim()
           .to_string();
+        let icon = item
+          .get("Icon")
+          .and_then(|v| v.as_str())
+          .map(|s| s.trim().to_string())
+          .filter(|s| !s.is_empty());
         if name.is_empty() || app_id.is_empty() {
           continue;
         }
@@ -419,11 +650,7 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
           continue;
         }
         let launch = format!("shell:AppsFolder\\{}", app_id);
-        apps.push(ScannedApp {
-          name,
-          launch,
-          icon: None,
-        });
+        apps.push(ScannedApp { name, launch, icon });
       }
 
       apps
