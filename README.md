@@ -1,4 +1,4 @@
-﻿# Kontrollzentrum â€“ v1.1.1
+﻿# Kontrollzentrum â€“ v1.1.2
 
 Dein persÃ¶nliches Control Center fÃ¼r Web- und Desktop-Apps. Schnell, Ã¼bersichtlich und anpassbar.
 
@@ -37,8 +37,9 @@ npm run tauri build
 - `src-tauri/` â€“ Tauri/Rust Backend
 
 ## Version
-- Aktuelle Version: `v1.1.1`
+- Aktuelle Version: `v1.1.2`
 
 ## Lizenz
 ISC
+
 

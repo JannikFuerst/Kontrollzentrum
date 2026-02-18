@@ -11,14 +11,23 @@
   <div class="layout">
     <aside class="notes-bar">
       <div class="notes-dock">
-        <button class="notes-toggle" id="notesToggle" type="button" aria-expanded="false" aria-controls="notesPanel">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 4h7l3 3v13H7V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-            <path d="M14 4v3h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            <path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-          </svg>
-          Notizen
-        </button>
+        <div class="side-toggles">
+          <button class="notes-toggle" id="notesToggle" type="button" aria-expanded="false" aria-controls="notesPanel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 4h7l3 3v13H7V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+              <path d="M14 4v3h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+              <path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            Notizen
+          </button>
+          <button class="notes-toggle" id="clipboardToggle" type="button" aria-expanded="false" aria-controls="clipboardPanel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="7" y="4.5" width="10" height="15" rx="2.2" stroke="currentColor" stroke-width="1.6"/>
+              <path d="M10 4h4M10 9h4M10 12.5h4M10 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            Clipboard
+          </button>
+        </div>
         <div class="notes-panel" id="notesPanel" aria-hidden="true">
         <div class="notes-head">Notizen</div>
         <div class="notes-pages" id="notesPages" role="tablist" aria-label="Notizseiten">
@@ -41,6 +50,15 @@
           </button>
           <div class="notes-status" id="notesStatus">Gespeichert</div>
         </div>
+      </div>
+      <div class="clipboard-panel" id="clipboardPanel" aria-hidden="true">
+        <div class="notes-head">Clipboard Verlauf</div>
+        <div class="clipboard-top">
+          <div class="clipboard-mode" id="clipboardModeBadge">Unbegrenzt</div>
+          <button class="notes-delete" id="clipboardClearAll" type="button">Leeren</button>
+        </div>
+        <div class="clipboard-empty" id="clipboardEmpty">Noch keine Einträge.</div>
+        <div class="clipboard-list" id="clipboardList"></div>
       </div>
       </div>
     </aside>
@@ -141,7 +159,7 @@
   </div>
 
   <div class="corner-meta">
-    <div id="versionTag">v1.1.1</div>
+    <div id="versionTag">v1.1.2</div>
     <div class="credit">made by Jannik Fürst</div>
   </div>
 
