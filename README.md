@@ -1,43 +1,44 @@
-# Kontrollzentrum - 1.0.0
+﻿# Kontrollzentrum â€“ v1.1.1
 
-Dein persoenliches Control Center fuer Web- und Desktop-Apps. Schnell, clean, anpassbar.
+Dein persÃ¶nliches Control Center fÃ¼r Web- und Desktop-Apps. Schnell, Ã¼bersichtlich und anpassbar.
 
-## Warum Kontrollzentrum?
-- Alles an einem Ort: Web-Apps, Desktop-Apps und Store-Apps
-- Sofortiger Zugriff durch Favoriten und Pin-Leiste
-- Kategorien und Drag & Drop fuer perfekte Ordnung
-- Ein Klick: App starten, bearbeiten oder loeschen
-- Globaler Hotkey zum Ein-/Ausblenden
-- Starker Look: Light/Dark, Akzentfarben, Backgrounds
-
-## Was du machen kannst
-- Apps manuell hinzufuegen oder per Windows-Scan finden
-- Kategorien erstellen, sortieren und verwalten
-- Favoriten anpinnen fuer schnellen Zugriff
-- Apps direkt auf der Karte bearbeiten
-- Hintergrund und Akzentfarben individuell anpassen
-- Hotkey setzen (z.B. zum schnellen Ein- und Ausblenden)
-
-## Screens
-Siehe `web/` fuer UI-Assets und Styling.
+## Features
+- Web- und Desktop-Apps an einem Ort
+- Desktop-App-Scan unter Windows
+- Favoriten mit angepinnter Leiste
+- Kategorien mit Drag & Drop-Sortierung
+- Notizen mit mehreren Seiten und Sperrfunktion
+- Clipboard-Verlauf mit einstellbarer Aufbewahrung
+- Globaler Hotkey zum Ein- und Ausblenden
+- Anpassbares Design (Hell/Dunkel, Akzentfarben, HintergrÃ¼nde)
 
 ## Voraussetzungen
-- Node.js + npm
-- Rust + Cargo
+- Node.js und npm
+- Rust und Cargo
 - Tauri CLI
 
-## Entwicklung
+## Installation
+```bash
+npm install
 ```
+
+## Entwicklung
+```bash
 npm run tauri dev
 ```
 
 ## Build
-```
+```bash
 npm run tauri build
 ```
 
-## Release 1.0.0
-Kontrollzentrum ist jetzt offiziell veroeffentlicht.
+## Projektstruktur
+- `web/` â€“ Frontend (HTML, CSS, JavaScript)
+- `src-tauri/` â€“ Tauri/Rust Backend
 
-## License
+## Version
+- Aktuelle Version: `v1.1.1`
+
+## Lizenz
 ISC
+
