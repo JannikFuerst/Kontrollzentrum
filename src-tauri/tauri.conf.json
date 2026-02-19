@@ -5,9 +5,9 @@
   "identifier": "com.jannik.kontrollzentrum",
 
   "build": {
-    "beforeDevCommand": "",
+    "beforeDevCommand": "npx --yes http-server ./web -p 1420 -c-1",
     "beforeBuildCommand": "",
-    "devUrl": null,
+    "devUrl": "http://127.0.0.1:1420",
     "frontendDist": "../web"
   },
 

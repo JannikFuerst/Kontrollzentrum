@@ -5,8 +5,8 @@
   "main": "app.js",
   "scripts": {
     "tauri": "tauri",
-    "dev": "tauri dev",
-    "build": "tauri build"
+    "dev": "set CARGO_TARGET_DIR=%LOCALAPPDATA%\\Kontrollzentrum\\cargo-target&& tauri dev",
+    "build": "set CARGO_TARGET_DIR=%LOCALAPPDATA%\\Kontrollzentrum\\cargo-target&& tauri build"
   },
   "keywords": [],
   "author": "",

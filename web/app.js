@@ -27,6 +27,354 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clipboardClearAll = document.getElementById("clipboardClearAll");
   const clipboardModeBadge = document.getElementById("clipboardModeBadge");
   const layout = document.querySelector(".layout");
+  const languageBtn = document.getElementById("languageBtn");
+  const languageMenu = document.getElementById("languageMenu");
+
+  const LANG_KEY = "kc_lang";
+  const i18n = {
+    de: {
+      language: "Sprache",
+      settings_aria: "Einstellungen",
+      settings_title_btn: "Einstellungen",
+      notes_toggle: "Notizen",
+      clipboard_toggle: "Clipboard",
+      notes_heading: "Notizen",
+      notes_add_page_aria: "Seite hinzufügen",
+      notes_placeholder: "Deine Notizen...",
+      notes_delete_page: "Seite löschen",
+      notes_clear_page: "Seite leeren",
+      clipboard_heading: "Clipboard Verlauf",
+      clipboard_mode_unlimited: "Unbegrenzt",
+      clipboard_mode_time: "Zeit: {value}h",
+      clipboard_mode_count: "Anzahl: {value}",
+      clipboard_mode_manual: "Nur manuell",
+      clipboard_copy: "Kopieren",
+      clipboard_clear: "Leeren",
+      clipboard_empty: "Noch keine Einträge.",
+      app_title: "Kontrollzentrum",
+      search_placeholder: "Apps durchsuchen (STRG+F)...",
+      add_app: "App hinzufügen",
+      add: "Hinzufügen",
+      save: "Speichern",
+      cancel: "Abbrechen",
+      close: "Schließen",
+      close_aria: "Schließen",
+      tab_all: "Alle",
+      tab_favorites: "Favoriten",
+      tab_misc: "Sonstiges",
+      manage_categories_aria: "Kategorien verwalten",
+      pinned_heading: "Angepinnt",
+      empty_title: "Noch keine Apps",
+      empty_subtitle: "Füge deine erste App hinzu",
+      scan_loading: "Scanne...",
+      scan_none: "Keine Apps gefunden",
+      unknown: "Unbekannt",
+      modal_load_error: "Modal konnte nicht geladen werden. Check Console (F12).",
+      scan_failed: "Scan fehlgeschlagen: {message}",
+      notes_status_saved: "Gespeichert",
+      notes_status_empty: "Leer",
+      notes_status_saving: "Speichert...",
+      notes_delete_title_locked: "Bearbeitung gesperrt",
+      notes_delete_title_min: "Mindestens eine Seite muss bleiben",
+      notes_delete_title_default: "Seite löschen",
+      notes_lock_locked: "Bearbeitung gesperrt",
+      notes_lock_unlocked: "Bearbeitung entsperrt",
+      confirm_clear_page: "Diese Seite wirklich leeren?",
+      confirm_clear_action: "Leeren",
+      confirm_clear_title: "Leeren bestätigen",
+      confirm_delete_page: "Diese Seite wirklich löschen?",
+      confirm_delete_default_label: "Löschen",
+      confirm_delete_default_title: "Löschen bestätigen",
+      confirm_delete_default_message: "Möchtest du diese App wirklich löschen?",
+      clipboard_clear_confirm: "Clipboard-Verlauf wirklich leeren?",
+      category_delete_btn: "Löschen",
+      confirm_delete_category: "Kategorie \"{name}\" löschen? Apps werden nach \"Sonstiges\" verschoben.",
+      alert_tauri_missing: "Tauri API nicht verfügbar (window.__TAURI__.core.invoke fehlt).",
+      alert_open_failed: "Konnte nicht öffnen: {message}",
+      card_type_desktop: "Desktop",
+      card_type_web: "Web",
+      aria_favorite: "Favorit",
+      aria_edit: "Bearbeiten",
+      title_edit: "Bearbeiten",
+      aria_delete: "Löschen",
+      title_delete: "Löschen",
+      confirm_delete_app: "\"{name}\" wirklich löschen?",
+      alert_scan_choose: "Bitte eine App aus dem Scan wählen.",
+      alert_fill_required: "Bitte Name und URL/Pfad ausfüllen.",
+      alert_web_invalid: "Web-Apps brauchen eine URL/Domain (z.B. discord.com/app oder https://discord.com/app).",
+      alert_desktop_invalid: "Desktop braucht eine URI wie discord://, steam://..., ms-settings:... oder file:///C:/..."
+      ,
+      modal_add_title: "Neue App hinzufügen",
+      modal_edit_title: "App bearbeiten",
+      modal_icon_optional: "Icon (optional)",
+      modal_icon_remove: "Icon entfernen",
+      modal_icon_upload: "Icon hochladen",
+      modal_icon_auto: "Standard: automatisch aus URL (Favicon)",
+      modal_icon_custom_help: "Oder eigenes PNG/JPG hochladen.",
+      modal_name_label: "Name *",
+      modal_name_placeholder: "z.B. Notion / Discord",
+      modal_type_label: "Typ",
+      modal_type_web: "Web (https://...)",
+      modal_type_desktop: "Desktop (URI / file://)",
+      modal_type_scan: "Desktop (Scan Vorschläge)",
+      modal_category_label: "Kategorie",
+      modal_url_label: "URL *",
+      modal_url_placeholder: "https://...",
+      modal_url_example: "Beispiel: https://notion.so",
+      modal_found_apps: "Gefundene Apps",
+      modal_scan_refresh: "Scan aktualisieren",
+      modal_scan_help: "Wähle eine App aus dem Windows-Scan.",
+      modal_description_label: "Beschreibung",
+      modal_description_placeholder: "Optional",
+      cat_manage_title: "Kategorien verwalten",
+      cat_new_label: "Neue Kategorie",
+      cat_new_placeholder: "z.B. Lernen, Finanzen...",
+      cat_manage_help: "Löschen verschiebt Apps automatisch nach \"Sonstiges\".",
+      cat_existing_label: "Vorhandene Kategorien",
+      settings_title: "Einstellungen",
+      settings_hotkey_label: "Hotkey (App ein/ausblenden)",
+      settings_hotkey_placeholder: "Drücke 'Aufnehmen'...",
+      settings_capture: "Aufnehmen",
+      settings_capture_listen: "Drücke Tasten...",
+      settings_hotkey_help: "Klicke auf \"Aufnehmen\" und drücke die gewünschte Kombination.",
+      settings_clipboard_label: "Clipboard Verlauf",
+      settings_clip_count: "Nach Anzahl löschen",
+      settings_clip_time: "Nach Zeit löschen",
+      settings_clip_unlimited: "Unbegrenzt (manuell)",
+      settings_clip_time_window: "Zeitfenster",
+      settings_hours_4: "4 Stunden",
+      settings_hours_8: "8 Stunden",
+      settings_hours_24: "24 Stunden",
+      settings_hours_48: "48 Stunden",
+      settings_clip_max: "Max. Einträge",
+      settings_clip_help: "Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit \"Leeren\" gelöscht werden.",
+      settings_theme: "Theme",
+      settings_light_mode: "Light Mode",
+      settings_accent: "Akzentfarbe",
+      settings_background: "Hintergrund",
+      settings_bg_standard: "Standard",
+      settings_bg_mono: "Mono",
+      settings_bg_duo: "Duo",
+      settings_bg_custom: "Custom",
+      settings_duo_colors: "Duo Farben",
+      settings_duo_top: "Oben rechts",
+      settings_duo_bottom: "Unten links",
+      settings_no_image: "Kein Bild gewählt",
+      settings_upload_image: "Bild hochladen",
+      settings_allowed_sizes: "Erlaubte Größe: 1920x1080, 2560x1440, 3840x2160, 5184x3456",
+      settings_bg_error: "Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.",
+      modal_path_label: "Pfad / URI *",
+      modal_path_placeholder: "z.B. discord:// oder steam://run/730 oder file:///C:/...",
+      modal_path_help: "Empfohlen: URI (discord://, steam://, spotify://, ms-settings:...). file:/// geht je nach Windows-Einstellung.",
+      modal_web_help: "Beispiel: https://notion.so oder discord.com/app"
+    },
+    en: {
+      language: "Language",
+      settings_aria: "Settings",
+      settings_title_btn: "Settings",
+      notes_toggle: "Notes",
+      clipboard_toggle: "Clipboard",
+      notes_heading: "Notes",
+      notes_add_page_aria: "Add page",
+      notes_placeholder: "Your notes...",
+      notes_delete_page: "Delete page",
+      notes_clear_page: "Clear page",
+      clipboard_heading: "Clipboard History",
+      clipboard_mode_unlimited: "Unlimited",
+      clipboard_mode_time: "Time: {value}h",
+      clipboard_mode_count: "Count: {value}",
+      clipboard_mode_manual: "Manual only",
+      clipboard_copy: "Copy",
+      clipboard_clear: "Clear",
+      clipboard_empty: "No entries yet.",
+      app_title: "Control Center",
+      search_placeholder: "Search apps (CTRL+F)...",
+      add_app: "Add app",
+      add: "Add",
+      save: "Save",
+      cancel: "Cancel",
+      close: "Close",
+      close_aria: "Close",
+      tab_all: "All",
+      tab_favorites: "Favorites",
+      tab_misc: "Misc",
+      manage_categories_aria: "Manage categories",
+      pinned_heading: "Pinned",
+      empty_title: "No apps yet",
+      empty_subtitle: "Add your first app",
+      scan_loading: "Scanning...",
+      scan_none: "No apps found",
+      unknown: "Unknown",
+      modal_load_error: "Could not load modal. Check console (F12).",
+      scan_failed: "Scan failed: {message}",
+      notes_status_saved: "Saved",
+      notes_status_empty: "Empty",
+      notes_status_saving: "Saving...",
+      notes_delete_title_locked: "Editing locked",
+      notes_delete_title_min: "At least one page must remain",
+      notes_delete_title_default: "Delete page",
+      notes_lock_locked: "Editing locked",
+      notes_lock_unlocked: "Editing unlocked",
+      confirm_clear_page: "Clear this page?",
+      confirm_clear_action: "Clear",
+      confirm_clear_title: "Confirm clear",
+      confirm_delete_page: "Delete this page?",
+      confirm_delete_default_label: "Delete",
+      confirm_delete_default_title: "Confirm delete",
+      confirm_delete_default_message: "Do you want to delete this app?",
+      clipboard_clear_confirm: "Clear clipboard history?",
+      category_delete_btn: "Delete",
+      confirm_delete_category: "Delete category \"{name}\"? Apps will be moved to \"Sonstiges\".",
+      alert_tauri_missing: "Tauri API is unavailable (window.__TAURI__.core.invoke missing).",
+      alert_open_failed: "Could not open: {message}",
+      card_type_desktop: "Desktop",
+      card_type_web: "Web",
+      aria_favorite: "Favorite",
+      aria_edit: "Edit",
+      title_edit: "Edit",
+      aria_delete: "Delete",
+      title_delete: "Delete",
+      confirm_delete_app: "Delete \"{name}\"?",
+      alert_scan_choose: "Please select an app from scan.",
+      alert_fill_required: "Please fill name and URL/path.",
+      alert_web_invalid: "Web apps need a URL/domain (e.g. discord.com/app or https://discord.com/app).",
+      alert_desktop_invalid: "Desktop apps need a URI like discord://, steam://..., ms-settings:... or file:///C:/...",
+      modal_add_title: "Add new app",
+      modal_edit_title: "Edit app",
+      modal_icon_optional: "Icon (optional)",
+      modal_icon_remove: "Remove icon",
+      modal_icon_upload: "Upload icon",
+      modal_icon_auto: "Default: automatic from URL (favicon)",
+      modal_icon_custom_help: "Or upload your own PNG/JPG.",
+      modal_name_label: "Name *",
+      modal_name_placeholder: "e.g. Notion / Discord",
+      modal_type_label: "Type",
+      modal_type_web: "Web (https://...)",
+      modal_type_desktop: "Desktop (URI / file://)",
+      modal_type_scan: "Desktop (scan suggestions)",
+      modal_category_label: "Category",
+      modal_url_label: "URL *",
+      modal_url_placeholder: "https://...",
+      modal_url_example: "Example: https://notion.so",
+      modal_found_apps: "Found apps",
+      modal_scan_refresh: "Refresh scan",
+      modal_scan_help: "Choose an app from the Windows scan.",
+      modal_description_label: "Description",
+      modal_description_placeholder: "Optional",
+      cat_manage_title: "Manage categories",
+      cat_new_label: "New category",
+      cat_new_placeholder: "e.g. Learning, Finance...",
+      cat_manage_help: "Deleting moves apps automatically to \"Sonstiges\".",
+      cat_existing_label: "Existing categories",
+      settings_title: "Settings",
+      settings_hotkey_label: "Hotkey (toggle app)",
+      settings_hotkey_placeholder: "Press 'Capture'...",
+      settings_capture: "Capture",
+      settings_capture_listen: "Press keys...",
+      settings_hotkey_help: "Click \"Capture\" and press the desired combination.",
+      settings_clipboard_label: "Clipboard history",
+      settings_clip_count: "Delete by count",
+      settings_clip_time: "Delete by time",
+      settings_clip_unlimited: "Unlimited (manual)",
+      settings_clip_time_window: "Time window",
+      settings_hours_4: "4 hours",
+      settings_hours_8: "8 hours",
+      settings_hours_24: "24 hours",
+      settings_hours_48: "48 hours",
+      settings_clip_max: "Max entries",
+      settings_clip_help: "History stays local on this device and can be cleared anytime.",
+      settings_theme: "Theme",
+      settings_light_mode: "Light mode",
+      settings_accent: "Accent color",
+      settings_background: "Background",
+      settings_bg_standard: "Default",
+      settings_bg_mono: "Mono",
+      settings_bg_duo: "Duo",
+      settings_bg_custom: "Custom",
+      settings_duo_colors: "Duo colors",
+      settings_duo_top: "Top right",
+      settings_duo_bottom: "Bottom left",
+      settings_no_image: "No image selected",
+      settings_upload_image: "Upload image",
+      settings_allowed_sizes: "Allowed sizes: 1920x1080, 2560x1440, 3840x2160, 5184x3456",
+      settings_bg_error: "Invalid image size. Use 1920x1080, 2560x1440, 3840x2160 or 5184x3456.",
+      modal_path_label: "Path / URI *",
+      modal_path_placeholder: "e.g. discord:// or steam://run/730 or file:///C:/...",
+      modal_path_help: "Recommended: URI (discord://, steam://, spotify://, ms-settings:...). file:/// depends on Windows settings.",
+      modal_web_help: "Example: https://notion.so or discord.com/app"
+    }
+  };
+  let currentLang = localStorage.getItem(LANG_KEY) || "de";
+  if (!i18n[currentLang]) currentLang = "de";
+
+  function t(key, vars){
+    const dict = i18n[currentLang] || i18n.de;
+    const fallback = i18n.de[key] || key;
+    const raw = dict[key] || fallback;
+    if (!vars) return raw;
+    return raw.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
+  }
+
+  function applyI18nToDom(){
+    document.documentElement.lang = currentLang;
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const key = el.getAttribute("data-i18n");
+      if (key) el.textContent = t(key);
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-placeholder");
+      if (key) el.setAttribute("placeholder", t(key));
+    });
+    document.querySelectorAll("[data-i18n-aria-label]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-aria-label");
+      if (key) el.setAttribute("aria-label", t(key));
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+      const key = el.getAttribute("data-i18n-title");
+      if (key) el.setAttribute("title", t(key));
+    });
+    if (languageBtn){
+      languageBtn.setAttribute("aria-label", t("language"));
+      languageBtn.setAttribute("title", t("language"));
+    }
+    if (languageMenu){
+      languageMenu.querySelectorAll(".lang-item").forEach((item) => {
+        const isActive = item.dataset.lang === currentLang;
+        item.classList.toggle("active", isActive);
+        item.setAttribute("aria-checked", isActive ? "true" : "false");
+      });
+    }
+  }
+
+  function closeLanguageMenu(){
+    if (!languageMenu || !languageBtn) return;
+    languageMenu.classList.remove("show");
+    languageMenu.setAttribute("aria-hidden", "true");
+    languageBtn.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleLanguageMenu(){
+    if (!languageMenu || !languageBtn) return;
+    const willOpen = !languageMenu.classList.contains("show");
+    languageMenu.classList.toggle("show", willOpen);
+    languageMenu.setAttribute("aria-hidden", willOpen ? "false" : "true");
+    languageBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  }
+
+  function setLanguage(lang){
+    if (!i18n[lang] || lang === currentLang) return;
+    currentLang = lang;
+    localStorage.setItem(LANG_KEY, currentLang);
+    applyI18nToDom();
+    applyModalI18n();
+    syncNotesDeleteState();
+    syncNotesLockState();
+    updateClipboardModeBadge();
+    renderClipboardItems();
+    renderCategories();
+    renderCategoryManager();
+    render();
+  }
 
   // Tabs (delegation)
   const tabsEl = document.querySelector(".tabs");
@@ -68,6 +416,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     render();
   });
 
+  languageBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleLanguageMenu();
+  });
+  languageMenu?.addEventListener("click", (e) => {
+    const item = e.target.closest(".lang-item");
+    if (!item) return;
+    setLanguage(item.dataset.lang || "de");
+    closeLanguageMenu();
+  });
+  document.addEventListener("click", (e) => {
+    if (!languageMenu || !languageBtn) return;
+    const inMenu = languageMenu.contains(e.target);
+    const inBtn = languageBtn.contains(e.target);
+    if (!inMenu && !inBtn) closeLanguageMenu();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeLanguageMenu();
+  });
+  applyI18nToDom();
+
   // Ctrl+F / Cmd+F focuses app search (prevent system find-in-page)
   document.addEventListener("keydown", (e) => {
     const isFind = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f";
@@ -85,9 +454,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     const resp = await fetch("./modals/add-app.modal.html?v=" + Date.now());
     if (!resp.ok) throw new Error("Modal HTML HTTP " + resp.status);
     modalRoot.innerHTML = await resp.text();
+    applyI18nToDom();
   } catch (e) {
     console.error(e);
-    alert("Modal konnte nicht geladen werden. Check Console (F12).");
+    alert(t("modal_load_error"));
     return;
   }
 
@@ -152,6 +522,106 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scanLoading = document.getElementById("scanLoading");
   const scanRefresh = document.getElementById("scanRefresh");
 
+  function setText(sel, key){
+    const el = document.querySelector(sel);
+    if (el) el.textContent = t(key);
+  }
+  function setHtml(sel, key){
+    const el = document.querySelector(sel);
+    if (el) el.innerHTML = t(key);
+  }
+  function setPh(sel, key){
+    const el = document.querySelector(sel);
+    if (el) el.setAttribute("placeholder", t(key));
+  }
+  function setAttr(sel, attr, key){
+    const el = document.querySelector(sel);
+    if (el) el.setAttribute(attr, t(key));
+  }
+  function applyModalI18n(){
+    setText("#settingsTitle", "settings_title");
+    setText("#catManageTitle", "cat_manage_title");
+    if (editingId){
+      setText("#modalTitle", "modal_edit_title");
+      setText("#submitBtn", "save");
+    } else {
+      setText("#modalTitle", "modal_add_title");
+      setText("#submitBtn", "add");
+    }
+    setText("#cancelBtn", "cancel");
+    setText("#hotkeyCancel", "cancel");
+    setText("#hotkeySave", "save");
+    setText("#catManageAdd", "add");
+    setText("#catManageCancel", "close");
+    setText("#hotkeyCapture", "settings_capture");
+    setText("#confirmCancel", "cancel");
+
+    setAttr("#modalClose", "aria-label", "close_aria");
+    setAttr("#settingsClose", "aria-label", "close_aria");
+    setAttr("#catManageClose", "aria-label", "close_aria");
+    setAttr("#confirmClose", "aria-label", "close_aria");
+    setAttr("#scanRefresh", "title", "modal_scan_refresh");
+    setAttr("#scanRefresh", "aria-label", "modal_scan_refresh");
+    setAttr("#iconRemove", "title", "modal_icon_remove");
+    setAttr("#iconRemove", "aria-label", "modal_icon_remove");
+    setAttr("#iconUploadBtn", "title", "modal_icon_upload");
+    setAttr("#iconUploadBtn", "aria-label", "modal_icon_upload");
+
+    setText("#settingsOverlay [data-i18n='settings_hotkey_label']", "settings_hotkey_label");
+    setText("#settingsOverlay [data-i18n='settings_hotkey_help']", "settings_hotkey_help");
+    setText("#settingsOverlay [data-i18n='settings_clipboard_label']", "settings_clipboard_label");
+    setText("#settingsOverlay [data-i18n='settings_clip_time_window']", "settings_clip_time_window");
+    setText("#settingsOverlay [data-i18n='settings_clip_max']", "settings_clip_max");
+    setText("#settingsOverlay [data-i18n='settings_clip_help']", "settings_clip_help");
+    setText("#settingsOverlay [data-i18n='settings_theme']", "settings_theme");
+    setText("#settingsOverlay [data-i18n='settings_light_mode']", "settings_light_mode");
+    setText("#settingsOverlay [data-i18n='settings_accent']", "settings_accent");
+    setText("#settingsOverlay [data-i18n='settings_background']", "settings_background");
+    setText("#settingsOverlay [data-i18n='settings_bg_standard']", "settings_bg_standard");
+    setText("#settingsOverlay [data-i18n='settings_bg_mono']", "settings_bg_mono");
+    setText("#settingsOverlay [data-i18n='settings_bg_duo']", "settings_bg_duo");
+    setText("#settingsOverlay [data-i18n='settings_bg_custom']", "settings_bg_custom");
+    setText("#settingsOverlay [data-i18n='settings_duo_colors']", "settings_duo_colors");
+    setText("#settingsOverlay [data-i18n='settings_duo_top']", "settings_duo_top");
+    setText("#settingsOverlay [data-i18n='settings_duo_bottom']", "settings_duo_bottom");
+    setText("#settingsOverlay [data-i18n='settings_allowed_sizes']", "settings_allowed_sizes");
+    setText("#settingsOverlay [data-i18n='settings_bg_error']", "settings_bg_error");
+    setPh("#hotkeyInput", "settings_hotkey_placeholder");
+    setPh("#bgUploadName", "settings_no_image");
+    setText("#bgUploadBtn", "settings_upload_image");
+
+    setText("#clipboardRetentionMode option[value='count']", "settings_clip_count");
+    setText("#clipboardRetentionMode option[value='time']", "settings_clip_time");
+    setText("#clipboardRetentionMode option[value='unlimited']", "settings_clip_unlimited");
+    setText("#clipboardTimeCycle option[value='4']", "settings_hours_4");
+    setText("#clipboardTimeCycle option[value='8']", "settings_hours_8");
+    setText("#clipboardTimeCycle option[value='24']", "settings_hours_24");
+    setText("#clipboardTimeCycle option[value='48']", "settings_hours_48");
+
+    setText("#modalOverlay [data-i18n='modal_icon_optional']", "modal_icon_optional");
+    setText("#modalOverlay [data-i18n='modal_icon_auto']", "modal_icon_auto");
+    setText("#modalOverlay [data-i18n='modal_icon_custom_help']", "modal_icon_custom_help");
+    setHtml("#modalOverlay [data-i18n='modal_name_label']", "modal_name_label");
+    setPh("#appName", "modal_name_placeholder");
+    setText("#modalOverlay [data-i18n='modal_type_label']", "modal_type_label");
+    setText("#appType option[value='web']", "modal_type_web");
+    setText("#appType option[value='desktop']", "modal_type_desktop");
+    setText("#appType option[value='scan']", "modal_type_scan");
+    setText("#modalOverlay [data-i18n='modal_category_label']", "modal_category_label");
+    setHtml("#launchLabel", "modal_url_label");
+    setPh("#appUrl", "modal_url_placeholder");
+    setText("#launchHelp", "modal_url_example");
+    setText("#modalOverlay [data-i18n='modal_found_apps']", "modal_found_apps");
+    setText("#modalOverlay [data-i18n='modal_scan_help']", "modal_scan_help");
+    setText("#modalOverlay [data-i18n='modal_description_label']", "modal_description_label");
+    setPh("#appDesc", "modal_description_placeholder");
+
+    setText("#catManageOverlay [data-i18n='cat_new_label']", "cat_new_label");
+    setPh("#catManageInput", "cat_new_placeholder");
+    setText("#catManageOverlay [data-i18n='cat_manage_help']", "cat_manage_help");
+    setText("#catManageOverlay [data-i18n='cat_existing_label']", "cat_existing_label");
+  }
+
   let editingId = null;
 
   let scanApps = [];
@@ -183,7 +653,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         scanSelect.innerHTML = "";
         const opt = document.createElement("option");
         opt.value = "";
-        opt.textContent = "Scanne…";
+        opt.textContent = t("scan_loading");
         scanSelect.appendChild(opt);
       }
       if (scanLoading) scanLoading.classList.remove("hidden");
@@ -199,14 +669,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       }
 
-      const t = window.__TAURI__;
-      if (!t?.core?.invoke){
+      const tauriApi = window.__TAURI__;
+      if (!tauriApi?.core?.invoke){
         scanApps = [];
         renderScanApps();
         if (scanLoading) scanLoading.classList.add("hidden");
         return;
       }
-      scanApps = await t.core.invoke("scan_desktop_apps");
+      scanApps = await tauriApi.core.invoke("scan_desktop_apps");
       saveScanCache(scanApps);
       renderScanApps();
     }catch(e){
@@ -219,7 +689,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         scanApps = [];
         renderScanApps();
       }
-      alert("Scan fehlgeschlagen: " + (e?.message || e));
+      alert(t("scan_failed", { message: e?.message || e }));
     } finally {
       if (scanLoading) scanLoading.classList.add("hidden");
     }
@@ -231,7 +701,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!scanApps.length){
       const opt = document.createElement("option");
       opt.value = "";
-      opt.textContent = "Keine Apps gefunden";
+      opt.textContent = t("scan_none");
       scanSelect.appendChild(opt);
       scanSelect.disabled = true;
       return;
@@ -245,7 +715,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     scanApps.forEach(app => {
       const opt = document.createElement("option");
       opt.value = app.launch || app.path || "";
-      opt.textContent = app.name || app.title || "Unbekannt";
+      opt.textContent = app.name || app.title || t("unknown");
       scanSelect.appendChild(opt);
     });
     applyScanSelectionIcon();
@@ -272,9 +742,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Version tag (Tauri)
   try{
-    const t = window.__TAURI__;
-    if (t?.app?.getVersion){
-      const v = await t.app.getVersion();
+    const tauriApi = window.__TAURI__;
+    if (tauriApi?.app?.getVersion){
+      const v = await tauriApi.app.getVersion();
       if (versionTag && v) versionTag.textContent = "v" + v;
     }
   }catch{
@@ -355,11 +825,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const disabled = notesPageCount <= 1 || notesLocked;
     notesDelete.disabled = disabled;
     if (notesLocked){
-      notesDelete.title = "Bearbeitung gesperrt";
+      notesDelete.title = t("notes_delete_title_locked");
     } else if (notesPageCount <= 1){
-      notesDelete.title = "Mindestens eine Seite muss bleiben";
+      notesDelete.title = t("notes_delete_title_min");
     } else {
-      notesDelete.title = "Seite löschen";
+      notesDelete.title = t("notes_delete_title_default");
     }
   }
 
@@ -367,7 +837,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!notesLock) return;
     notesLock.dataset.locked = notesLocked ? "true" : "false";
     notesLock.setAttribute("aria-pressed", notesLocked ? "true" : "false");
-    notesLock.setAttribute("aria-label", notesLocked ? "Bearbeitung gesperrt" : "Bearbeitung entsperrt");
+    notesLock.setAttribute("aria-label", notesLocked ? t("notes_lock_locked") : t("notes_lock_unlocked"));
     if (notesClear) notesClear.disabled = notesLocked;
     if (notesDelete) notesDelete.disabled = notesLocked || notesPageCount <= 1;
   }
@@ -389,7 +859,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const add = document.createElement("button");
       add.type = "button";
       add.className = "notes-page-add";
-      add.setAttribute("aria-label", "Seite hinzufügen");
+      add.setAttribute("aria-label", t("notes_add_page_aria"));
       add.textContent = "+";
       notesPages.appendChild(add);
     }
@@ -401,12 +871,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   function loadNotes(){
     const saved = localStorage.getItem(notesKeyForPage(activeNotesPage)) || "";
     if (notesText) notesText.value = saved;
-    setNotesStatus(saved ? "Gespeichert" : "Leer");
+    setNotesStatus(saved ? t("notes_status_saved") : t("notes_status_empty"));
   }
 
   function saveNotes(value){
     localStorage.setItem(notesKeyForPage(activeNotesPage), value || "");
-    setNotesStatus(value ? "Gespeichert" : "Leer");
+    setNotesStatus(value ? t("notes_status_saved") : t("notes_status_empty"));
   }
 
   if (notesToggle && notesPanel){
@@ -421,7 +891,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   notesText?.addEventListener("input", () => {
     const value = notesText.value || "";
-    setNotesStatus("Speichert...");
+    setNotesStatus(t("notes_status_saving"));
     if (notesSaveTimer) clearTimeout(notesSaveTimer);
     notesSaveTimer = setTimeout(() => saveNotes(value), 300);
   });
@@ -435,7 +905,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       notesText.focus();
     };
     if (typeof openConfirm === "function"){
-      openConfirm("Diese Seite wirklich leeren?", doClear, "Leeren", "Leeren bestätigen");
+      openConfirm(t("confirm_clear_page"), doClear, t("confirm_clear_action"), t("confirm_clear_title"));
     } else {
       doClear();
     }
@@ -466,7 +936,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       loadNotes();
     };
     if (typeof openConfirm === "function"){
-      openConfirm("Diese Seite wirklich löschen?", doDelete);
+      openConfirm(t("confirm_delete_page"), doDelete);
     } else {
       doDelete();
     }
@@ -581,19 +1051,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!clipboardModeBadge) return;
     const cfg = getClipboardRetentionSettings();
     if (cfg.mode === "time"){
-      clipboardModeBadge.textContent = `Zeit: ${cfg.hours}h`;
+      clipboardModeBadge.textContent = t("clipboard_mode_time", { value: cfg.hours });
       return;
     }
     if (cfg.mode === "count"){
-      clipboardModeBadge.textContent = `Anzahl: ${cfg.maxItems}`;
+      clipboardModeBadge.textContent = t("clipboard_mode_count", { value: cfg.maxItems });
       return;
     }
-    clipboardModeBadge.textContent = "Nur manuell";
+    clipboardModeBadge.textContent = t("clipboard_mode_manual");
   }
 
   function formatClipboardTime(ts){
     const d = new Date(ts);
-    return d.toLocaleString("de-DE", {
+    const locale = currentLang === "en" ? "en-US" : "de-DE";
+    return d.toLocaleString(locale, {
       day: "2-digit",
       month: "2-digit",
       hour: "2-digit",
@@ -631,8 +1102,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       row.innerHTML = `
         <div class="clip-text">${escapeHtml(item.text)}</div>
         <div class="clip-actions">
-          <button class="clip-btn" type="button" data-action="copy">Kopieren</button>
-          <button class="clip-btn danger" type="button" data-action="delete">Löschen</button>
+          <button class="clip-btn" type="button" data-action="copy">${escapeHtml(t("clipboard_copy"))}</button>
+          <button class="clip-btn danger" type="button" data-action="delete">${escapeHtml(t("category_delete_btn"))}</button>
           <span class="clip-time">${escapeHtml(formatClipboardTime(item.ts))}</span>
         </div>
       `;
@@ -642,9 +1113,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (copyBtn.disabled) return;
         const text = item.text || "";
         try{
-          const t = window.__TAURI__;
-          if (t?.core?.invoke){
-            await t.core.invoke("set_clipboard_text", { text });
+          const tauriApi = window.__TAURI__;
+          if (tauriApi?.core?.invoke){
+            await tauriApi.core.invoke("set_clipboard_text", { text });
           } else if (navigator.clipboard?.writeText){
             await navigator.clipboard.writeText(text);
           }
@@ -691,10 +1162,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   async function readClipboardText(){
-    const t = window.__TAURI__;
-    if (t?.core?.invoke){
+    const tauriApi = window.__TAURI__;
+    if (tauriApi?.core?.invoke){
       try{
-        const value = await t.core.invoke("get_clipboard_text");
+        const value = await tauriApi.core.invoke("get_clipboard_text");
         return typeof value === "string" ? value : "";
       }catch(e){
         console.error("get_clipboard_text failed:", e);
@@ -775,7 +1246,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       renderClipboardItems();
     };
     if (typeof openConfirm === "function"){
-      openConfirm("Clipboard-Verlauf wirklich leeren?", doClearAll, "Leeren", "Leeren bestätigen");
+      openConfirm(t("clipboard_clear_confirm"), doClearAll, t("confirm_clear_action"), t("confirm_clear_title"));
     } else {
       doClearAll();
     }
@@ -957,9 +1428,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   try{
     const savedHotkey = localStorage.getItem("kc_hotkey") || "";
     if (savedHotkey){
-      const t = window.__TAURI__;
-      if (t?.core?.invoke){
-        await t.core.invoke("set_global_shortcut", { shortcut: savedHotkey });
+      const tauriApi = window.__TAURI__;
+      if (tauriApi?.core?.invoke){
+        await tauriApi.core.invoke("set_global_shortcut", { shortcut: savedHotkey });
       }
     }
   }catch{
@@ -970,12 +1441,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     overlay.classList.remove("show");
     overlay.setAttribute("aria-hidden", "true");
     editingId = null;
-    if (modalTitle) modalTitle.textContent = "Neue App hinzufügen";
-    if (submitBtn) submitBtn.textContent = "Hinzufügen";
+    if (modalTitle) modalTitle.textContent = t("modal_add_title");
+    if (submitBtn) submitBtn.textContent = t("add");
   }
 
   function openSettings(){
     if (!settingsOverlay) return;
+    applyModalI18n();
     const saved = localStorage.getItem("kc_hotkey") || "";
     if (hotkeyInput) hotkeyInput.value = saved;
     if (themeToggle) themeToggle.checked = (localStorage.getItem("kc_theme") || "dark") === "light";
@@ -999,6 +1471,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function openCatManage(){
     if (!catManageOverlay) return;
+    applyModalI18n();
     renderCategoryManager();
     catManageOverlay.classList.add("show");
     catManageOverlay.setAttribute("aria-hidden", "false");
@@ -1011,11 +1484,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     catManageOverlay.setAttribute("aria-hidden", "true");
   }
 
-  function openConfirm(message, onOk, okLabel = "Löschen", title = "Löschen bestätigen"){
+  function openConfirm(message, onOk, okLabel = t("confirm_delete_default_label"), title = t("confirm_delete_default_title")){
     if (!confirmOverlay || !confirmText) return;
-    confirmText.textContent = message || "Möchtest du diese App wirklich löschen?";
-    if (confirmOk) confirmOk.textContent = okLabel || "Löschen";
-    if (confirmTitle) confirmTitle.textContent = title || "Löschen bestätigen";
+    confirmText.textContent = message || t("confirm_delete_default_message");
+    if (confirmOk) confirmOk.textContent = okLabel || t("confirm_delete_default_label");
+    if (confirmTitle) confirmTitle.textContent = title || t("confirm_delete_default_title");
     confirmAction = onOk || null;
     confirmOverlay.classList.add("show");
     confirmOverlay.setAttribute("aria-hidden", "false");
@@ -1026,8 +1499,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!confirmOverlay) return;
     confirmOverlay.classList.remove("show");
     confirmOverlay.setAttribute("aria-hidden", "true");
-    if (confirmOk) confirmOk.textContent = "Löschen";
-    if (confirmTitle) confirmTitle.textContent = "Löschen bestätigen";
+    if (confirmOk) confirmOk.textContent = t("confirm_delete_default_label");
+    if (confirmTitle) confirmTitle.textContent = t("confirm_delete_default_title");
     confirmAction = null;
   }
 
@@ -1097,9 +1570,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (shortcut === current) return;
     localStorage.setItem("kc_hotkey", shortcut);
     try{
-      const t = window.__TAURI__;
-      if (t?.core?.invoke){
-        await t.core.invoke("set_global_shortcut", { shortcut });
+      const tauriApi = window.__TAURI__;
+      if (tauriApi?.core?.invoke){
+        await tauriApi.core.invoke("set_global_shortcut", { shortcut });
       }
     }catch(e){
       console.error("set_global_shortcut failed:", e);
@@ -1111,12 +1584,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!capturingHotkey) return;
     capturingHotkey = false;
     document.removeEventListener("keydown", onHotkeyKeydown, true);
-    if (hotkeyCapture) hotkeyCapture.textContent = "Aufnehmen";
+    if (hotkeyCapture) hotkeyCapture.textContent = t("settings_capture");
   }
 
   function startHotkeyCapture(){
     capturingHotkey = true;
-    if (hotkeyCapture) hotkeyCapture.textContent = "Drücke Tasten…";
+    if (hotkeyCapture) hotkeyCapture.textContent = t("settings_capture_listen");
     document.addEventListener("keydown", onHotkeyKeydown, true);
   }
 
@@ -1263,9 +1736,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function openEditModal(app){
     if (!app) return;
+    applyModalI18n();
     editingId = app.id;
-    if (modalTitle) modalTitle.textContent = "App bearbeiten";
-    if (submitBtn) submitBtn.textContent = "Speichern";
+    if (modalTitle) modalTitle.textContent = t("modal_edit_title");
+    if (submitBtn) submitBtn.textContent = t("save");
 
     document.getElementById("appName").value = app.name || "";
     document.getElementById("appUrl").value = app.launch || "";
@@ -1376,23 +1850,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Typ UI (Label/Placeholder/Help)
   function syncTypeUI(){
-    const t = appType?.value || "web";
+    const typeValue = appType?.value || "web";
     if (!launchLabel || !appUrl || !launchHelp) return;
 
-    if (t === "web"){
+    if (typeValue === "web"){
       launchField?.classList.remove("hidden");
       scanField?.classList.add("hidden");
       launchLabel.innerHTML = `URL <span class="req">*</span>`;
-      appUrl.placeholder = "https://...";
-      launchHelp.textContent = "Beispiel: https://notion.so oder discord.com/app";
-    } else if (t === "desktop"){
+      appUrl.placeholder = t("modal_url_placeholder");
+      launchHelp.textContent = t("modal_web_help");
+    } else if (typeValue === "desktop"){
       launchField?.classList.remove("hidden");
       scanField?.classList.add("hidden");
-      launchLabel.innerHTML = `Pfad / URI <span class="req">*</span>`;
-      appUrl.placeholder = "z.B. discord:// oder steam://run/730 oder file:///C:/...";
-      launchHelp.textContent =
-        "Empfohlen: URI (discord://, steam://, spotify://, ms-settings:...). file:/// geht je nach Windows-Einstellung.";
-    } else if (t === "scan"){
+      launchLabel.innerHTML = `${t("modal_path_label").replace(" *","")} <span class="req">*</span>`;
+      appUrl.placeholder = t("modal_path_placeholder");
+      launchHelp.textContent = t("modal_path_help");
+    } else if (typeValue === "scan"){
       launchField?.classList.add("hidden");
       scanField?.classList.remove("hidden");
       loadScanApps();
@@ -1536,7 +2009,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       appCategory.innerHTML = "";
       categories.forEach(c => {
         const opt = document.createElement("option");
-        opt.textContent = c;
+        opt.textContent = c === "Sonstiges" ? t("tab_misc") : c;
         opt.value = c;
         appCategory.appendChild(opt);
       });
@@ -1576,12 +2049,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       row.className = "cat-item";
       row.innerHTML = `
         <div class="cat-name">${escapeHtml(c)}</div>
-        <button class="cat-del" type="button" ${c === "Sonstiges" ? "disabled" : ""}>Löschen</button>
+        <button class="cat-del" type="button" ${c === "Sonstiges" ? "disabled" : ""}>${escapeHtml(t("category_delete_btn"))}</button>
       `;
       const delBtn = row.querySelector(".cat-del");
       if (delBtn && c !== "Sonstiges") {
         delBtn.addEventListener("click", () => {
-          openConfirm(`Kategorie "${c}" löschen? Apps werden nach "Sonstiges" verschoben.`, () => {
+          openConfirm(t("confirm_delete_category", { name: c }), () => {
             categories = categories.filter(x => x.toLowerCase() !== c.toLowerCase());
             apps = apps.map(a => (a.category === c ? { ...a, category: "Sonstiges" } : a));
             saveApps(apps);
@@ -1630,16 +2103,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // TAURI invoke -> Rust command -> Shell open (zuverlässig)
     try{
-      const t = window.__TAURI__;
-      if (!t?.core?.invoke){
-        alert("Tauri API nicht verfÃ¼gbar (window.__TAURI__.core.invoke fehlt).");
+      const tauriApi = window.__TAURI__;
+      if (!tauriApi?.core?.invoke){
+        alert(t("alert_tauri_missing"));
         return;
       }
-      await t.core.invoke("open_external", { url: launch });
+      await tauriApi.core.invoke("open_external", { url: launch });
       return;
     }catch(e){
       console.error("Tauri invoke(open_external) failed:", e);
-      alert("Konnte nicht öffnen: " + (e?.message || e));
+      alert(t("alert_open_failed", { message: e?.message || e }));
     }
 
     // Fallback (Live Server / Browser)
@@ -1832,7 +2305,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         openLaunch(app);
       });
 
-      const typeBadge = app.type === "desktop" ? "Desktop" : "Web";
+      const typeBadge = app.type === "desktop" ? t("card_type_desktop") : t("card_type_web");
 
       card.innerHTML = `
         <div class="card-top">
@@ -1840,14 +2313,14 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
 
           <div class="card-actions">
-            <button class="star ${app.fav ? "active" : ""}" type="button" aria-label="Favorit">★</button>
-            <button class="edit" type="button" aria-label="Bearbeiten" title="Bearbeiten">
+            <button class="star ${app.fav ? "active" : ""}" type="button" aria-label="${escapeHtml(t("aria_favorite"))}">★</button>
+            <button class="edit" type="button" aria-label="${escapeHtml(t("aria_edit"))}" title="${escapeHtml(t("title_edit"))}">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M4 20h4l10.5-10.5-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                 <path d="M14.5 5.5 18.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
               </svg>
             </button>
-            <button class="del" type="button" aria-label="Löschen" title="Löschen">🗑</button>
+            <button class="del" type="button" aria-label="${escapeHtml(t("aria_delete"))}" title="${escapeHtml(t("title_delete"))}">🗑</button>
           </div>
         </div>
 
@@ -1882,7 +2355,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const del = card.querySelector(".del");
       del.addEventListener("click", (e) => {
         e.stopPropagation();
-        openConfirm(`"${app.name}" wirklich löschen?`, () => {
+        openConfirm(t("confirm_delete_app", { name: app.name }), () => {
           apps = apps.filter(a => a.id !== app.id);
           saveApps(apps);
           render();
@@ -2202,7 +2675,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeRaw === "scan"){
       const selected = scanSelect?.value || "";
       if (!selected){
-        alert("Bitte eine App aus dem Scan wählen.");
+        alert(t("alert_scan_choose"));
         return;
       }
       launch = selected;
@@ -2218,7 +2691,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     if(!name || !launch){
-      alert("Bitte Name und URL/Pfad ausfüllen.");
+      alert(t("alert_fill_required"));
       return;
     }
     if (!categories.some(c => c.toLowerCase() === String(cat).toLowerCase())){
@@ -2230,14 +2703,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       const looksLikeSomething =
         /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(launch) || /^https?:\/\//i.test(launch);
       if (!looksLikeSomething){
-        alert("Web-Apps brauchen eine URL/Domain (z.B. discord.com/app oder https://discord.com/app).");
+        alert(t("alert_web_invalid"));
         return;
       }
       launch = normalizeWebUrl(launch);
     } else {
       const ok = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(launch);
       if (!ok){
-        alert("Desktop braucht eine URI wie discord://, steam://..., ms-settings:... oder file:///C:/...");
+        alert(t("alert_desktop_invalid"));
         return;
       }
     }
@@ -2299,3 +2772,4 @@ document.addEventListener("DOMContentLoaded", async () => {
   syncTypeUI();
   render();
 });
+

@@ -1,17 +1,17 @@
-﻿<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-head">
-      <div class="modal-title" id="modalTitle">Neue App hinzufügen</div>
-      <button class="icon-btn" id="modalClose" type="button" aria-label="Schließen">✕</button>
+      <div class="modal-title" id="modalTitle" data-i18n="modal_add_title">Neue App hinzufügen</div>
+      <button class="icon-btn" id="modalClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">&times;</button>
     </div>
 
     <div class="modal-body">
       <div class="field">
         <div class="label" style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Icon (optional)</span>
+          <span data-i18n="modal_icon_optional">Icon (optional)</span>
           <div style="display:flex;gap:8px;">
-            <button class="icon-btn" id="iconRemove" type="button" title="Icon entfernen" aria-label="Icon entfernen">🗑</button>
-            <button class="icon-btn" id="iconUploadBtn" type="button" title="Icon hochladen" aria-label="Icon hochladen">⤴</button>
+            <button class="icon-btn" id="iconRemove" type="button" title="Icon entfernen" aria-label="Icon entfernen" data-i18n-title="modal_icon_remove" data-i18n-aria-label="modal_icon_remove">&#128465;</button>
+            <button class="icon-btn" id="iconUploadBtn" type="button" title="Icon hochladen" aria-label="Icon hochladen" data-i18n-title="modal_icon_upload" data-i18n-aria-label="modal_icon_upload">&#10514;</button>
           </div>
         </div>
 
@@ -20,8 +20,8 @@
             <img id="iconPreviewImg" class="icon-img" alt="">
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
-            <div class="help-strong">Standard: automatisch aus URL (Favicon)</div>
-            <div class="help-text">Oder eigenes PNG/JPG hochladen.</div>
+            <div class="help-strong" data-i18n="modal_icon_auto">Standard: automatisch aus URL (Favicon)</div>
+            <div class="help-text" data-i18n="modal_icon_custom_help">Oder eigenes PNG/JPG hochladen.</div>
           </div>
         </div>
 
@@ -29,42 +29,42 @@
       </div>
 
       <div class="field">
-        <div class="label">Name <span class="req">*</span></div>
-        <input class="input" id="appName" placeholder="z.B. Notion / Discord" />
+        <div class="label" data-i18n="modal_name_label">Name <span class="req">*</span></div>
+        <input class="input" id="appName" placeholder="z.B. Notion / Discord" data-i18n-placeholder="modal_name_placeholder" />
       </div>
 
       <div class="row2">
         <div class="field">
-          <div class="label">Typ</div>
+          <div class="label" data-i18n="modal_type_label">Typ</div>
           <select class="select" id="appType">
-            <option value="web">Web (https://...)</option>
-            <option value="desktop">Desktop (URI / file://)</option>
-            <option value="scan" selected>Desktop (Scan Vorschläge)</option>
+            <option value="web" data-i18n="modal_type_web">Web (https://...)</option>
+            <option value="desktop" data-i18n="modal_type_desktop">Desktop (URI / file://)</option>
+            <option value="scan" selected data-i18n="modal_type_scan">Desktop (Scan Vorschläge)</option>
           </select>
         </div>
 
         <div class="field">
-          <div class="label">Kategorie</div>
+          <div class="label" data-i18n="modal_category_label">Kategorie</div>
           <select class="select" id="appCategory"></select>
         </div>
       </div>
 
       <div class="field" id="launchField">
-        <div class="label" id="launchLabel">URL <span class="req">*</span></div>
-        <input class="input" id="appUrl" placeholder="https://..." />
+        <div class="label" id="launchLabel" data-i18n="modal_url_label">URL <span class="req">*</span></div>
+        <input class="input" id="appUrl" placeholder="https://..." data-i18n-placeholder="modal_url_placeholder" />
         <div id="launchHelp" class="help-text">
-          Beispiel: https://notion.so
+          <span data-i18n="modal_url_example">Beispiel: https://notion.so</span>
         </div>
       </div>
 
       <div class="field hidden" id="scanField">
-        <div class="label">Gefundene Apps</div>
+        <div class="label" data-i18n="modal_found_apps">Gefundene Apps</div>
         <div class="scan-row">
           <select class="select" id="scanSelect"></select>
-          <button class="icon-btn scan-refresh" id="scanRefresh" type="button" title="Scan aktualisieren" aria-label="Scan aktualisieren">↻</button>
+          <button class="icon-btn scan-refresh" id="scanRefresh" type="button" title="Scan aktualisieren" aria-label="Scan aktualisieren" data-i18n-title="modal_scan_refresh" data-i18n-aria-label="modal_scan_refresh">&#8635;</button>
         </div>
         <div class="help-text">
-          Wähle eine App aus dem Windows‑Scan.
+          <span data-i18n="modal_scan_help">Wähle eine App aus dem Windows-Scan.</span>
         </div>
         <div class="scan-loading hidden" id="scanLoading">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -72,14 +72,14 @@
       </div>
 
       <div class="field">
-        <div class="label">Beschreibung</div>
-        <input class="input" id="appDesc" placeholder="Optional" />
+        <div class="label" data-i18n="modal_description_label">Beschreibung</div>
+        <input class="input" id="appDesc" placeholder="Optional" data-i18n-placeholder="modal_description_placeholder" />
       </div>
     </div>
 
     <div class="modal-foot">
-      <button class="btn-ghost" id="cancelBtn" type="button">Abbrechen</button>
-      <button class="btn-primary" id="submitBtn" type="button">Hinzufügen</button>
+      <button class="btn-ghost" id="cancelBtn" type="button" data-i18n="cancel">Abbrechen</button>
+      <button class="btn-primary" id="submitBtn" type="button" data-i18n="add">Hinzufügen</button>
     </div>
   </div>
 </div>
@@ -87,15 +87,15 @@
 <div class="modal-overlay" id="confirmOverlay" aria-hidden="true">
   <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
     <div class="modal-head">
-      <div class="modal-title" id="confirmTitle">Löschen bestätigen</div>
-      <button class="icon-btn" id="confirmClose" type="button" aria-label="Schließen">×</button>
+      <div class="modal-title" id="confirmTitle" data-i18n="confirm_delete_default_title">Löschen bestätigen</div>
+      <button class="icon-btn" id="confirmClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">×</button>
     </div>
     <div class="modal-body">
-      <div class="confirm-text" id="confirmText">Möchtest du diese App wirklich löschen?</div>
+      <div class="confirm-text" id="confirmText" data-i18n="confirm_delete_default_message">Möchtest du diese App wirklich löschen?</div>
     </div>
     <div class="modal-foot">
-      <button class="btn-ghost" id="confirmCancel" type="button">Abbrechen</button>
-      <button class="btn-primary" id="confirmOk" type="button">Löschen</button>
+      <button class="btn-ghost" id="confirmCancel" type="button" data-i18n="cancel">Abbrechen</button>
+      <button class="btn-primary" id="confirmOk" type="button" data-i18n="confirm_delete_default_label">Löschen</button>
     </div>
   </div>
 </div>
@@ -103,25 +103,25 @@
 <div class="modal-overlay" id="catManageOverlay" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="catManageTitle">
     <div class="modal-head">
-      <div class="modal-title" id="catManageTitle">Kategorien verwalten</div>
-      <button class="icon-btn" id="catManageClose" type="button" aria-label="Schließen">×</button>
+      <div class="modal-title" id="catManageTitle" data-i18n="cat_manage_title">Kategorien verwalten</div>
+      <button class="icon-btn" id="catManageClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">×</button>
     </div>
     <div class="modal-body">
       <div class="field">
-        <div class="label">Neue Kategorie</div>
+        <div class="label" data-i18n="cat_new_label">Neue Kategorie</div>
         <div class="row2">
-          <input class="input" id="catManageInput" placeholder="z.B. Lernen, Finanzen..." />
-          <button class="btn-primary" id="catManageAdd" type="button">Hinzufügen</button>
+          <input class="input" id="catManageInput" placeholder="z.B. Lernen, Finanzen..." data-i18n-placeholder="cat_new_placeholder" />
+          <button class="btn-primary" id="catManageAdd" type="button" data-i18n="add">Hinzufügen</button>
         </div>
-        <div class="help-text">Löschen verschiebt Apps automatisch nach "Sonstiges".</div>
+        <div class="help-text" data-i18n="cat_manage_help">Löschen verschiebt Apps automatisch nach "Sonstiges".</div>
       </div>
       <div class="field">
-        <div class="label">Vorhandene Kategorien</div>
+        <div class="label" data-i18n="cat_existing_label">Vorhandene Kategorien</div>
         <div class="cat-manage-list" id="catManageList"></div>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-ghost" id="catManageCancel" type="button">Schließen</button>
+      <button class="btn-ghost" id="catManageCancel" type="button" data-i18n="close">Schließen</button>
     </div>
   </div>
 </div>
@@ -129,38 +129,38 @@
 <div class="modal-overlay" id="settingsOverlay" aria-hidden="true">
   <div class="modal modal-settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-head">
-      <div class="modal-title" id="settingsTitle">Einstellungen</div>
-      <button class="icon-btn" id="settingsClose" type="button" aria-label="Schließen">×</button>
+      <div class="modal-title" id="settingsTitle" data-i18n="settings_title">Einstellungen</div>
+      <button class="icon-btn" id="settingsClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">×</button>
     </div>
     <div class="modal-body">
       <div class="field">
-        <div class="label">Hotkey (App ein/ausblenden)</div>
+        <div class="label" data-i18n="settings_hotkey_label">Hotkey (App ein/ausblenden)</div>
         <div class="row2">
-          <input class="input" id="hotkeyInput" placeholder="Drücke 'Aufnehmen'…" readonly />
-          <button class="btn-primary" id="hotkeyCapture" type="button">Aufnehmen</button>
+          <input class="input" id="hotkeyInput" placeholder="Drücke 'Aufnehmen'…" data-i18n-placeholder="settings_hotkey_placeholder" readonly />
+          <button class="btn-primary" id="hotkeyCapture" type="button" data-i18n="settings_capture">Aufnehmen</button>
         </div>
         <div class="help-text">
-          Klicke auf „Aufnehmen“ und drücke die gewünschte Kombination.
+          <span data-i18n="settings_hotkey_help">Klicke auf „Aufnehmen“ und drücke die gewünschte Kombination.</span>
         </div>
       </div>
       <div class="field">
-        <div class="label">Clipboard Verlauf</div>
+        <div class="label" data-i18n="settings_clipboard_label">Clipboard Verlauf</div>
         <select class="select" id="clipboardRetentionMode">
-          <option value="count">Nach Anzahl löschen</option>
-          <option value="time">Nach Zeit löschen</option>
-          <option value="unlimited">Unbegrenzt (manuell)</option>
+          <option value="count" data-i18n="settings_clip_count">Nach Anzahl löschen</option>
+          <option value="time" data-i18n="settings_clip_time">Nach Zeit löschen</option>
+          <option value="unlimited" data-i18n="settings_clip_unlimited">Unbegrenzt (manuell)</option>
         </select>
         <div class="clipboard-setting-extra hidden" id="clipboardTimeWrap">
-          <div class="label">Zeitfenster</div>
+          <div class="label" data-i18n="settings_clip_time_window">Zeitfenster</div>
           <select class="select" id="clipboardTimeCycle">
-            <option value="4">4 Stunden</option>
-            <option value="8">8 Stunden</option>
-            <option value="24">24 Stunden</option>
-            <option value="48">48 Stunden</option>
+            <option value="4" data-i18n="settings_hours_4">4 Stunden</option>
+            <option value="8" data-i18n="settings_hours_8">8 Stunden</option>
+            <option value="24" data-i18n="settings_hours_24">24 Stunden</option>
+            <option value="48" data-i18n="settings_hours_48">48 Stunden</option>
           </select>
         </div>
         <div class="clipboard-setting-extra hidden" id="clipboardCountWrap">
-          <div class="label">Max. Einträge</div>
+          <div class="label" data-i18n="settings_clip_max">Max. Einträge</div>
           <select class="select" id="clipboardMaxItems">
             <option value="50">50</option>
             <option value="100">100</option>
@@ -168,12 +168,12 @@
             <option value="1000">1000</option>
           </select>
         </div>
-        <div class="help-text">Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit "Leeren" gelöscht werden.</div>
+        <div class="help-text" data-i18n="settings_clip_help">Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit "Leeren" gelöscht werden.</div>
       </div>
       <div class="field">
-        <div class="label">Theme</div>
+        <div class="label" data-i18n="settings_theme">Theme</div>
         <div class="theme-row">
-          <span class="theme-label">Light Mode</span>
+          <span class="theme-label" data-i18n="settings_light_mode">Light Mode</span>
           <label class="switch">
             <input type="checkbox" id="themeToggle" />
             <span class="slider"></span>
@@ -181,7 +181,7 @@
         </div>
       </div>
       <div class="field">
-        <div class="label">Akzentfarbe</div>
+        <div class="label" data-i18n="settings_accent">Akzentfarbe</div>
         <div class="accent-row" id="accentRow">
           <button class="accent-btn" data-accent="purple" title="Lila"></button>
           <button class="accent-btn" data-accent="blue" title="Blau"></button>
@@ -196,53 +196,54 @@
         </div>
       </div>
       <div class="field">
-        <div class="label">Hintergrund</div>
+        <div class="label" data-i18n="settings_background">Hintergrund</div>
         <div class="bg-choices" id="bgChoices">
           <label class="bg-choice">
             <input type="radio" name="bgMode" value="theme" />
             <span class="bg-thumb bg-theme"></span>
-            <span class="bg-label">Standard</span>
+            <span class="bg-label" data-i18n="settings_bg_standard">Standard</span>
           </label>
           <label class="bg-choice">
             <input type="radio" name="bgMode" value="mono" />
             <span class="bg-thumb bg-mono"></span>
-            <span class="bg-label">Mono</span>
+            <span class="bg-label" data-i18n="settings_bg_mono">Mono</span>
           </label>
           <label class="bg-choice bg-choice-duo">
             <input type="radio" name="bgMode" value="duo" />
             <span class="bg-thumb bg-duo"></span>
-            <span class="bg-label">Duo</span>
+            <span class="bg-label" data-i18n="settings_bg_duo">Duo</span>
           </label>
           <label class="bg-choice">
             <input type="radio" name="bgMode" value="custom" />
             <span class="bg-thumb bg-custom"></span>
-            <span class="bg-label">Custom</span>
+            <span class="bg-label" data-i18n="settings_bg_custom">Custom</span>
           </label>
         </div>
         <div class="bg-duo hidden" id="bgDuoControls">
-          <div class="label">Duo Farben</div>
+          <div class="label" data-i18n="settings_duo_colors">Duo Farben</div>
           <div class="bg-duo-row">
-            <span class="bg-duo-label">Oben rechts</span>
+            <span class="bg-duo-label" data-i18n="settings_duo_top">Oben rechts</span>
             <div class="bg-duo-palette" id="bgDuoTop"></div>
           </div>
           <div class="bg-duo-row">
-            <span class="bg-duo-label">Unten links</span>
+            <span class="bg-duo-label" data-i18n="settings_duo_bottom">Unten links</span>
             <div class="bg-duo-palette" id="bgDuoBottom"></div>
           </div>
         </div>
         <div class="bg-upload hidden" id="bgUploadRow">
-          <input class="input" id="bgUploadName" placeholder="Kein Bild gewaehlt" readonly />
-          <button class="btn-primary" id="bgUploadBtn" type="button">Bild hochladen</button>
+          <input class="input" id="bgUploadName" placeholder="Kein Bild gewaehlt" data-i18n-placeholder="settings_no_image" readonly />
+          <button class="btn-primary" id="bgUploadBtn" type="button" data-i18n="settings_upload_image">Bild hochladen</button>
           <input id="bgUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
         </div>
-        <div class="help-text">Erlaubte Groesse: 1920x1080, 2560x1440, 3840x2160, 5184x3456</div>
-        <div class="error-box hidden" id="bgError">Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.</div>
+        <div class="help-text" data-i18n="settings_allowed_sizes">Erlaubte Groesse: 1920x1080, 2560x1440, 3840x2160, 5184x3456</div>
+        <div class="error-box hidden" id="bgError" data-i18n="settings_bg_error">Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.</div>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn-ghost" id="hotkeyCancel" type="button">Abbrechen</button>
-      <button class="btn-primary" id="hotkeySave" type="button">Speichern</button>
+      <button class="btn-ghost" id="hotkeyCancel" type="button" data-i18n="cancel">Abbrechen</button>
+      <button class="btn-primary" id="hotkeySave" type="button" data-i18n="save">Speichern</button>
     </div>
   </div>
 </div>
+
 
