@@ -74,7 +74,7 @@ npm run build
 ## Release / Tagging
 
 Historische Tags im Repo nutzen das Schema `vX.Y.Z`.
-Fuer diesen Stand wurde der zusaetzliche Tag `1.1.3` gesetzt.
+Fuer diesen Stand ist der Release-Tag `v1.1.7` vorgesehen.
 
 ## Lizenz
 
