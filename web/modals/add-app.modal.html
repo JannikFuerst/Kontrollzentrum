@@ -4,7 +4,6 @@
       <div class="modal-title" id="modalTitle" data-i18n="modal_add_title">Neue App hinzufügen</div>
       <button class="icon-btn" id="modalClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">&times;</button>
     </div>
-
     <div class="modal-body">
       <div class="field">
         <div class="label" style="display:flex;align-items:center;justify-content:space-between;">
@@ -142,6 +141,22 @@
         <div class="help-text">
           <span data-i18n="settings_hotkey_help">Klicke auf „Aufnehmen“ und drücke die gewünschte Kombination.</span>
         </div>
+        <div class="clipboard-setting-extra" style="margin-top:10px;">
+          <div class="label" data-i18n="settings_voice_activation">Sprachaktivierung</div>
+          <div class="theme-row">
+            <span class="theme-label" id="voiceActivationState">Aktiviert</span>
+            <label class="switch">
+              <input type="checkbox" id="voiceActivationToggle" />
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="help-text hidden" id="voiceCommandHint" data-i18n="settings_voice_command_hint">Sage z.B.: "Kontrollzentrum starte CS2" oder "Control Center open Steam".</div>
+        </div>
+        <div class="clipboard-setting-extra hidden" id="voiceMicWrap">
+          <div class="label" data-i18n="settings_voice_mic">Mikrofon</div>
+          <select class="select" id="voiceMicSelect"></select>
+          <div class="help-text" data-i18n="settings_voice_mic_help">Falls die Erkennung nicht reagiert, bitte dieses Mikrofon in Windows als Standard-Aufnahmegeraet setzen.</div>
+        </div>
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_clipboard_label">Clipboard Verlauf</div>
@@ -245,5 +260,6 @@
     </div>
   </div>
 </div>
+
 
 

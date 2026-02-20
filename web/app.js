@@ -137,6 +137,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_capture: "Aufnehmen",
       settings_capture_listen: "Drücke Tasten...",
       settings_hotkey_help: "Klicke auf \"Aufnehmen\" und drücke die gewünschte Kombination.",
+      settings_voice_activation: "Sprachaktivierung",
+      settings_voice_enabled: "Aktivieren",
+      settings_voice_status_on: "Aktiviert",
+      settings_voice_status_off: "Deaktiviert",
+      settings_voice_on: "An",
+      settings_voice_off: "Aus",
+      settings_voice_mic: "Mikrofon",
+      settings_voice_mic_help: "Falls die Erkennung nicht reagiert, bitte dieses Mikrofon in Windows als Standard-Aufnahmegeraet setzen.",
+      settings_voice_command_hint: "Sage z.B.: \"Kontrollzentrum starte CS2\" oder \"Control Center open Steam\".",
+      settings_voice_no_mic: "Keine Mikrofone gefunden",
+      settings_voice_default_mic: "Systemstandard",
       settings_clipboard_label: "Clipboard Verlauf",
       settings_clip_count: "Nach Anzahl löschen",
       settings_clip_time: "Nach Zeit löschen",
@@ -166,7 +177,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal_path_label: "Pfad / URI *",
       modal_path_placeholder: "z.B. discord:// oder steam://run/730 oder file:///C:/...",
       modal_path_help: "Empfohlen: URI (discord://, steam://, spotify://, ms-settings:...). file:/// geht je nach Windows-Einstellung.",
-      modal_web_help: "Beispiel: https://notion.so oder discord.com/app"
+      modal_web_help: "Beispiel: https://notion.so oder discord.com/app",
+      voice_opening: "{name} wird geoeffnet.",
+      voice_not_understood: "Befehl nicht verstanden.",
+      voice_app_not_found: "App nicht gefunden: {name}.",
+      voice_listening: "Ich hoere zu."
     },
     en: {
       language: "Language",
@@ -272,6 +287,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_capture: "Capture",
       settings_capture_listen: "Press keys...",
       settings_hotkey_help: "Click \"Capture\" and press the desired combination.",
+      settings_voice_activation: "Voice activation",
+      settings_voice_enabled: "Enable",
+      settings_voice_status_on: "Enabled",
+      settings_voice_status_off: "Disabled",
+      settings_voice_on: "On",
+      settings_voice_off: "Off",
+      settings_voice_mic: "Microphone",
+      settings_voice_mic_help: "If recognition does not react, set this microphone as your default recording device in Windows.",
+      settings_voice_command_hint: "Say e.g.: \"Kontrollzentrum starte CS2\" or \"Control Center open Steam\".",
+      settings_voice_no_mic: "No microphones found",
+      settings_voice_default_mic: "System default",
       settings_clipboard_label: "Clipboard history",
       settings_clip_count: "Delete by count",
       settings_clip_time: "Delete by time",
@@ -301,7 +327,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal_path_label: "Path / URI *",
       modal_path_placeholder: "e.g. discord:// or steam://run/730 or file:///C:/...",
       modal_path_help: "Recommended: URI (discord://, steam://, spotify://, ms-settings:...). file:/// depends on Windows settings.",
-      modal_web_help: "Example: https://notion.so or discord.com/app"
+      modal_web_help: "Example: https://notion.so or discord.com/app",
+      voice_opening: "Opening {name}.",
+      voice_not_understood: "I could not understand the command.",
+      voice_app_not_found: "App not found: {name}.",
+      voice_listening: "Listening."
     }
   };
   let currentLang = localStorage.getItem(LANG_KEY) || "de";
@@ -367,6 +397,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem(LANG_KEY, currentLang);
     applyI18nToDom();
     applyModalI18n();
+    updateVoiceActivationStatusLabel();
     syncNotesDeleteState();
     syncNotesLockState();
     updateClipboardModeBadge();
@@ -491,6 +522,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clipboardMaxItems = document.getElementById("clipboardMaxItems");
   const clipboardTimeWrap = document.getElementById("clipboardTimeWrap");
   const clipboardCountWrap = document.getElementById("clipboardCountWrap");
+  const voiceActivationToggle = document.getElementById("voiceActivationToggle");
+  const voiceActivationState = document.getElementById("voiceActivationState");
+  const voiceCommandHint = document.getElementById("voiceCommandHint");
+  const voiceMicWrap = document.getElementById("voiceMicWrap");
+  const voiceMicSelect = document.getElementById("voiceMicSelect");
 
   const confirmOverlay = document.getElementById("confirmOverlay");
   const confirmClose = document.getElementById("confirmClose");
@@ -569,6 +605,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setText("#settingsOverlay [data-i18n='settings_hotkey_label']", "settings_hotkey_label");
     setText("#settingsOverlay [data-i18n='settings_hotkey_help']", "settings_hotkey_help");
+    setText("#settingsOverlay [data-i18n='settings_voice_activation']", "settings_voice_activation");
+    setText("#settingsOverlay [data-i18n='settings_voice_mic']", "settings_voice_mic");
+    setText("#settingsOverlay [data-i18n='settings_voice_mic_help']", "settings_voice_mic_help");
+    setText("#settingsOverlay [data-i18n='settings_voice_command_hint']", "settings_voice_command_hint");
     setText("#settingsOverlay [data-i18n='settings_clipboard_label']", "settings_clipboard_label");
     setText("#settingsOverlay [data-i18n='settings_clip_time_window']", "settings_clip_time_window");
     setText("#settingsOverlay [data-i18n='settings_clip_max']", "settings_clip_max");
@@ -597,6 +637,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#clipboardTimeCycle option[value='8']", "settings_hours_8");
     setText("#clipboardTimeCycle option[value='24']", "settings_hours_24");
     setText("#clipboardTimeCycle option[value='48']", "settings_hours_48");
+    updateVoiceActivationStatusLabel();
+    const defaultMicOpt = document.querySelector("#voiceMicSelect option[value='']");
+    if (defaultMicOpt) defaultMicOpt.textContent = t("settings_voice_default_mic");
 
     setText("#modalOverlay [data-i18n='modal_icon_optional']", "modal_icon_optional");
     setText("#modalOverlay [data-i18n='modal_icon_auto']", "modal_icon_auto");
@@ -1437,6 +1480,92 @@ document.addEventListener("DOMContentLoaded", async () => {
     // ignore
   }
 
+  const VOICE_ENABLED_KEY = "kc_voice_enabled";
+  const VOICE_MIC_KEY = "kc_voice_mic";
+
+  function loadVoiceSettings(){
+    const rawEnabled = (localStorage.getItem(VOICE_ENABLED_KEY) || "1").toLowerCase();
+    const enabled = rawEnabled !== "0" && rawEnabled !== "false" && rawEnabled !== "off";
+    const micId = localStorage.getItem(VOICE_MIC_KEY) || "";
+    return { enabled, micId };
+  }
+
+  function saveVoiceSettings({ enabled, micId }){
+    localStorage.setItem(VOICE_ENABLED_KEY, enabled ? "1" : "0");
+    localStorage.setItem(VOICE_MIC_KEY, micId || "");
+  }
+
+  function getVoiceSettingsFromUI(){
+    const enabled = Boolean(voiceActivationToggle?.checked);
+    const micId = String(voiceMicSelect?.value || "");
+    return { enabled, micId };
+  }
+
+  function updateVoiceActivationStatusLabel(){
+    if (!voiceActivationState) return;
+    const enabled = Boolean(voiceActivationToggle?.checked);
+    voiceActivationState.textContent = enabled ? t("settings_voice_status_on") : t("settings_voice_status_off");
+  }
+
+  function applyVoiceSettingsToUI(settings){
+    if (voiceActivationToggle) voiceActivationToggle.checked = Boolean(settings?.enabled);
+    if (voiceCommandHint) voiceCommandHint.classList.toggle("hidden", !Boolean(settings?.enabled));
+    if (voiceMicWrap) voiceMicWrap.classList.toggle("hidden", !Boolean(settings?.enabled));
+    updateVoiceActivationStatusLabel();
+  }
+
+  async function requestMicPermissionForLabels(){
+    if (!navigator.mediaDevices?.getUserMedia) return;
+    let stream = null;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }catch{
+      // ignore permission errors
+    } finally {
+      stream?.getTracks?.().forEach((t) => t.stop());
+    }
+  }
+
+  async function refreshVoiceMicList(preferredMicId = "", askPermission = false){
+    if (!voiceMicSelect || !navigator.mediaDevices?.enumerateDevices) return;
+    if (askPermission) await requestMicPermissionForLabels();
+
+    let inputs = [];
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      inputs = devices.filter((d) => d.kind === "audioinput");
+    }catch{
+      inputs = [];
+    }
+
+    voiceMicSelect.innerHTML = "";
+    const defaultOpt = document.createElement("option");
+    defaultOpt.value = "";
+    defaultOpt.textContent = t("settings_voice_default_mic");
+    voiceMicSelect.appendChild(defaultOpt);
+
+    if (!inputs.length){
+      const noneOpt = document.createElement("option");
+      noneOpt.value = "__none__";
+      noneOpt.textContent = t("settings_voice_no_mic");
+      noneOpt.disabled = true;
+      voiceMicSelect.appendChild(noneOpt);
+      voiceMicSelect.value = "";
+      return;
+    }
+
+    inputs.forEach((device, idx) => {
+      const opt = document.createElement("option");
+      opt.value = device.deviceId || "";
+      const label = (device.label || "").trim();
+      opt.textContent = label || `Mic ${idx + 1}`;
+      voiceMicSelect.appendChild(opt);
+    });
+
+    const known = new Set(Array.from(voiceMicSelect.options).map((opt) => opt.value));
+    voiceMicSelect.value = known.has(preferredMicId) ? preferredMicId : "";
+  }
+
   function closeModal() {
     overlay.classList.remove("show");
     overlay.setAttribute("aria-hidden", "true");
@@ -1445,11 +1574,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (submitBtn) submitBtn.textContent = t("add");
   }
 
-  function openSettings(){
+  async function openSettings(){
     if (!settingsOverlay) return;
     applyModalI18n();
     const saved = localStorage.getItem("kc_hotkey") || "";
     if (hotkeyInput) hotkeyInput.value = saved;
+    const voiceSettings = loadVoiceSettings();
+    applyVoiceSettingsToUI(voiceSettings);
+    await refreshVoiceMicList(voiceSettings.micId, voiceSettings.enabled);
     if (themeToggle) themeToggle.checked = (localStorage.getItem("kc_theme") || "dark") === "light";
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
@@ -1634,9 +1766,22 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  function onVoiceActivationChange(){
+    const enabled = Boolean(voiceActivationToggle?.checked);
+    if (voiceCommandHint) voiceCommandHint.classList.toggle("hidden", !enabled);
+    if (voiceMicWrap) voiceMicWrap.classList.toggle("hidden", !enabled);
+    updateVoiceActivationStatusLabel();
+    if (enabled) refreshVoiceMicList(String(voiceMicSelect?.value || ""), true);
+  }
+
+  voiceActivationToggle?.addEventListener("change", onVoiceActivationChange);
+
   hotkeySave?.addEventListener("click", async () => {
     const val = hotkeyInput?.value || "";
     await applyHotkey(val);
+    const voiceSettings = getVoiceSettingsFromUI();
+    saveVoiceSettings(voiceSettings);
+    applyVoiceRuntimeSettings(voiceSettings);
     saveClipboardRetentionSettings({
       mode: clipboardRetentionMode?.value || "count",
       hours: clipboardTimeCycle?.value || "24",
@@ -2117,6 +2262,356 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Fallback (Live Server / Browser)
     window.open(launch, "_blank", "noopener,noreferrer");
+  }
+
+  const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+  const WAKE_PHRASES = ["kontrollzentrum", "kontroll zentrum", "control center", "controlcenter"];
+  const COMMAND_VERBS = new Set(["starte", "start", "oeffne", "offne", "open", "launch", "run"]);
+  const COMMAND_FILLERS = new Set([
+    "bitte", "please", "mal", "doch", "den", "die", "das", "dem", "der", "ein", "eine",
+    "the", "a", "an", "to", "app", "programm", "program", "kannst", "du", "can", "you"
+  ]);
+  const STATIC_APP_ALIASES = {
+    cs2: [
+      "cs2", "cs 2", "counter strike", "counter strike 2", "counter-strike", "counter-strike 2"
+    ],
+    steam: ["steam"],
+    whatsapp: ["whatsapp", "whats app"]
+  };
+  const CANONICAL_APP_HINTS = {
+    cs2: ["cs2", "counter strike", "steam://run/730", "730"],
+    steam: ["steam", "steam://"],
+    whatsapp: ["whatsapp", "whats app"]
+  };
+
+  let wakeRecognition = null;
+  let commandRecognition = null;
+  let wakeShouldRun = false;
+  let commandModeActive = false;
+  let commandTimeoutTimer = null;
+  let voiceCooldownUntil = 0;
+  let voiceBootstrapped = false;
+  let selectedVoice = null;
+  let voiceEnabled = true;
+  let selectedMicId = "";
+
+  function normalizeSpeechText(input){
+    return String(input || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9\s]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function stripCommandFillers(tokens){
+    let out = tokens.slice();
+    while (out.length && COMMAND_FILLERS.has(out[0])) out.shift();
+    while (out.length && COMMAND_FILLERS.has(out[out.length - 1])) out.pop();
+    return out;
+  }
+
+  function findWakeTail(normalizedText){
+    for (const phrase of WAKE_PHRASES){
+      const idx = normalizedText.indexOf(phrase);
+      if (idx === -1) continue;
+      return normalizedText.slice(idx + phrase.length).trim();
+    }
+    return null;
+  }
+
+  function parseVoiceCommand(rawText){
+    const normalized = normalizeSpeechText(rawText);
+    if (!normalized) return null;
+
+    let tokens = stripCommandFillers(normalized.split(" ").filter(Boolean));
+    if (!tokens.length) return null;
+
+    if (tokens.length >= 2 && tokens[0] === "mach" && tokens[1] === "auf"){
+      tokens = tokens.slice(2);
+    } else if (COMMAND_VERBS.has(tokens[0])){
+      tokens = tokens.slice(1);
+    }
+
+    tokens = stripCommandFillers(tokens);
+    if (!tokens.length) return null;
+    return { target: tokens.join(" ") };
+  }
+
+  function buildAliasMap(){
+    const aliasMap = new Map();
+    Object.entries(STATIC_APP_ALIASES).forEach(([canonical, aliases]) => {
+      aliases.forEach((alias) => aliasMap.set(normalizeSpeechText(alias), canonical));
+    });
+    return aliasMap;
+  }
+
+  function pickCanonicalApp(canonical){
+    const hints = CANONICAL_APP_HINTS[canonical] || [];
+    let best = null;
+    let bestScore = 0;
+    apps.forEach((app) => {
+      const name = normalizeSpeechText(app?.name);
+      const launch = normalizeSpeechText(app?.launch);
+      const hay = `${name} ${launch}`;
+      let score = 0;
+      hints.forEach((hint) => {
+        const needle = normalizeSpeechText(hint);
+        if (!needle) return;
+        if (name === needle) score = Math.max(score, 100);
+        else if (name.includes(needle)) score = Math.max(score, 85);
+        else if (hay.includes(needle)) score = Math.max(score, 70);
+      });
+      if (score > bestScore){
+        bestScore = score;
+        best = app;
+      }
+    });
+    return best;
+  }
+
+  function resolveAppByPhrase(targetPhrase){
+    const normalizedTarget = normalizeSpeechText(targetPhrase);
+    if (!normalizedTarget) return null;
+
+    const aliasMap = buildAliasMap();
+    const canonical = aliasMap.get(normalizedTarget) || null;
+    if (canonical){
+      const app = pickCanonicalApp(canonical);
+      if (app) return app;
+    }
+
+    let best = null;
+    let bestScore = 0;
+    apps.forEach((app) => {
+      const name = normalizeSpeechText(app?.name);
+      const launch = normalizeSpeechText(app?.launch);
+      if (!name && !launch) return;
+      let score = 0;
+      if (name === normalizedTarget) score = 120;
+      else if (name.includes(normalizedTarget)) score = 95;
+      else if (normalizedTarget.includes(name) && name.length > 2) score = 90;
+      else if (launch.includes(normalizedTarget)) score = 70;
+      if (score > bestScore){
+        bestScore = score;
+        best = app;
+      }
+    });
+    return best;
+  }
+
+  function playListeningBeep(){
+    try{
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      const ctx = new AudioCtor();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 980;
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.13);
+      osc.onended = () => ctx.close();
+    }catch{
+      // ignore audio errors
+    }
+  }
+
+  function pickSpeechVoice(){
+    const synth = window.speechSynthesis;
+    if (!synth) return null;
+    const voices = synth.getVoices();
+    if (!voices.length) return null;
+    const langPrefix = currentLang === "en" ? "en" : "de";
+    return voices.find(v => String(v.lang || "").toLowerCase().startsWith(langPrefix)) || voices[0];
+  }
+
+  function speakFeedback(text){
+    if (!window.speechSynthesis || !text) return;
+    try{
+      window.speechSynthesis.cancel();
+      const msg = new SpeechSynthesisUtterance(text);
+      selectedVoice = pickSpeechVoice();
+      if (selectedVoice) msg.voice = selectedVoice;
+      msg.lang = currentLang === "en" ? "en-US" : "de-DE";
+      msg.rate = 1;
+      msg.pitch = 1;
+      window.speechSynthesis.speak(msg);
+    }catch{
+      // ignore speech errors
+    }
+  }
+
+  function clearCommandTimeout(){
+    if (!commandTimeoutTimer) return;
+    clearTimeout(commandTimeoutTimer);
+    commandTimeoutTimer = null;
+  }
+
+  function stopCommandListening(){
+    clearCommandTimeout();
+    commandModeActive = false;
+    if (!commandRecognition) return;
+    try{ commandRecognition.stop(); }catch{}
+  }
+
+  function stopWakeListening(){
+    wakeShouldRun = false;
+    if (!wakeRecognition) return;
+    try{ wakeRecognition.stop(); }catch{}
+  }
+
+  function startWakeListening(){
+    if (!SpeechRecognitionCtor || !voiceEnabled) return;
+    if (!wakeRecognition){
+      wakeRecognition = new SpeechRecognitionCtor();
+      wakeRecognition.continuous = true;
+      wakeRecognition.interimResults = false;
+      wakeRecognition.maxAlternatives = 1;
+      wakeRecognition.lang = "de-DE";
+
+      wakeRecognition.onresult = (event) => {
+        if (Date.now() < voiceCooldownUntil || commandModeActive) return;
+        for (let i = event.resultIndex; i < event.results.length; i++){
+          const result = event.results[i];
+          if (!result.isFinal) continue;
+          const spoken = result[0]?.transcript || "";
+          const normalized = normalizeSpeechText(spoken);
+          const tail = findWakeTail(normalized);
+          if (tail === null) continue;
+          handleWakeDetected(tail);
+          break;
+        }
+      };
+
+      wakeRecognition.onerror = () => {
+        // auto-restart handled in onend
+      };
+
+      wakeRecognition.onend = () => {
+        if (!wakeShouldRun || commandModeActive || !voiceEnabled) return;
+        setTimeout(() => {
+          if (!wakeShouldRun || commandModeActive || !voiceEnabled) return;
+          try{ wakeRecognition.start(); }catch{}
+        }, 450);
+      };
+    }
+    wakeShouldRun = true;
+    try{ wakeRecognition.start(); }catch{}
+  }
+
+  function startCommandWindow(){
+    if (!SpeechRecognitionCtor || !voiceEnabled) return;
+    commandModeActive = true;
+    stopWakeListening();
+    playListeningBeep();
+
+    if (!commandRecognition){
+      commandRecognition = new SpeechRecognitionCtor();
+      commandRecognition.continuous = false;
+      commandRecognition.interimResults = false;
+      commandRecognition.maxAlternatives = 1;
+      commandRecognition.lang = "de-DE";
+    }
+
+    let commandHandled = false;
+    commandRecognition.onresult = async (event) => {
+      for (let i = event.resultIndex; i < event.results.length; i++){
+        const result = event.results[i];
+        if (!result.isFinal) continue;
+        const transcript = result[0]?.transcript || "";
+        commandHandled = true;
+        await executeVoiceCommand(transcript);
+        try{ commandRecognition.stop(); }catch{}
+        break;
+      }
+    };
+
+    commandRecognition.onend = () => {
+      clearCommandTimeout();
+      commandModeActive = false;
+      voiceCooldownUntil = Date.now() + 700;
+      if (!commandHandled) speakFeedback(t("voice_not_understood"));
+      startWakeListening();
+    };
+
+    commandRecognition.onerror = () => {
+      // onend handles restart flow
+    };
+
+    clearCommandTimeout();
+    commandTimeoutTimer = setTimeout(() => {
+      try{ commandRecognition.stop(); }catch{}
+    }, 4200);
+
+    try{ commandRecognition.start(); }catch{
+      commandModeActive = false;
+      startWakeListening();
+    }
+  }
+
+  function handleWakeDetected(tail){
+    if (!voiceEnabled || Date.now() < voiceCooldownUntil || commandModeActive) return;
+    const parsedTail = parseVoiceCommand(tail);
+    if (parsedTail){
+      voiceCooldownUntil = Date.now() + 700;
+      executeVoiceCommand(tail);
+      return;
+    }
+    startCommandWindow();
+  }
+
+  async function executeVoiceCommand(transcript){
+    const parsed = parseVoiceCommand(transcript);
+    if (!parsed){
+      speakFeedback(t("voice_not_understood"));
+      return;
+    }
+    const app = resolveAppByPhrase(parsed.target);
+    if (!app){
+      speakFeedback(t("voice_app_not_found", { name: parsed.target }));
+      return;
+    }
+    await openLaunch(app);
+    speakFeedback(t("voice_opening", { name: app.name || parsed.target }));
+  }
+
+  function bootstrapVoiceControl(){
+    if (voiceBootstrapped) return;
+    voiceBootstrapped = true;
+    const settings = loadVoiceSettings();
+    voiceEnabled = Boolean(settings.enabled);
+    selectedMicId = settings.micId || "";
+    if (!SpeechRecognitionCtor){
+      console.warn("SpeechRecognition API not available in this runtime.");
+      return;
+    }
+    selectedVoice = pickSpeechVoice();
+    if (voiceEnabled) startWakeListening();
+  }
+
+  function applyVoiceRuntimeSettings(settings){
+    voiceEnabled = Boolean(settings?.enabled);
+    selectedMicId = settings?.micId || "";
+    if (!voiceEnabled){
+      stopWakeListening();
+      stopCommandListening();
+      return;
+    }
+    bootstrapVoiceControl();
+    startWakeListening();
+  }
+
+  if (window.speechSynthesis){
+    window.speechSynthesis.onvoiceschanged = () => {
+      selectedVoice = pickSpeechVoice();
+    };
   }
 
   function matches(app){
@@ -2771,5 +3266,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   setIconNone();
   syncTypeUI();
   render();
+  setTimeout(bootstrapVoiceControl, 900);
+  document.addEventListener("pointerdown", bootstrapVoiceControl, { once: true });
 });
+
 
