@@ -646,8 +646,8 @@ body[data-theme="light"] .clip-btn.danger{
 
 header{
   display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
+  align-items:center;
+  justify-content:center;
   gap:24px;
   margin-bottom: 22px;
 }
@@ -655,6 +655,8 @@ header{
 .title{
   display:flex;
   flex-direction:column;
+  align-items:center;
+  text-align:center;
   gap:8px;
 }
 
@@ -1115,7 +1117,7 @@ body[data-theme="light"] .pinned-row .card{
 /* responsive */
 @media (max-width: 860px){
   .wrap{ padding: 52px 18px 64px; }
-  header{ align-items:flex-start; flex-direction:column; }
+  header{ align-items:center; flex-direction:column; }
   h1{ font-size: 36px; }
   .toprow{ flex-direction:column; align-items:stretch; }
   .btn{ justify-content:center; }
