@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clipboardClearAll = document.getElementById("clipboardClearAll");
   const clipboardModeBadge = document.getElementById("clipboardModeBadge");
   const layout = document.querySelector(".layout");
+  const voiceSettingsBtn = document.getElementById("voiceSettingsBtn");
   const languageBtn = document.getElementById("languageBtn");
   const languageMenu = document.getElementById("languageMenu");
 
@@ -36,6 +37,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       language: "Sprache",
       settings_aria: "Einstellungen",
       settings_title_btn: "Einstellungen",
+      voice_settings_aria: "Sprachsteuerung",
+      voice_settings_title_btn: "Sprachsteuerung",
+      voice_settings_title: "Sprachsteuerung",
       notes_toggle: "Notizen",
       clipboard_toggle: "Clipboard",
       notes_heading: "Notizen",
@@ -86,6 +90,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       confirm_delete_default_label: "Löschen",
       confirm_delete_default_title: "Löschen bestätigen",
       confirm_delete_default_message: "Möchtest du diese App wirklich löschen?",
+      update_available_title: "Update verfügbar",
+      update_available_message: "Neue Version verfügbar: v{latest} (aktuell: v{current}).",
+      update_available_action: "UPDATE",
+      update_available_dismiss: "Nein danke",
       clipboard_clear_confirm: "Clipboard-Verlauf wirklich leeren?",
       category_delete_btn: "Löschen",
       confirm_delete_category: "Kategorie \"{name}\" löschen? Apps werden nach \"Sonstiges\" verschoben.",
@@ -138,6 +146,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_capture_listen: "Drücke Tasten...",
       settings_hotkey_help: "Klicke auf \"Aufnehmen\" und drücke die gewünschte Kombination.",
       settings_voice_activation: "Sprachaktivierung",
+      settings_voice_wake_mode_label: "Ansprache",
+      settings_voice_wake_mode_standard: "Standard (Kontrollzentrum / Control Center)",
+      settings_voice_wake_mode_custom: "Custom",
+      settings_voice_wake_label: "Ansprech-String",
+      settings_voice_wake_placeholder: "z.B. Kontrollzentrum, Control Center",
+      settings_voice_wake_help: "Ein oder mehrere Wake-Words, mit Komma getrennt.",
       settings_voice_enabled: "Aktivieren",
       settings_voice_status_on: "Aktiviert",
       settings_voice_status_off: "Deaktiviert",
@@ -145,6 +159,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_voice_off: "Aus",
       settings_voice_mic: "Mikrofon",
       settings_voice_mic_help: "Falls die Erkennung nicht reagiert, bitte dieses Mikrofon in Windows als Standard-Aufnahmegeraet setzen.",
+      settings_voice_voice: "Stimme",
+      settings_voice_voice_help: "Wähle eine der verfügbaren Systemstimmen aus.",
+      settings_voice_none: "Keine Stimme (nur Sound)",
+      settings_voice_male: "Mann",
+      settings_voice_female: "Frau",
+      settings_voice_default_voice: "Automatisch (Sprache)",
+      settings_voice_no_voice: "Keine Stimmen gefunden",
+      settings_voice_tone: "Aktivierungston",
+      settings_voice_tone_help: "Wähle den Sound beim Aktivieren von Sprachbefehlen.",
+      settings_voice_tone_soft_low: "Neon Pulse",
+      settings_voice_tone_deep_click: "Glass Click",
+      settings_voice_tone_duo_console: "Nova Sweep",
+      settings_voice_tone_warm_ping: "Aurora Chime",
+      settings_voice_tone_short_thud: "Short Thud",
       settings_voice_command_hint: "Sage z.B.: \"Kontrollzentrum starte CS2\" oder \"Control Center open Steam\".",
       settings_voice_no_mic: "Keine Mikrofone gefunden",
       settings_voice_default_mic: "Systemstandard",
@@ -171,6 +199,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_duo_top: "Oben rechts",
       settings_duo_bottom: "Unten links",
       settings_no_image: "Kein Bild gewählt",
+      settings_custom_image_active: "Custom Hintergrund aktiv",
       settings_upload_image: "Bild hochladen",
       settings_allowed_sizes: "Erlaubte Größe: 1920x1080, 2560x1440, 3840x2160, 5184x3456",
       settings_bg_error: "Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.",
@@ -187,6 +216,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       language: "Language",
       settings_aria: "Settings",
       settings_title_btn: "Settings",
+      voice_settings_aria: "Voice control",
+      voice_settings_title_btn: "Voice control",
+      voice_settings_title: "Voice control",
       notes_toggle: "Notes",
       clipboard_toggle: "Clipboard",
       notes_heading: "Notes",
@@ -237,6 +269,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       confirm_delete_default_label: "Delete",
       confirm_delete_default_title: "Confirm delete",
       confirm_delete_default_message: "Do you want to delete this app?",
+      update_available_title: "Update available",
+      update_available_message: "A new version is available: v{latest} (current: v{current}).",
+      update_available_action: "UPDATE",
+      update_available_dismiss: "No thanks",
       clipboard_clear_confirm: "Clear clipboard history?",
       category_delete_btn: "Delete",
       confirm_delete_category: "Delete category \"{name}\"? Apps will be moved to \"Sonstiges\".",
@@ -288,6 +324,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_capture_listen: "Press keys...",
       settings_hotkey_help: "Click \"Capture\" and press the desired combination.",
       settings_voice_activation: "Voice activation",
+      settings_voice_wake_mode_label: "Addressing",
+      settings_voice_wake_mode_standard: "Default (Kontrollzentrum / Control Center)",
+      settings_voice_wake_mode_custom: "Custom",
+      settings_voice_wake_label: "Wake phrase",
+      settings_voice_wake_placeholder: "e.g. Kontrollzentrum, Control Center",
+      settings_voice_wake_help: "One or more wake words, separated by commas.",
       settings_voice_enabled: "Enable",
       settings_voice_status_on: "Enabled",
       settings_voice_status_off: "Disabled",
@@ -295,6 +337,20 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_voice_off: "Off",
       settings_voice_mic: "Microphone",
       settings_voice_mic_help: "If recognition does not react, set this microphone as your default recording device in Windows.",
+      settings_voice_voice: "Voice",
+      settings_voice_voice_help: "Choose one of the available system voices.",
+      settings_voice_none: "No voice (sound only)",
+      settings_voice_male: "Man",
+      settings_voice_female: "Woman",
+      settings_voice_default_voice: "Automatic (language)",
+      settings_voice_no_voice: "No voices found",
+      settings_voice_tone: "Activation tone",
+      settings_voice_tone_help: "Choose the cue sound when voice command mode starts.",
+      settings_voice_tone_soft_low: "Neon Pulse",
+      settings_voice_tone_deep_click: "Glass Click",
+      settings_voice_tone_duo_console: "Nova Sweep",
+      settings_voice_tone_warm_ping: "Aurora Chime",
+      settings_voice_tone_short_thud: "Short Thud",
       settings_voice_command_hint: "Say e.g.: \"Kontrollzentrum starte CS2\" or \"Control Center open Steam\".",
       settings_voice_no_mic: "No microphones found",
       settings_voice_default_mic: "System default",
@@ -321,6 +377,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_duo_top: "Top right",
       settings_duo_bottom: "Bottom left",
       settings_no_image: "No image selected",
+      settings_custom_image_active: "Custom background active",
       settings_upload_image: "Upload image",
       settings_allowed_sizes: "Allowed sizes: 1920x1080, 2560x1440, 3840x2160, 5184x3456",
       settings_bg_error: "Invalid image size. Use 1920x1080, 2560x1440, 3840x2160 or 5184x3456.",
@@ -502,6 +559,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   const settingsBtn = document.getElementById("settingsBtn");
   const settingsOverlay = document.getElementById("settingsOverlay");
   const settingsClose = document.getElementById("settingsClose");
+  const voiceSettingsOverlay = document.getElementById("voiceSettingsOverlay");
+  const voiceSettingsClose = document.getElementById("voiceSettingsClose");
+  const voiceSettingsCancel = document.getElementById("voiceSettingsCancel");
+  const voiceSettingsSave = document.getElementById("voiceSettingsSave");
   const hotkeyInput = document.getElementById("hotkeyInput");
   const hotkeyCapture = document.getElementById("hotkeyCapture");
   const hotkeySave = document.getElementById("hotkeySave");
@@ -524,9 +585,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clipboardCountWrap = document.getElementById("clipboardCountWrap");
   const voiceActivationToggle = document.getElementById("voiceActivationToggle");
   const voiceActivationState = document.getElementById("voiceActivationState");
+  const voiceWakeModeSelect = document.getElementById("voiceWakeModeSelect");
+  const voiceWakeCustomWrap = document.getElementById("voiceWakeCustomWrap");
+  const voiceWakeInput = document.getElementById("voiceWakeInput");
   const voiceCommandHint = document.getElementById("voiceCommandHint");
   const voiceMicWrap = document.getElementById("voiceMicWrap");
   const voiceMicSelect = document.getElementById("voiceMicSelect");
+  const voiceSelect = document.getElementById("voiceSelect");
+  const voiceToneSelect = document.getElementById("voiceToneSelect");
 
   const confirmOverlay = document.getElementById("confirmOverlay");
   const confirmClose = document.getElementById("confirmClose");
@@ -576,6 +642,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   function applyModalI18n(){
     setText("#settingsTitle", "settings_title");
+    setText("#voiceSettingsTitle", "voice_settings_title");
     setText("#catManageTitle", "cat_manage_title");
     if (editingId){
       setText("#modalTitle", "modal_edit_title");
@@ -587,6 +654,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#cancelBtn", "cancel");
     setText("#hotkeyCancel", "cancel");
     setText("#hotkeySave", "save");
+    setText("#voiceSettingsCancel", "cancel");
+    setText("#voiceSettingsSave", "save");
     setText("#catManageAdd", "add");
     setText("#catManageCancel", "close");
     setText("#hotkeyCapture", "settings_capture");
@@ -594,6 +663,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setAttr("#modalClose", "aria-label", "close_aria");
     setAttr("#settingsClose", "aria-label", "close_aria");
+    setAttr("#voiceSettingsClose", "aria-label", "close_aria");
     setAttr("#catManageClose", "aria-label", "close_aria");
     setAttr("#confirmClose", "aria-label", "close_aria");
     setAttr("#scanRefresh", "title", "modal_scan_refresh");
@@ -605,10 +675,28 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setText("#settingsOverlay [data-i18n='settings_hotkey_label']", "settings_hotkey_label");
     setText("#settingsOverlay [data-i18n='settings_hotkey_help']", "settings_hotkey_help");
-    setText("#settingsOverlay [data-i18n='settings_voice_activation']", "settings_voice_activation");
-    setText("#settingsOverlay [data-i18n='settings_voice_mic']", "settings_voice_mic");
-    setText("#settingsOverlay [data-i18n='settings_voice_mic_help']", "settings_voice_mic_help");
-    setText("#settingsOverlay [data-i18n='settings_voice_command_hint']", "settings_voice_command_hint");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_activation']", "settings_voice_activation");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_wake_mode_label']", "settings_voice_wake_mode_label");
+    setText("#voiceWakeModeSelect option[value='standard']", "settings_voice_wake_mode_standard");
+    setText("#voiceWakeModeSelect option[value='custom']", "settings_voice_wake_mode_custom");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_wake_label']", "settings_voice_wake_label");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_wake_help']", "settings_voice_wake_help");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_mic']", "settings_voice_mic");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_mic_help']", "settings_voice_mic_help");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_voice']", "settings_voice_voice");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_voice_help']", "settings_voice_voice_help");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_tone']", "settings_voice_tone");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_tone_help']", "settings_voice_tone_help");
+    setText("#voiceSelect option[value='__none__']", "settings_voice_none");
+    setText("#voiceSelect option[value='__male__']", "settings_voice_male");
+    setText("#voiceSelect option[value='__female__']", "settings_voice_female");
+    setText("#voiceToneSelect option[value='soft_low']", "settings_voice_tone_soft_low");
+    setText("#voiceToneSelect option[value='deep_click']", "settings_voice_tone_deep_click");
+    setText("#voiceToneSelect option[value='duo_console']", "settings_voice_tone_duo_console");
+    setText("#voiceToneSelect option[value='warm_ping']", "settings_voice_tone_warm_ping");
+    setText("#voiceToneSelect option[value='short_thud']", "settings_voice_tone_short_thud");
+    setText("#voiceSettingsOverlay [data-i18n='settings_voice_command_hint']", "settings_voice_command_hint");
+    setPh("#voiceWakeInput", "settings_voice_wake_placeholder");
     setText("#settingsOverlay [data-i18n='settings_clipboard_label']", "settings_clipboard_label");
     setText("#settingsOverlay [data-i18n='settings_clip_time_window']", "settings_clip_time_window");
     setText("#settingsOverlay [data-i18n='settings_clip_max']", "settings_clip_max");
@@ -632,7 +720,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setText("#clipboardRetentionMode option[value='count']", "settings_clip_count");
     setText("#clipboardRetentionMode option[value='time']", "settings_clip_time");
-    setText("#clipboardRetentionMode option[value='unlimited']", "settings_clip_unlimited");
     setText("#clipboardTimeCycle option[value='4']", "settings_hours_4");
     setText("#clipboardTimeCycle option[value='8']", "settings_hours_8");
     setText("#clipboardTimeCycle option[value='24']", "settings_hours_24");
@@ -640,6 +727,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateVoiceActivationStatusLabel();
     const defaultMicOpt = document.querySelector("#voiceMicSelect option[value='']");
     if (defaultMicOpt) defaultMicOpt.textContent = t("settings_voice_default_mic");
+    const defaultVoiceOpt = document.querySelector("#voiceSelect option[value='']");
+    if (defaultVoiceOpt) defaultVoiceOpt.textContent = t("settings_voice_default_voice");
 
     setText("#modalOverlay [data-i18n='modal_icon_optional']", "modal_icon_optional");
     setText("#modalOverlay [data-i18n='modal_icon_auto']", "modal_icon_auto");
@@ -668,7 +757,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let editingId = null;
 
   let scanApps = [];
-  const SCAN_CACHE_KEY = "kc_scan_cache_v5";
+  const SCAN_CACHE_KEY = "kc_scan_cache_v9";
   const SCAN_CACHE_TTL = 1000 * 60 * 60 * 6; // 6h
 
   function loadScanCache(){
@@ -687,6 +776,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     }catch{
       // ignore cache write errors
     }
+  }
+
+  function applyScanCacheToUi(){
+    const cache = loadScanCache();
+    scanApps = cache?.apps || [];
+    renderScanApps();
   }
 
   async function loadScanApps(force = false){
@@ -783,6 +878,70 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshIconFromUrl();
   }
 
+  const UPDATE_ENDPOINT = "https://github.com/JannikFuerst/Kontrollzentrum/releases/latest/download/latest.json";
+  const UPDATE_RELEASES_URL = "https://github.com/JannikFuerst/Kontrollzentrum/releases";
+
+  function compareSemver(a, b){
+    const parse = (v) =>
+      String(v || "")
+        .trim()
+        .replace(/^v/i, "")
+        .split(/[.-]/)
+        .slice(0, 3)
+        .map((x) => {
+          const n = parseInt(x, 10);
+          return Number.isFinite(n) ? n : 0;
+        });
+    const aa = parse(a);
+    const bb = parse(b);
+    for (let i = 0; i < 3; i++){
+      const av = aa[i] || 0;
+      const bv = bb[i] || 0;
+      if (av > bv) return 1;
+      if (av < bv) return -1;
+    }
+    return 0;
+  }
+
+  async function openUpdateReleasePage(){
+    const tauriApi = window.__TAURI__;
+    try{
+      if (tauriApi?.core?.invoke){
+        await tauriApi.core.invoke("open_external", { url: UPDATE_RELEASES_URL });
+        return;
+      }
+    }catch{
+      // ignore and use browser fallback
+    }
+    window.open(UPDATE_RELEASES_URL, "_blank", "noopener,noreferrer");
+  }
+
+  async function checkForUpdateOnStartup(){
+    try{
+      const tauriApi = window.__TAURI__;
+      if (!tauriApi?.app?.getVersion) return;
+      const currentVersion = await tauriApi.app.getVersion();
+      if (!currentVersion) return;
+
+      const resp = await fetch(`${UPDATE_ENDPOINT}?_=${Date.now()}`, { cache: "no-store" });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      const latestVersion = String(data?.version || "").trim();
+      if (!latestVersion) return;
+      if (compareSemver(latestVersion, currentVersion) <= 0) return;
+
+      openConfirm(
+        t("update_available_message", { latest: latestVersion, current: currentVersion }),
+        () => { openUpdateReleasePage(); },
+        t("update_available_action"),
+        t("update_available_title"),
+        t("update_available_dismiss")
+      );
+    }catch{
+      // silent fail if update check is unavailable
+    }
+  }
+
   // Version tag (Tauri)
   try{
     const tauriApi = window.__TAURI__;
@@ -793,6 +952,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }catch{
     // keep default text
   }
+  setTimeout(() => { checkForUpdateOnStartup(); }, 900);
 
   // Notes (localStorage)
   const NOTES_KEY = "kc_notes";
@@ -1036,13 +1196,30 @@ document.addEventListener("DOMContentLoaded", async () => {
   const CLIPBOARD_RETENTION_MODE_KEY = "kc_clipboard_retention_mode";
   const CLIPBOARD_RETENTION_TIME_KEY = "kc_clipboard_retention_hours";
   const CLIPBOARD_RETENTION_COUNT_KEY = "kc_clipboard_retention_count";
+  const CLIPBOARD_ALLOWED_COUNTS = [5, 10, 25, 50];
   let clipboardItems = [];
   let clipboardPollTimer = null;
   let clipboardPruneTimer = null;
   let clipboardPolling = false;
-  let lastClipboardText = "";
-  let suppressClipboardText = "";
+  let lastClipboardSig = "";
+  let suppressClipboardSig = "";
   let suppressClipboardUntil = 0;
+
+  function normalizeClipboardCount(value){
+    const n = parseInt(String(value || ""), 10);
+    if (!Number.isFinite(n)) return 25;
+    if (CLIPBOARD_ALLOWED_COUNTS.includes(n)) return n;
+    let best = CLIPBOARD_ALLOWED_COUNTS[0];
+    let bestDist = Math.abs(best - n);
+    CLIPBOARD_ALLOWED_COUNTS.forEach((candidate) => {
+      const dist = Math.abs(candidate - n);
+      if (dist < bestDist){
+        best = candidate;
+        bestDist = dist;
+      }
+    });
+    return best;
+  }
 
   function loadClipboardItems(){
     try{
@@ -1051,10 +1228,17 @@ document.addEventListener("DOMContentLoaded", async () => {
       return raw
         .map((item) => ({
           id: String(item?.id || ""),
+          kind: item?.kind === "image" ? "image" : "text",
           text: String(item?.text || ""),
+          dataUrl: String(item?.dataUrl || item?.data_url || ""),
+          sig: String(item?.sig || ""),
           ts: Number(item?.ts || 0)
         }))
-        .filter((item) => item.id && item.text && Number.isFinite(item.ts));
+        .filter((item) => {
+          if (!item.id || !Number.isFinite(item.ts)) return false;
+          if (item.kind === "image") return Boolean(item.dataUrl);
+          return Boolean(item.text);
+        });
     }catch{
       return [];
     }
@@ -1066,16 +1250,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getClipboardRetentionSettings(){
     const modeRaw = (localStorage.getItem(CLIPBOARD_RETENTION_MODE_KEY) || "count").toLowerCase();
-    const mode = ["count", "time", "unlimited"].includes(modeRaw) ? modeRaw : "count";
+    const mode = ["count", "time"].includes(modeRaw) ? modeRaw : "count";
     const hours = Math.max(1, parseInt(localStorage.getItem(CLIPBOARD_RETENTION_TIME_KEY) || "24", 10) || 24);
-    const maxItems = Math.max(1, parseInt(localStorage.getItem(CLIPBOARD_RETENTION_COUNT_KEY) || "100", 10) || 100);
+    const maxItems = normalizeClipboardCount(localStorage.getItem(CLIPBOARD_RETENTION_COUNT_KEY) || "25");
     return { mode, hours, maxItems };
   }
 
   function saveClipboardRetentionSettings({ mode, hours, maxItems }){
-    const safeMode = ["count", "time", "unlimited"].includes(mode) ? mode : "count";
+    const safeMode = ["count", "time"].includes(mode) ? mode : "count";
     const safeHours = Math.max(1, parseInt(hours, 10) || 24);
-    const safeMaxItems = Math.max(1, parseInt(maxItems, 10) || 100);
+    const safeMaxItems = normalizeClipboardCount(maxItems);
     localStorage.setItem(CLIPBOARD_RETENTION_MODE_KEY, safeMode);
     localStorage.setItem(CLIPBOARD_RETENTION_TIME_KEY, String(safeHours));
     localStorage.setItem(CLIPBOARD_RETENTION_COUNT_KEY, String(safeMaxItems));
@@ -1097,11 +1281,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboardModeBadge.textContent = t("clipboard_mode_time", { value: cfg.hours });
       return;
     }
-    if (cfg.mode === "count"){
-      clipboardModeBadge.textContent = t("clipboard_mode_count", { value: cfg.maxItems });
-      return;
-    }
-    clipboardModeBadge.textContent = t("clipboard_mode_manual");
+    clipboardModeBadge.textContent = t("clipboard_mode_count", { value: cfg.maxItems });
   }
 
   function formatClipboardTime(ts){
@@ -1142,34 +1322,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     clipboardItems.forEach((item) => {
       const row = document.createElement("div");
       row.className = "clip-item";
-      row.innerHTML = `
-        <div class="clip-text">${escapeHtml(item.text)}</div>
-        <div class="clip-actions">
-          <button class="clip-btn" type="button" data-action="copy">${escapeHtml(t("clipboard_copy"))}</button>
-          <button class="clip-btn danger" type="button" data-action="delete">${escapeHtml(t("category_delete_btn"))}</button>
-          <span class="clip-time">${escapeHtml(formatClipboardTime(item.ts))}</span>
-        </div>
-      `;
+      if (item.kind === "image"){
+        row.innerHTML = `
+          <div class="clip-image-wrap">
+            <img class="clip-image" src="${escapeHtml(item.dataUrl || "")}" alt="Clipboard image" loading="lazy" />
+          </div>
+          <div class="clip-actions">
+            <button class="clip-btn" type="button" data-action="copy">${escapeHtml(t("clipboard_copy"))}</button>
+            <button class="clip-btn danger" type="button" data-action="delete">${escapeHtml(t("category_delete_btn"))}</button>
+            <span class="clip-time">${escapeHtml(formatClipboardTime(item.ts))}</span>
+          </div>
+        `;
+      } else {
+        row.innerHTML = `
+          <div class="clip-text">${escapeHtml(item.text)}</div>
+          <div class="clip-actions">
+            <button class="clip-btn" type="button" data-action="copy">${escapeHtml(t("clipboard_copy"))}</button>
+            <button class="clip-btn danger" type="button" data-action="delete">${escapeHtml(t("category_delete_btn"))}</button>
+            <span class="clip-time">${escapeHtml(formatClipboardTime(item.ts))}</span>
+          </div>
+        `;
+      }
 
       const copyBtn = row.querySelector("[data-action='copy']");
       copyBtn?.addEventListener("click", async () => {
         if (copyBtn.disabled) return;
-        const text = item.text || "";
         try{
           const tauriApi = window.__TAURI__;
-          if (tauriApi?.core?.invoke){
+          if (item.kind === "image"){
+            if (!tauriApi?.core?.invoke || !item.dataUrl) return;
+            await tauriApi.core.invoke("set_clipboard_image", { dataUrl: item.dataUrl });
+          } else if (tauriApi?.core?.invoke){
+            const text = item.text || "";
             await tauriApi.core.invoke("set_clipboard_text", { text });
-          } else if (navigator.clipboard?.writeText){
+          } else if (navigator.clipboard?.writeText && item.kind === "text"){
+            const text = item.text || "";
             await navigator.clipboard.writeText(text);
           }
-          suppressClipboardText = text;
+          suppressClipboardSig = item.sig || "";
           suppressClipboardUntil = Date.now() + 3000;
           copyBtn.disabled = true;
-          copyBtn.textContent = "Kopiert";
           setTimeout(() => {
             copyBtn.disabled = false;
-            copyBtn.textContent = "Kopieren";
-          }, 3000);
+          }, 900);
         }catch(e){
           console.error("clipboard copy failed:", e);
         }
@@ -1184,12 +1379,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function addClipboardEntry(text){
-    const normalized = String(text || "").replace(/\r\n/g, "\n");
-    if (!normalized.trim()) return;
-    const existingIdx = clipboardItems.findIndex((item) => item.text === normalized);
+  function addClipboardEntry(entry){
+    if (!entry) return;
+    const now = Date.now();
+    const existingIdx = clipboardItems.findIndex((item) => item.sig && item.sig === entry.sig);
     if (existingIdx === 0){
-      clipboardItems[0].ts = Date.now();
+      clipboardItems[0].ts = now;
       persistAndRenderClipboard();
       return;
     }
@@ -1197,42 +1392,88 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboardItems.splice(existingIdx, 1);
     }
     clipboardItems.unshift({
-      id: (crypto?.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)),
-      text: normalized,
-      ts: Date.now()
+      id: (crypto?.randomUUID ? crypto.randomUUID() : String(now) + Math.random().toString(16).slice(2)),
+      kind: entry.kind,
+      text: entry.text || "",
+      dataUrl: entry.dataUrl || "",
+      sig: entry.sig || "",
+      ts: now
     });
     persistAndRenderClipboard();
   }
 
-  async function readClipboardText(){
+  function addClipboardTextEntry(text, sig = ""){
+    const normalized = String(text || "").replace(/\r\n/g, "\n");
+    if (!normalized.trim()) return;
+    addClipboardEntry({
+      kind: "text",
+      text: normalized,
+      sig: sig || `txt:${normalized}`
+    });
+  }
+
+  function addClipboardImageEntry(dataUrl, sig = ""){
+    const url = String(dataUrl || "").trim();
+    if (!url) return;
+    addClipboardEntry({
+      kind: "image",
+      dataUrl: url,
+      sig: sig || `img:${url.slice(0, 120)}:${url.length}`
+    });
+  }
+
+  async function readClipboardPayload(){
     const tauriApi = window.__TAURI__;
     if (tauriApi?.core?.invoke){
       try{
-        const value = await tauriApi.core.invoke("get_clipboard_text");
-        return typeof value === "string" ? value : "";
+        const value = await tauriApi.core.invoke("get_clipboard_payload");
+        if (!value || typeof value !== "object") return null;
+        const kind = String(value.kind || "");
+        const sig = String(value.sig || "");
+        if (kind === "image"){
+          return {
+            kind: "image",
+            dataUrl: String(value.data_url || value.dataUrl || ""),
+            sig
+          };
+        }
+        if (kind === "text"){
+          return {
+            kind: "text",
+            text: String(value.text || ""),
+            sig
+          };
+        }
+        return null;
       }catch(e){
-        console.error("get_clipboard_text failed:", e);
-        return "";
+        console.error("get_clipboard_payload failed:", e);
+        return null;
       }
     }
-    return "";
+    return null;
   }
 
   async function pollClipboardNow(){
     if (clipboardPolling) return;
     clipboardPolling = true;
     try{
-      const text = await readClipboardText();
-      if (!text) return;
+      const payload = await readClipboardPayload();
+      if (!payload) return;
+      const sig = String(payload.sig || "");
+      if (!sig) return;
       const now = Date.now();
-      if (text === suppressClipboardText && now < suppressClipboardUntil) return;
-      if (text === suppressClipboardText && now >= suppressClipboardUntil){
-        suppressClipboardText = "";
+      if (sig === suppressClipboardSig && now < suppressClipboardUntil) return;
+      if (sig === suppressClipboardSig && now >= suppressClipboardUntil){
+        suppressClipboardSig = "";
         suppressClipboardUntil = 0;
       }
-      if (text === lastClipboardText) return;
-      lastClipboardText = text;
-      addClipboardEntry(text);
+      if (sig === lastClipboardSig) return;
+      lastClipboardSig = sig;
+      if (payload.kind === "image"){
+        addClipboardImageEntry(payload.dataUrl, sig);
+      } else {
+        addClipboardTextEntry(payload.text, sig);
+      }
     } finally {
       clipboardPolling = false;
     }
@@ -1299,7 +1540,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveClipboardRetentionSettings({
       mode: clipboardRetentionMode.value,
       hours: clipboardTimeCycle?.value || "24",
-      maxItems: clipboardMaxItems?.value || "100"
+      maxItems: clipboardMaxItems?.value || "25"
     });
     syncClipboardSettingsUI();
     updateClipboardModeBadge();
@@ -1310,7 +1551,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveClipboardRetentionSettings({
       mode: clipboardRetentionMode?.value || "time",
       hours: clipboardTimeCycle.value,
-      maxItems: clipboardMaxItems?.value || "100"
+      maxItems: clipboardMaxItems?.value || "25"
     });
     syncClipboardSettingsUI();
     updateClipboardModeBadge();
@@ -1417,7 +1658,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (bgUploadName){
       const has = Boolean(localStorage.getItem("kc_bg_custom"));
-      bgUploadName.value = has ? "Custom Hintergrund aktiv" : "Kein Bild gewählt";
+      bgUploadName.value = has ? t("settings_custom_image_active") : t("settings_no_image");
     }
   }
 
@@ -1482,23 +1723,56 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   const VOICE_ENABLED_KEY = "kc_voice_enabled";
   const VOICE_MIC_KEY = "kc_voice_mic";
+  const VOICE_NAME_KEY = "kc_voice_name";
+  const VOICE_TONE_KEY = "kc_voice_tone";
+  const VOICE_WAKE_KEY = "kc_voice_wake";
+  const VOICE_WAKE_MODE_KEY = "kc_voice_wake_mode";
+  const VOICE_TONES = new Set(["soft_low", "deep_click", "duo_console", "warm_ping", "short_thud"]);
+  const DEFAULT_WAKE_INPUT = "Kontrollzentrum, Control Center";
+
+  function normalizeWakeMode(value){
+    return String(value || "").toLowerCase() === "custom" ? "custom" : "standard";
+  }
 
   function loadVoiceSettings(){
     const rawEnabled = (localStorage.getItem(VOICE_ENABLED_KEY) || "1").toLowerCase();
     const enabled = rawEnabled !== "0" && rawEnabled !== "false" && rawEnabled !== "off";
     const micId = localStorage.getItem(VOICE_MIC_KEY) || "";
-    return { enabled, micId };
+    const voiceName = sanitizeVoiceChoice(localStorage.getItem(VOICE_NAME_KEY) || "");
+    const toneRaw = localStorage.getItem(VOICE_TONE_KEY) || "soft_low";
+    const toneId = VOICE_TONES.has(toneRaw) ? toneRaw : "soft_low";
+    const wakePhrase = localStorage.getItem(VOICE_WAKE_KEY) || DEFAULT_WAKE_INPUT;
+    const rawWakeMode = localStorage.getItem(VOICE_WAKE_MODE_KEY) || "";
+    const inferredMode = wakePhrase && wakePhrase.trim() !== DEFAULT_WAKE_INPUT ? "custom" : "standard";
+    const wakeMode = rawWakeMode ? normalizeWakeMode(rawWakeMode) : inferredMode;
+    return { enabled, micId, voiceName, toneId, wakePhrase, wakeMode };
   }
 
-  function saveVoiceSettings({ enabled, micId }){
+  function saveVoiceSettings({ enabled, micId, voiceName, toneId, wakePhrase, wakeMode }){
+    const mode = normalizeWakeMode(wakeMode);
     localStorage.setItem(VOICE_ENABLED_KEY, enabled ? "1" : "0");
     localStorage.setItem(VOICE_MIC_KEY, micId || "");
+    localStorage.setItem(VOICE_NAME_KEY, sanitizeVoiceChoice(voiceName || ""));
+    localStorage.setItem(VOICE_TONE_KEY, VOICE_TONES.has(toneId) ? toneId : "soft_low");
+    localStorage.setItem(VOICE_WAKE_MODE_KEY, mode);
+    localStorage.setItem(VOICE_WAKE_KEY, mode === "custom" ? String(wakePhrase || "").trim() : DEFAULT_WAKE_INPUT);
   }
 
   function getVoiceSettingsFromUI(){
     const enabled = Boolean(voiceActivationToggle?.checked);
     const micId = String(voiceMicSelect?.value || "");
-    return { enabled, micId };
+    const voiceName = sanitizeVoiceChoice(String(voiceSelect?.value || ""));
+    const toneRaw = String(voiceToneSelect?.value || "soft_low");
+    const toneId = VOICE_TONES.has(toneRaw) ? toneRaw : "soft_low";
+    const wakeMode = normalizeWakeMode(voiceWakeModeSelect?.value || "standard");
+    const wakePhrase = String(voiceWakeInput?.value || "").trim();
+    return { enabled, micId, voiceName, toneId, wakePhrase, wakeMode };
+  }
+
+  function updateWakeModeUI(mode){
+    const wakeMode = normalizeWakeMode(mode || "standard");
+    if (voiceWakeModeSelect) voiceWakeModeSelect.value = wakeMode;
+    if (voiceWakeCustomWrap) voiceWakeCustomWrap.classList.toggle("hidden", wakeMode !== "custom");
   }
 
   function updateVoiceActivationStatusLabel(){
@@ -1511,7 +1785,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (voiceActivationToggle) voiceActivationToggle.checked = Boolean(settings?.enabled);
     if (voiceCommandHint) voiceCommandHint.classList.toggle("hidden", !Boolean(settings?.enabled));
     if (voiceMicWrap) voiceMicWrap.classList.toggle("hidden", !Boolean(settings?.enabled));
+    if (voiceToneSelect){
+      const toneId = VOICE_TONES.has(settings?.toneId) ? settings.toneId : "soft_low";
+      voiceToneSelect.value = toneId;
+    }
+    updateWakeModeUI(settings?.wakeMode || "standard");
+    if (voiceWakeInput){
+      voiceWakeInput.value = String(settings?.wakePhrase || DEFAULT_WAKE_INPUT);
+    }
     updateVoiceActivationStatusLabel();
+  }
+
+  function refreshVoiceList(preferredVoiceName = ""){
+    if (!voiceSelect) return;
+    voiceSelect.innerHTML = "";
+    const autoOpt = document.createElement("option");
+    autoOpt.value = "";
+    autoOpt.textContent = t("settings_voice_default_voice");
+    voiceSelect.appendChild(autoOpt);
+
+    const noneOpt = document.createElement("option");
+    noneOpt.value = "__none__";
+    noneOpt.textContent = t("settings_voice_none");
+    voiceSelect.appendChild(noneOpt);
+
+    const maleOpt = document.createElement("option");
+    maleOpt.value = "__male__";
+    maleOpt.textContent = t("settings_voice_male");
+    voiceSelect.appendChild(maleOpt);
+
+    const femaleOpt = document.createElement("option");
+    femaleOpt.value = "__female__";
+    femaleOpt.textContent = t("settings_voice_female");
+    voiceSelect.appendChild(femaleOpt);
+
+    const known = new Set(Array.from(voiceSelect.options).map((opt) => opt.value));
+    voiceSelect.value = known.has(preferredVoiceName) ? preferredVoiceName : "";
   }
 
   async function requestMicPermissionForLabels(){
@@ -1579,9 +1888,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyModalI18n();
     const saved = localStorage.getItem("kc_hotkey") || "";
     if (hotkeyInput) hotkeyInput.value = saved;
-    const voiceSettings = loadVoiceSettings();
-    applyVoiceSettingsToUI(voiceSettings);
-    await refreshVoiceMicList(voiceSettings.micId, voiceSettings.enabled);
     if (themeToggle) themeToggle.checked = (localStorage.getItem("kc_theme") || "dark") === "light";
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
@@ -1594,11 +1900,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     setTimeout(() => hotkeyInput?.focus(), 0);
   }
 
+  async function openVoiceSettings(){
+    if (!voiceSettingsOverlay) return;
+    closeSettings();
+    applyModalI18n();
+    const voiceSettings = loadVoiceSettings();
+    applyVoiceSettingsToUI(voiceSettings);
+    await refreshVoiceMicList(voiceSettings.micId, voiceSettings.enabled);
+    refreshVoiceList(voiceSettings.voiceName);
+    voiceSettingsOverlay.classList.add("show");
+    voiceSettingsOverlay.setAttribute("aria-hidden", "false");
+    setTimeout(() => voiceActivationToggle?.focus(), 0);
+  }
+
   function closeSettings(){
     if (!settingsOverlay) return;
     settingsOverlay.classList.remove("show");
     settingsOverlay.setAttribute("aria-hidden", "true");
     stopHotkeyCapture();
+  }
+
+  function closeVoiceSettings(){
+    if (!voiceSettingsOverlay) return;
+    voiceSettingsOverlay.classList.remove("show");
+    voiceSettingsOverlay.setAttribute("aria-hidden", "true");
   }
 
   function openCatManage(){
@@ -1616,10 +1941,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     catManageOverlay.setAttribute("aria-hidden", "true");
   }
 
-  function openConfirm(message, onOk, okLabel = t("confirm_delete_default_label"), title = t("confirm_delete_default_title")){
+  function openConfirm(
+    message,
+    onOk,
+    okLabel = t("confirm_delete_default_label"),
+    title = t("confirm_delete_default_title"),
+    cancelLabel = t("cancel")
+  ){
     if (!confirmOverlay || !confirmText) return;
     confirmText.textContent = message || t("confirm_delete_default_message");
     if (confirmOk) confirmOk.textContent = okLabel || t("confirm_delete_default_label");
+    if (confirmCancel) confirmCancel.textContent = cancelLabel || t("cancel");
     if (confirmTitle) confirmTitle.textContent = title || t("confirm_delete_default_title");
     confirmAction = onOk || null;
     confirmOverlay.classList.add("show");
@@ -1632,6 +1964,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     confirmOverlay.classList.remove("show");
     confirmOverlay.setAttribute("aria-hidden", "true");
     if (confirmOk) confirmOk.textContent = t("confirm_delete_default_label");
+    if (confirmCancel) confirmCancel.textContent = t("cancel");
     if (confirmTitle) confirmTitle.textContent = t("confirm_delete_default_title");
     confirmAction = null;
   }
@@ -1639,12 +1972,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   addBtn?.addEventListener("click", openModal);
   addBtn2?.addEventListener("click", openModal);
   settingsBtn?.addEventListener("click", openSettings);
+  voiceSettingsBtn?.addEventListener("click", openVoiceSettings);
   catAddToggle?.addEventListener("click", openCatManage);
 
   closeBtn?.addEventListener("click", closeModal);
   cancelBtn?.addEventListener("click", closeModal);
   settingsClose?.addEventListener("click", closeSettings);
   hotkeyCancel?.addEventListener("click", closeSettings);
+  voiceSettingsClose?.addEventListener("click", closeVoiceSettings);
+  voiceSettingsCancel?.addEventListener("click", closeVoiceSettings);
   catManageClose?.addEventListener("click", closeCatManage);
   catManageCancel?.addEventListener("click", closeCatManage);
 
@@ -1653,6 +1989,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   settingsOverlay?.addEventListener("click", (e) => {
     if (e.target === settingsOverlay) closeSettings();
+  });
+  voiceSettingsOverlay?.addEventListener("click", (e) => {
+    if (e.target === voiceSettingsOverlay) closeVoiceSettings();
   });
   catManageOverlay?.addEventListener("click", (e) => {
     if (e.target === catManageOverlay) closeCatManage();
@@ -1677,6 +2016,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (e.key === "Escape" && settingsOverlay?.classList.contains("show")) {
       closeSettings();
+      return;
+    }
+    if (e.key === "Escape" && voiceSettingsOverlay?.classList.contains("show")) {
+      closeVoiceSettings();
       return;
     }
     if (e.key === "Escape" && catManageOverlay?.classList.contains("show")) {
@@ -1775,22 +2118,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   voiceActivationToggle?.addEventListener("change", onVoiceActivationChange);
+  voiceWakeModeSelect?.addEventListener("change", () => {
+    updateWakeModeUI(voiceWakeModeSelect.value);
+  });
 
   hotkeySave?.addEventListener("click", async () => {
     const val = hotkeyInput?.value || "";
     await applyHotkey(val);
-    const voiceSettings = getVoiceSettingsFromUI();
-    saveVoiceSettings(voiceSettings);
-    applyVoiceRuntimeSettings(voiceSettings);
     saveClipboardRetentionSettings({
       mode: clipboardRetentionMode?.value || "count",
       hours: clipboardTimeCycle?.value || "24",
-      maxItems: clipboardMaxItems?.value || "100"
+      maxItems: clipboardMaxItems?.value || "25"
     });
     syncClipboardSettingsUI();
     updateClipboardModeBadge();
     persistAndRenderClipboard();
     closeSettings();
+  });
+
+  voiceSettingsSave?.addEventListener("click", () => {
+    const voiceSettings = getVoiceSettingsFromUI();
+    saveVoiceSettings(voiceSettings);
+    applyVoiceRuntimeSettings(voiceSettings);
+    closeVoiceSettings();
   });
 
   themeToggle?.addEventListener("change", () => {
@@ -2013,7 +2363,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     } else if (typeValue === "scan"){
       launchField?.classList.add("hidden");
       scanField?.classList.remove("hidden");
-      loadScanApps();
+      // No auto-scan on open/change. User triggers scan manually via refresh.
+      applyScanCacheToUi();
     }
 
     refreshIconFromUrl();
@@ -2265,7 +2616,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
-  const WAKE_PHRASES = ["kontrollzentrum", "kontroll zentrum", "control center", "controlcenter"];
+  const DEFAULT_WAKE_PHRASES = ["kontrollzentrum", "kontroll zentrum", "control center", "controlcenter"];
   const COMMAND_VERBS = new Set(["starte", "start", "oeffne", "offne", "open", "launch", "run"]);
   const COMMAND_FILLERS = new Set([
     "bitte", "please", "mal", "doch", "den", "die", "das", "dem", "der", "ein", "eine",
@@ -2273,13 +2624,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   ]);
   const STATIC_APP_ALIASES = {
     cs2: [
-      "cs2", "cs 2", "counter strike", "counter strike 2", "counter-strike", "counter-strike 2"
+      "cs2", "cs 2", "counter strike", "counter strike 2", "counter-strike", "counter-strike 2",
+      "counter strike global offensive", "counter-strike global offensive", "cs go", "csgo",
+      "counter strike go"
     ],
+    sevenzip: ["7zip", "7 zip", "7-zip", "seven zip", "sieben zip"],
     steam: ["steam"],
     whatsapp: ["whatsapp", "whats app"]
   };
   const CANONICAL_APP_HINTS = {
-    cs2: ["cs2", "counter strike", "steam://run/730", "730"],
+    cs2: [
+      "cs2", "counter strike", "counter strike global offensive", "csgo", "cs go",
+      "steam://run/730", "730"
+    ],
+    sevenzip: ["7zip", "7 zip", "7 z", "7z", "7zfm", "7 zip file manager"],
     steam: ["steam", "steam://"],
     whatsapp: ["whatsapp", "whats app"]
   };
@@ -2292,6 +2650,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   let voiceCooldownUntil = 0;
   let voiceBootstrapped = false;
   let selectedVoice = null;
+  let selectedVoiceName = "";
+  let selectedToneId = "soft_low";
+  let wakePhrases = DEFAULT_WAKE_PHRASES.slice();
   let voiceEnabled = true;
   let selectedMicId = "";
 
@@ -2312,13 +2673,147 @@ document.addEventListener("DOMContentLoaded", async () => {
     return out;
   }
 
+  function addWakeVariant(set, value){
+    const normalized = normalizeSpeechText(value);
+    if (!normalized) return;
+    set.add(normalized);
+    const compact = normalized.replace(/\s+/g, "");
+    if (compact && compact !== normalized) set.add(compact);
+  }
+
+  function createWakeVariants(phrase){
+    const base = normalizeSpeechText(phrase);
+    if (!base) return [];
+    const variants = new Set();
+    addWakeVariant(variants, base);
+    addWakeVariant(variants, base.replace(/y/g, "i"));
+    addWakeVariant(variants, base.replace(/i/g, "y"));
+    addWakeVariant(variants, base.replace(/v/g, "w"));
+    addWakeVariant(variants, base.replace(/w/g, "v"));
+    addWakeVariant(variants, base.replace(/ph/g, "f"));
+    addWakeVariant(variants, base.replace(/f/g, "ph"));
+    return Array.from(variants);
+  }
+
+  function simplifyWakeText(value){
+    return normalizeSpeechText(value)
+      .replace(/y/g, "i")
+      .replace(/ph/g, "f")
+      .replace(/th/g, "t")
+      .replace(/ck/g, "k")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function levenshteinDistance(a, b){
+    const aa = String(a || "");
+    const bb = String(b || "");
+    if (!aa) return bb.length;
+    if (!bb) return aa.length;
+    const dp = Array.from({ length: aa.length + 1 }, () => new Array(bb.length + 1).fill(0));
+    for (let i = 0; i <= aa.length; i++) dp[i][0] = i;
+    for (let j = 0; j <= bb.length; j++) dp[0][j] = j;
+    for (let i = 1; i <= aa.length; i++){
+      for (let j = 1; j <= bb.length; j++){
+        const cost = aa[i - 1] === bb[j - 1] ? 0 : 1;
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1,
+          dp[i][j - 1] + 1,
+          dp[i - 1][j - 1] + cost
+        );
+      }
+    }
+    return dp[aa.length][bb.length];
+  }
+
+  function computeWakeSimilarity(candidate, phrase){
+    const c = simplifyWakeText(candidate).replace(/\s+/g, "");
+    const p = simplifyWakeText(phrase).replace(/\s+/g, "");
+    if (!c || !p) return 0;
+    if (c === p) return 1;
+    if (c.includes(p) || p.includes(c)) return 0.92;
+    const maxLen = Math.max(c.length, p.length);
+    const dist = levenshteinDistance(c, p);
+    return 1 - dist / maxLen;
+  }
+
+  function isWakeFuzzyAccept(candidate, phrase){
+    const c = simplifyWakeText(candidate).replace(/\s+/g, "");
+    const p = simplifyWakeText(phrase).replace(/\s+/g, "");
+    if (!c || !p) return false;
+    const dist = levenshteinDistance(c, p);
+    const maxLen = Math.max(c.length, p.length);
+    const similarity = 1 - dist / maxLen;
+    const maxDist = maxLen <= 5 ? 1 : (maxLen <= 10 ? 2 : 3);
+    if (dist > maxDist) return false;
+    if (similarity < 0.68) return false;
+    if (c[0] !== p[0] && similarity < 0.86) return false;
+    return true;
+  }
+
+  function buildWakePhrases(rawInput){
+    const raw = String(rawInput || "").trim();
+    const parts = raw
+      .split(/[,\n;|]+/)
+      .map((p) => normalizeSpeechText(p))
+      .filter(Boolean);
+    const unique = new Set();
+    parts.forEach((phrase) => {
+      createWakeVariants(phrase).forEach((variant) => unique.add(variant));
+    });
+    if (!unique.size){
+      DEFAULT_WAKE_PHRASES.forEach((phrase) => {
+        createWakeVariants(phrase).forEach((variant) => unique.add(variant));
+      });
+    }
+    return Array.from(unique);
+  }
+
+  function applyWakePhrases(rawInput){
+    wakePhrases = buildWakePhrases(rawInput);
+  }
+
+  function resolveWakeInput(settings){
+    const mode = normalizeWakeMode(settings?.wakeMode || "standard");
+    if (mode !== "custom") return DEFAULT_WAKE_INPUT;
+    const custom = String(settings?.wakePhrase || "").trim();
+    return custom || DEFAULT_WAKE_INPUT;
+  }
+
+  function findWakeTailFuzzy(normalizedText){
+    const tokens = String(normalizedText || "").split(" ").filter(Boolean);
+    if (!tokens.length) return null;
+    let best = null;
+    for (const phrase of wakePhrases){
+      const phraseTokens = phrase.split(" ").filter(Boolean);
+      const targetLen = Math.max(1, phraseTokens.length || 1);
+      for (let start = 0; start < tokens.length; start++){
+        for (let delta = -1; delta <= 1; delta++){
+          const len = Math.max(1, targetLen + delta);
+          const end = start + len;
+          if (end > tokens.length) continue;
+          const candidate = tokens.slice(start, end).join(" ");
+          if (!isWakeFuzzyAccept(candidate, phrase)) continue;
+          let score = computeWakeSimilarity(candidate, phrase);
+          if (Math.abs(delta) === 1) score -= 0.02;
+          if (score < 0.68) continue;
+          if (!best || score > best.score){
+            best = { score, end };
+          }
+        }
+      }
+    }
+    if (!best) return null;
+    return tokens.slice(best.end).join(" ").trim();
+  }
+
   function findWakeTail(normalizedText){
-    for (const phrase of WAKE_PHRASES){
+    for (const phrase of wakePhrases){
       const idx = normalizedText.indexOf(phrase);
       if (idx === -1) continue;
       return normalizedText.slice(idx + phrase.length).trim();
     }
-    return null;
+    return findWakeTailFuzzy(normalizedText);
   }
 
   function parseVoiceCommand(rawText){
@@ -2406,45 +2901,248 @@ document.addEventListener("DOMContentLoaded", async () => {
       const AudioCtor = window.AudioContext || window.webkitAudioContext;
       if (!AudioCtor) return;
       const ctx = new AudioCtor();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = 980;
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.012);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.13);
-      osc.onended = () => ctx.close();
+      const now = ctx.currentTime;
+      let stopAt = now + 0.24;
+
+      const master = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(1600, now);
+      filter.Q.value = 0.9;
+      master.connect(ctx.destination);
+      filter.connect(master);
+
+      function addTone(type, fStart, fEnd, startOffset, duration, peak){
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const start = now + startOffset;
+        const end = start + duration;
+        osc.type = type;
+        osc.frequency.setValueAtTime(fStart, start);
+        if (Number.isFinite(fEnd) && fEnd > 0 && fEnd !== fStart){
+          osc.frequency.exponentialRampToValueAtTime(fEnd, end);
+        }
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), start + Math.min(0.02, duration * 0.35));
+        gain.gain.exponentialRampToValueAtTime(0.0001, end);
+        osc.connect(gain);
+        gain.connect(filter);
+        osc.start(start);
+        osc.stop(end);
+      }
+
+      if (selectedToneId === "short_thud"){
+        addTone("triangle", 300, 220, 0, 0.12, 0.26);
+        filter.frequency.setValueAtTime(720, now);
+        filter.Q.value = 1.1;
+        stopAt = now + 0.13;
+      } else if (selectedToneId === "deep_click"){
+        // Glass Click: crisp transient + short shimmer.
+        filter.frequency.setValueAtTime(2100, now);
+        filter.Q.value = 1.05;
+        addTone("square", 980, 620, 0, 0.05, 0.16);
+        addTone("triangle", 740, 520, 0.018, 0.08, 0.11);
+        addTone("sine", 1560, 1180, 0.008, 0.04, 0.06);
+        stopAt = now + 0.16;
+      } else if (selectedToneId === "duo_console"){
+        // Nova Sweep: modern double sweep with soft digital body.
+        filter.frequency.setValueAtTime(1500, now);
+        filter.Q.value = 0.82;
+        addTone("triangle", 360, 640, 0, 0.12, 0.16);
+        addTone("sine", 720, 1180, 0.03, 0.13, 0.11);
+        addTone("sine", 510, 420, 0.02, 0.11, 0.07);
+        stopAt = now + 0.23;
+      } else if (selectedToneId === "warm_ping"){
+        // Aurora Chime: airy, satisfying two-step chime.
+        filter.frequency.setValueAtTime(2400, now);
+        filter.Q.value = 0.7;
+        addTone("sine", 640, 930, 0, 0.11, 0.14);
+        addTone("sine", 930, 1240, 0.065, 0.12, 0.12);
+        addTone("triangle", 480, 410, 0.01, 0.16, 0.06);
+        stopAt = now + 0.27;
+      } else {
+        // Neon Pulse (default): fresh soft pulse with upward energy.
+        filter.frequency.setValueAtTime(1700, now);
+        filter.Q.value = 0.92;
+        addTone("triangle", 420, 760, 0, 0.1, 0.15);
+        addTone("sine", 720, 980, 0.045, 0.1, 0.12);
+        addTone("sine", 520, 470, 0.015, 0.13, 0.06);
+        stopAt = now + 0.22;
+      }
+
+      setTimeout(() => ctx.close(), Math.max(120, Math.ceil((stopAt - now) * 1000) + 80));
     }catch{
       // ignore audio errors
     }
   }
 
-  function pickSpeechVoice(){
+  function pickSpeechVoice(preferredName = ""){
     const synth = window.speechSynthesis;
     if (!synth) return null;
     const voices = synth.getVoices();
     if (!voices.length) return null;
+    const wanted = String(preferredName || "").trim();
+    if (wanted === "__none__") return null;
+    if (wanted === "__male__") return pickGenderVoice(voices, "male");
+    if (wanted === "__female__") return pickGenderVoice(voices, "female");
+    if (wanted){
+      const explicit = voices.find(v => String(v.name || "") === wanted);
+      if (explicit) return explicit;
+    }
     const langPrefix = currentLang === "en" ? "en" : "de";
     return voices.find(v => String(v.lang || "").toLowerCase().startsWith(langPrefix)) || voices[0];
   }
 
+  function pickGenderVoice(voices, gender){
+    const langOrder = currentLang === "en" ? ["en", "de"] : ["de", "en"];
+    const ordered = voices
+      .slice()
+      .sort((a, b) => {
+        const aLang = String(a?.lang || "").toLowerCase();
+        const bLang = String(b?.lang || "").toLowerCase();
+        const aRank = langOrder.findIndex((p) => aLang.startsWith(p));
+        const bRank = langOrder.findIndex((p) => bLang.startsWith(p));
+        const aScore = aRank === -1 ? 99 : aRank;
+        const bScore = bRank === -1 ? 99 : bRank;
+        return aScore - bScore;
+      });
+
+    // Score voices so "man" cannot accidentally match "woMAN".
+    const femaleStrong = ["katja", "zira", "jenny", "aria", "sara", "susan", "female", "frau", "woman", "weiblich"];
+    const maleStrong = ["stefan", "david", "mark", "guy", "male", "mann", "maennlich"];
+
+    let best = null;
+    let bestScore = -1;
+    for (const voice of ordered){
+      const name = String(voice?.name || "").toLowerCase().trim();
+      if (!name) continue;
+
+      let score = 10;
+      const hasFemaleStrong = femaleStrong.some((needle) => name.includes(needle));
+      const hasMaleStrong = maleStrong.some((needle) => name.includes(needle));
+      const hasWordWoman = /\bwoman\b/.test(name);
+      const hasWordMan = /\bman\b/.test(name);
+
+      if (gender === "female"){
+        if (hasFemaleStrong || hasWordWoman) score += 120;
+        if (hasMaleStrong || hasWordMan) score -= 60;
+      } else {
+        if (hasMaleStrong || hasWordMan) score += 120;
+        if (hasFemaleStrong || hasWordWoman) score -= 60;
+      }
+
+      const lang = String(voice?.lang || "").toLowerCase();
+      if ((currentLang === "de" && lang.startsWith("de")) || (currentLang === "en" && lang.startsWith("en"))){
+        score += 15;
+      }
+
+      if (score > bestScore){
+        bestScore = score;
+        best = voice;
+      }
+    }
+    return best || ordered[0] || voices[0];
+  }
+
+  function getSpeechProfile(){
+    return { rate: 0.9, pitch: 0.95, volume: 0.78 };
+  }
+
+  function sanitizeVoiceChoice(value){
+    const raw = String(value || "").trim();
+    if (raw === "__none__" || raw === "__male__" || raw === "__female__") return raw;
+    const lowered = raw.toLowerCase();
+    if (lowered === "none" || lowered.includes("keine stimme")) return "__none__";
+    if (lowered.includes("stefan")) return "__male__";
+    if (lowered.includes("katja")) return "__female__";
+    if (lowered.includes("hedda")) return "";
+    if (lowered.includes("male") || lowered.includes("mann") || lowered === "man") return "__male__";
+    if (lowered.includes("female") || lowered.includes("frau") || lowered === "woman") return "__female__";
+    if (!raw) return "";
+    if (raw.startsWith("__")) return "";
+    return raw;
+  }
+
+  function getVoiceLangForRecognition(choice){
+    const resolved = sanitizeVoiceChoice(choice);
+    if (resolved !== "__male__" && resolved !== "__female__") return currentLang;
+    const picked = pickSpeechVoice(resolved);
+    const lang = String(picked?.lang || "").toLowerCase();
+    if (lang.startsWith("de")) return "de";
+    if (lang.startsWith("en")) return "en";
+    return currentLang;
+  }
+
+  function getRecognitionLocale(){
+    const lang = getVoiceLangForRecognition(selectedVoiceName);
+    return lang === "en" ? "en-US" : "de-DE";
+  }
+
+  function applyRecognitionLang(){
+    const locale = getRecognitionLocale();
+    if (wakeRecognition) wakeRecognition.lang = locale;
+    if (commandRecognition) commandRecognition.lang = locale;
+  }
+
+  function getSpeechOutputLocale(){
+    const lang = getVoiceLangForRecognition(selectedVoiceName);
+    return lang === "en" ? "en-US" : "de-DE";
+  }
+
   function speakFeedback(text){
+    if (selectedVoiceName === "__none__") return;
     if (!window.speechSynthesis || !text) return;
     try{
       window.speechSynthesis.cancel();
       const msg = new SpeechSynthesisUtterance(text);
-      selectedVoice = pickSpeechVoice();
+      selectedVoice = pickSpeechVoice(selectedVoiceName);
       if (selectedVoice) msg.voice = selectedVoice;
-      msg.lang = currentLang === "en" ? "en-US" : "de-DE";
-      msg.rate = 1;
-      msg.pitch = 1;
+      msg.lang = getSpeechOutputLocale();
+      const speechProfile = getSpeechProfile();
+      msg.rate = speechProfile.rate;
+      msg.pitch = speechProfile.pitch;
+      msg.volume = speechProfile.volume;
       window.speechSynthesis.speak(msg);
     }catch{
       // ignore speech errors
+    }
+  }
+
+  function playCommandOutcomeTone(kind){
+    try{
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      const ctx = new AudioCtor();
+      const now = ctx.currentTime;
+      const gain = ctx.createGain();
+      gain.connect(ctx.destination);
+
+      const makeOsc = (type, frequency, at, dur) => {
+        const osc = ctx.createOscillator();
+        osc.type = type;
+        osc.frequency.setValueAtTime(frequency, at);
+        osc.connect(gain);
+        osc.start(at);
+        osc.stop(at + dur);
+      };
+
+      if (kind === "success"){
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+        makeOsc("sine", 720, now, 0.08);
+        makeOsc("sine", 920, now + 0.085, 0.11);
+      } else {
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.14, now + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+        makeOsc("triangle", 240, now, 0.1);
+        makeOsc("triangle", 180, now + 0.09, 0.12);
+      }
+
+      setTimeout(() => ctx.close(), 320);
+    }catch{
+      // ignore audio errors
     }
   }
 
@@ -2473,19 +3171,26 @@ document.addEventListener("DOMContentLoaded", async () => {
       wakeRecognition = new SpeechRecognitionCtor();
       wakeRecognition.continuous = true;
       wakeRecognition.interimResults = false;
-      wakeRecognition.maxAlternatives = 1;
-      wakeRecognition.lang = "de-DE";
+      wakeRecognition.maxAlternatives = 3;
+      wakeRecognition.lang = getRecognitionLocale();
 
       wakeRecognition.onresult = (event) => {
         if (Date.now() < voiceCooldownUntil || commandModeActive) return;
         for (let i = event.resultIndex; i < event.results.length; i++){
           const result = event.results[i];
           if (!result.isFinal) continue;
-          const spoken = result[0]?.transcript || "";
-          const normalized = normalizeSpeechText(spoken);
-          const tail = findWakeTail(normalized);
-          if (tail === null) continue;
-          handleWakeDetected(tail);
+          let matchedTail = null;
+          const altCount = Math.min(result.length || 0, 3);
+          for (let alt = 0; alt < altCount; alt++){
+            const spoken = result[alt]?.transcript || "";
+            const normalized = normalizeSpeechText(spoken);
+            const tail = findWakeTail(normalized);
+            if (tail === null) continue;
+            matchedTail = tail;
+            break;
+          }
+          if (matchedTail === null) continue;
+          handleWakeDetected(matchedTail);
           break;
         }
       };
@@ -2517,7 +3222,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       commandRecognition.continuous = false;
       commandRecognition.interimResults = false;
       commandRecognition.maxAlternatives = 1;
-      commandRecognition.lang = "de-DE";
+      commandRecognition.lang = getRecognitionLocale();
     }
 
     let commandHandled = false;
@@ -2537,7 +3242,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       clearCommandTimeout();
       commandModeActive = false;
       voiceCooldownUntil = Date.now() + 700;
-      if (!commandHandled) speakFeedback(t("voice_not_understood"));
+      if (!commandHandled){
+        if (selectedVoiceName === "__none__") playCommandOutcomeTone("error");
+        speakFeedback(t("voice_not_understood"));
+      }
       startWakeListening();
     };
 
@@ -2570,15 +3278,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function executeVoiceCommand(transcript){
     const parsed = parseVoiceCommand(transcript);
     if (!parsed){
+      if (selectedVoiceName === "__none__") playCommandOutcomeTone("error");
       speakFeedback(t("voice_not_understood"));
       return;
     }
     const app = resolveAppByPhrase(parsed.target);
     if (!app){
+      if (selectedVoiceName === "__none__") playCommandOutcomeTone("error");
       speakFeedback(t("voice_app_not_found", { name: parsed.target }));
       return;
     }
     await openLaunch(app);
+    if (selectedVoiceName === "__none__") playCommandOutcomeTone("success");
     speakFeedback(t("voice_opening", { name: app.name || parsed.target }));
   }
 
@@ -2588,17 +3299,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     const settings = loadVoiceSettings();
     voiceEnabled = Boolean(settings.enabled);
     selectedMicId = settings.micId || "";
+    selectedVoiceName = sanitizeVoiceChoice(settings.voiceName || "");
+    selectedToneId = VOICE_TONES.has(settings.toneId) ? settings.toneId : "soft_low";
+    applyWakePhrases(resolveWakeInput(settings));
     if (!SpeechRecognitionCtor){
       console.warn("SpeechRecognition API not available in this runtime.");
       return;
     }
-    selectedVoice = pickSpeechVoice();
+    selectedVoice = pickSpeechVoice(selectedVoiceName);
+    applyRecognitionLang();
     if (voiceEnabled) startWakeListening();
   }
 
   function applyVoiceRuntimeSettings(settings){
     voiceEnabled = Boolean(settings?.enabled);
     selectedMicId = settings?.micId || "";
+    selectedVoiceName = sanitizeVoiceChoice(settings?.voiceName || "");
+    selectedToneId = VOICE_TONES.has(settings?.toneId) ? settings.toneId : "soft_low";
+    applyWakePhrases(resolveWakeInput(settings));
+    selectedVoice = pickSpeechVoice(selectedVoiceName);
+    applyRecognitionLang();
     if (!voiceEnabled){
       stopWakeListening();
       stopCommandListening();
@@ -2610,7 +3330,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (window.speechSynthesis){
     window.speechSynthesis.onvoiceschanged = () => {
-      selectedVoice = pickSpeechVoice();
+      selectedVoice = pickSpeechVoice(selectedVoiceName);
+      const current = loadVoiceSettings();
+      refreshVoiceList(current.voiceName || selectedVoiceName);
     };
   }
 
@@ -2684,7 +3406,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       img.alt = "";
       img.decoding = "async";
       img.loading = "lazy";
-      img.dataset.alt = alt || "";
+      const launch = String(app?.launch || "").toLowerCase();
+      const isSteamLaunch = launch.startsWith("steam://run/");
+      if (isSteamLaunch) img.classList.add("steam-art");
+      let fallbackAlt = alt || "";
+      if (!fallbackAlt && isSteamLaunch && typeof primary === "string"){
+        if (primary.includes("/library_600x900.jpg")){
+          fallbackAlt = primary.replace("/library_600x900.jpg", "/header.jpg");
+        } else if (primary.includes("/header.jpg")){
+          fallbackAlt = primary.replace("/header.jpg", "/library_600x900.jpg");
+        }
+      }
+      img.dataset.alt = fallbackAlt;
       img.addEventListener("load", () => {
         iconBox.classList.add("has-img");
       });

@@ -141,29 +141,12 @@
         <div class="help-text">
           <span data-i18n="settings_hotkey_help">Klicke auf „Aufnehmen“ und drücke die gewünschte Kombination.</span>
         </div>
-        <div class="clipboard-setting-extra" style="margin-top:10px;">
-          <div class="label" data-i18n="settings_voice_activation">Sprachaktivierung</div>
-          <div class="theme-row">
-            <span class="theme-label" id="voiceActivationState">Aktiviert</span>
-            <label class="switch">
-              <input type="checkbox" id="voiceActivationToggle" />
-              <span class="slider"></span>
-            </label>
-          </div>
-          <div class="help-text hidden" id="voiceCommandHint" data-i18n="settings_voice_command_hint">Sage z.B.: "Kontrollzentrum starte CS2" oder "Control Center open Steam".</div>
-        </div>
-        <div class="clipboard-setting-extra hidden" id="voiceMicWrap">
-          <div class="label" data-i18n="settings_voice_mic">Mikrofon</div>
-          <select class="select" id="voiceMicSelect"></select>
-          <div class="help-text" data-i18n="settings_voice_mic_help">Falls die Erkennung nicht reagiert, bitte dieses Mikrofon in Windows als Standard-Aufnahmegeraet setzen.</div>
-        </div>
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_clipboard_label">Clipboard Verlauf</div>
         <select class="select" id="clipboardRetentionMode">
           <option value="count" data-i18n="settings_clip_count">Nach Anzahl löschen</option>
           <option value="time" data-i18n="settings_clip_time">Nach Zeit löschen</option>
-          <option value="unlimited" data-i18n="settings_clip_unlimited">Unbegrenzt (manuell)</option>
         </select>
         <div class="clipboard-setting-extra hidden" id="clipboardTimeWrap">
           <div class="label" data-i18n="settings_clip_time_window">Zeitfenster</div>
@@ -177,10 +160,10 @@
         <div class="clipboard-setting-extra hidden" id="clipboardCountWrap">
           <div class="label" data-i18n="settings_clip_max">Max. Einträge</div>
           <select class="select" id="clipboardMaxItems">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="25">25</option>
             <option value="50">50</option>
-            <option value="100">100</option>
-            <option value="500">500</option>
-            <option value="1000">1000</option>
           </select>
         </div>
         <div class="help-text" data-i18n="settings_clip_help">Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit "Leeren" gelöscht werden.</div>
@@ -257,6 +240,65 @@
     <div class="modal-foot">
       <button class="btn-ghost" id="hotkeyCancel" type="button" data-i18n="cancel">Abbrechen</button>
       <button class="btn-primary" id="hotkeySave" type="button" data-i18n="save">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="voiceSettingsOverlay" aria-hidden="true">
+  <div class="modal modal-settings" role="dialog" aria-modal="true" aria-labelledby="voiceSettingsTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="voiceSettingsTitle" data-i18n="voice_settings_title">Sprachsteuerung</div>
+      <button class="icon-btn" id="voiceSettingsClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <div class="label" data-i18n="settings_voice_activation">Sprachaktivierung</div>
+        <div class="theme-row">
+          <span class="theme-label" id="voiceActivationState">Aktiviert</span>
+          <label class="switch">
+            <input type="checkbox" id="voiceActivationToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="help-text hidden" id="voiceCommandHint" data-i18n="settings_voice_command_hint">Sage z.B.: "Kontrollzentrum starte CS2" oder "Control Center open Steam".</div>
+      </div>
+      <div class="field">
+        <div class="label" data-i18n="settings_voice_wake_mode_label">Ansprache</div>
+        <select class="select" id="voiceWakeModeSelect">
+          <option value="standard" data-i18n="settings_voice_wake_mode_standard">Standard (Kontrollzentrum / Control Center)</option>
+          <option value="custom" data-i18n="settings_voice_wake_mode_custom">Custom</option>
+        </select>
+      </div>
+      <div class="field hidden" id="voiceWakeCustomWrap">
+        <div class="label" data-i18n="settings_voice_wake_label">Ansprech-String</div>
+        <input class="input" id="voiceWakeInput" data-i18n-placeholder="settings_voice_wake_placeholder" placeholder="z.B. Kontrollzentrum, Control Center" />
+        <div class="help-text" data-i18n="settings_voice_wake_help">Ein oder mehrere Wake-Words, mit Komma getrennt.</div>
+      </div>
+      <div class="field hidden" id="voiceMicWrap">
+        <div class="label" data-i18n="settings_voice_mic">Mikrofon</div>
+        <select class="select" id="voiceMicSelect"></select>
+        <div class="help-text" data-i18n="settings_voice_mic_help">Falls die Erkennung nicht reagiert, bitte dieses Mikrofon in Windows als Standard-Aufnahmegeraet setzen.</div>
+      </div>
+      <div class="field">
+        <div class="label" data-i18n="settings_voice_voice">Stimme</div>
+        <select class="select" id="voiceSelect"></select>
+        <div class="help-text" data-i18n="settings_voice_voice_help">WÃ¤hle eine der verfÃ¼gbaren Systemstimmen aus.</div>
+      </div>
+      <div class="field">
+        <div class="label" data-i18n="settings_voice_tone">Aktivierungston</div>
+        <select class="select" id="voiceToneSelect">
+          <option value="soft_low" data-i18n="settings_voice_tone_soft_low">Soft Low</option>
+          <option value="deep_click" data-i18n="settings_voice_tone_deep_click">Deep Click</option>
+          <option value="duo_console" data-i18n="settings_voice_tone_duo_console">Duo Console</option>
+          <option value="warm_ping" data-i18n="settings_voice_tone_warm_ping">Warm Ping</option>
+          <option value="short_thud" data-i18n="settings_voice_tone_short_thud">Short Thud</option>
+        </select>
+        <div class="help-text" data-i18n="settings_voice_tone_help">WÃ¤hle den Sound beim Aktivieren von Sprachbefehlen.</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="voiceSettingsCancel" type="button" data-i18n="cancel">Abbrechen</button>
+      <button class="btn-primary" id="voiceSettingsSave" type="button" data-i18n="save">Speichern</button>
     </div>
   </div>
 </div>

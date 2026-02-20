@@ -1,80 +1,101 @@
-# Kontrollzentrum
+﻿# Kontrollzentrum
 
-Ein schnelles Desktop-Control-Center auf Basis von Tauri, mit dem du Web- und Desktop-Apps zentral verwalten kannst.
+Kontrollzentrum ist dein schneller App-Hub fuer Windows.
+Web-Apps, Desktop-Apps, Sprachsteuerung, Clipboard-History und Notizen in einer klaren, modernen Oberfläche.
 
-## Highlights
+## Warum Kontrollzentrum
 
-- Web- und Desktop-Apps in einer gemeinsamen Uebersicht
-- App-Scan fuer Windows-Desktop-Apps
-- Favoritenbereich mit Drag-and-Drop-Reihenfolge
-- Freie Kategorien inkl. Kategorie-Management
-- Notizbereich mit mehreren Seiten, Loeschschutz und Lock
-- Clipboard-Verlauf mit einstellbarer Aufbewahrung
-- Hotkey zum Ein-/Ausblenden der App
-- Theme-/Farb-/Hintergrund-Anpassung
-- Sprachumschaltung (Deutsch / Englisch) per Globus-Button oben rechts
+- Starte alles von einem Ort aus: Browser-Apps und Desktop-Programme
+- Finde Apps per Suche oder Sprachbefehl in Sekunden
+- Nutze Kategorien und Favoriten fuer einen sauberen Workflow
+- Halte Notizen und Clipboard-Verlauf direkt im Tool
+- Passe Look & Feel mit Theme, Accent und Background an
 
-## Was in diesem Stand umgesetzt wurde
+## Highlights in v1.2.1
 
-- Voller Sprach-Switch DE/EN fuer Haupt-UI
-- Sprach-Switch DE/EN fuer:
-  - App-hinzufuegen-Modal
-  - Einstellungen
-  - Kategorien-Management
-  - Confirm-Dialoge und zentrale Laufzeittexte
-- Sprach-Button fest oben rechts positioniert
-- Stabilerer Dev-Start:
-  - Tauri laeuft ueber lokalen Dev-Server (`http://127.0.0.1:1420`)
-  - Rust-Build-Target liegt ausserhalb von OneDrive (`%LOCALAPPDATA%\\Kontrollzentrum\\cargo-target`)
+- Voice-Upgrade mit Option `Keine Stimme (nur Sound)`
+- Neue moderne Aktivierungssounds (Short Thud bleibt erhalten)
+- Besseres Sprach-Matching fuer App-Namen und Aliase
+- Steam-Game-Scan inkl. Steam-Launch-Links (`steam://run/<appid>`)
+- Steam-Cover/Icons verbessert (lokal + CDN-Fallback)
+- Scan-Verhalten verbessert: kein Auto-Scan beim Oeffnen, nur manuell
+- Update-Hinweis beim Start, wenn auf GitHub eine neuere Version verfuegbar ist
 
-## Tech-Stack
+## Download
 
-- Frontend: Vanilla HTML/CSS/JavaScript (`web/`)
-- Desktop Shell: Tauri v2 (`src-tauri/`)
-- Rust Backend fuer Desktop-Integrationen (Open External, Clipboard, App Scan, Hotkey)
+Die neueste Version findest du hier:
+
+- Releases: https://github.com/JannikFuerst/Kontrollzentrum/releases
+
+## Features
+
+- App-Management
+- Web + Desktop Apps in einer Grid-Ansicht
+- App-Scan fuer Windows-Apps + Steam-Games
+- Favoritenbereich mit Drag-and-Drop
+- Eigene Kategorien inkl. Management
+
+- Voice Control
+- Wake-Word + Command-Modus
+- Sprachfeedback oder Sound-only
+- Man/Female/No-Voice Auswahl
+- Mehrere Aktivierungstoene
+
+- Produktivitaet
+- Notizen mit mehreren Seiten und Lock
+- Clipboard-History mit Retention-Optionen
+- Global Hotkey zum Ein-/Ausblenden
+
+- Customization
+- Deutsch / Englisch
+- Light/Dark + Accent-Farben
+- Background-Modi inkl. Custom Image
+
+## Tech Stack
+
+- Frontend: Vanilla HTML, CSS, JavaScript (`web/`)
+- Desktop: Tauri v2 (`src-tauri/`)
+- Backend: Rust Commands fuer Shell/Scan/Clipboard/Hotkey
 
 ## Voraussetzungen
 
+- Windows 10/11
 - Node.js + npm
 - Rust Toolchain + Cargo
-- Windows (fuer Desktop-Scan und bestimmte Integrationen)
 
-## Installation
+## Lokale Entwicklung
 
 ```bash
 npm install
+npm run dev
 ```
 
-## Entwicklung
-
-In PowerShell kann `npm.ps1` je nach Policy blockiert sein. Dann einfach:
+Wenn PowerShell-Skripte blockiert sind:
 
 ```bash
 cmd /c npm run dev
 ```
 
-Normal (wenn deine PowerShell-Policy es erlaubt):
-
-```bash
-npm run dev
-```
-
-## Build
+## Build (Installer + Updater Artefakte)
 
 ```bash
 npm run build
 ```
 
+Tauri erzeugt dabei Installer/Bundles sowie Updater-Artefakte fuer Releases.
+
 ## Projektstruktur
 
-- `web/` Frontend (UI, Modals, Styling, i18n-Logik)
-- `src-tauri/` Tauri + Rust
-- `src-tauri/src/lib.rs` Backend-Commands
+- `web/` UI, Styling, Modals, App-Logik
+- `src-tauri/` Tauri-Konfig + Rust-Backend
+- `src-tauri/src/lib.rs` Desktop-Commands
 
-## Release / Tagging
+## Update-Flow
 
-Historische Tags im Repo nutzen das Schema `vX.Y.Z`.
-Fuer diesen Stand ist der Release-Tag `v1.1.7` vorgesehen.
+- App-Version in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json`
+- Release auf GitHub mit Tag `vX.Y.Z`
+- Updater-Dateien aus dem Build bei der Release hochladen
+- Beim naechsten App-Start sehen aeltere Versionen den Update-Hinweis
 
 ## Lizenz
 

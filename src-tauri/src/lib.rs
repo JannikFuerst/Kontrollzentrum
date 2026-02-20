@@ -17,6 +17,14 @@ struct ScannedApp {
 
 struct ShortcutState(Mutex<Option<String>>);
 
+#[derive(serde::Serialize)]
+struct ClipboardPayload {
+  kind: String,
+  text: Option<String>,
+  data_url: Option<String>,
+  sig: String,
+}
+
 #[tauri::command]
 fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
   app
@@ -63,9 +71,88 @@ fn get_clipboard_text() -> Result<Option<String>, String> {
 }
 
 #[tauri::command]
+fn get_clipboard_payload() -> Result<Option<ClipboardPayload>, String> {
+  let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+
+  if let Ok(img) = clipboard.get_image() {
+    let width = img.width as u32;
+    let height = img.height as u32;
+    let bytes = img.bytes.into_owned();
+    if width > 0 && height > 0 && !bytes.is_empty() {
+      if let Some(rgba) = image::RgbaImage::from_raw(width, height, bytes.clone()) {
+        let mut png = Vec::new();
+        let encoder = image::codecs::png::PngEncoder::new(&mut png);
+        use image::ImageEncoder;
+        use std::hash::{Hash, Hasher};
+        encoder
+          .write_image(rgba.as_raw(), width, height, image::ColorType::Rgba8.into())
+          .map_err(|e| e.to_string())?;
+        let b64 = base64::engine::general_purpose::STANDARD.encode(png);
+        let mut hasher = std::collections::hash_map::DefaultHasher::new();
+        width.hash(&mut hasher);
+        height.hash(&mut hasher);
+        bytes.len().hash(&mut hasher);
+        let take = std::cmp::min(bytes.len(), 4096);
+        bytes[..take].hash(&mut hasher);
+        let sig = format!("img:{:016x}", hasher.finish());
+        return Ok(Some(ClipboardPayload {
+          kind: "image".into(),
+          text: None,
+          data_url: Some(format!("data:image/png;base64,{}", b64)),
+          sig,
+        }));
+      }
+    }
+  }
+
+  match clipboard.get_text() {
+    Ok(text) => {
+      if text.trim().is_empty() {
+        Ok(None)
+      } else {
+        let sig = format!("txt:{}:{}", text.len(), text);
+        Ok(Some(ClipboardPayload {
+          kind: "text".into(),
+          text: Some(text),
+          data_url: None,
+          sig,
+        }))
+      }
+    }
+    Err(arboard::Error::ContentNotAvailable) => Ok(None),
+    Err(e) => Err(e.to_string()),
+  }
+}
+
+#[tauri::command]
 fn set_clipboard_text(text: String) -> Result<(), String> {
   let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
   clipboard.set_text(text).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_clipboard_image(data_url: String) -> Result<(), String> {
+  let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+  let b64 = if let Some(idx) = data_url.find(',') {
+    &data_url[(idx + 1)..]
+  } else {
+    data_url.as_str()
+  };
+  let bytes = base64::engine::general_purpose::STANDARD
+    .decode(b64)
+    .map_err(|e| e.to_string())?;
+  let img = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
+  let rgba = img.to_rgba8();
+  let width = rgba.width() as usize;
+  let height = rgba.height() as usize;
+  let pixels = rgba.into_raw();
+  clipboard
+    .set_image(arboard::ImageData {
+      width,
+      height,
+      bytes: std::borrow::Cow::Owned(pixels),
+    })
+    .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -381,6 +468,20 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
       }
     }
 
+    // Add Steam library games (steam://run/<appid>) so games without Start Menu
+    // shortcuts are still discoverable in scan suggestions.
+    for app in scan_steam_games() {
+      let key = app.name.to_lowercase();
+      if let Some(idx) = seen_by_name.get(&key).copied() {
+        if out[idx].icon.is_none() && app.icon.is_some() {
+          out[idx].icon = app.icon;
+        }
+      } else {
+        seen_by_name.insert(key, out.len());
+        out.push(app);
+      }
+    }
+
     for root in roots {
       if !root.exists() {
         continue;
@@ -451,7 +552,9 @@ pub fn run() {
       set_window_icon,
       set_global_shortcut,
       get_clipboard_text,
-      set_clipboard_text
+      get_clipboard_payload,
+      set_clipboard_text,
+      set_clipboard_image
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
@@ -655,3 +758,269 @@ $out | ConvertTo-Json -Depth 4
 
       apps
     }
+
+fn scan_steam_games() -> Vec<ScannedApp> {
+  fn extract_quoted_tokens(line: &str) -> Vec<String> {
+    let mut tokens = Vec::new();
+    let mut in_quotes = false;
+    let mut current = String::new();
+    for ch in line.chars() {
+      if ch == '"' {
+        if in_quotes {
+          tokens.push(current.clone());
+          current.clear();
+        }
+        in_quotes = !in_quotes;
+        continue;
+      }
+      if in_quotes {
+        current.push(ch);
+      }
+    }
+    tokens
+  }
+
+  fn get_vdf_value(content: &str, wanted_key: &str) -> Option<String> {
+    for line in content.lines() {
+      let tokens = extract_quoted_tokens(line);
+      if tokens.len() >= 2 && tokens[0].eq_ignore_ascii_case(wanted_key) {
+        return Some(tokens[1].clone());
+      }
+    }
+    None
+  }
+
+  fn parse_reg_sz_value(key: &str, value_name: &str) -> Option<String> {
+    let out = Command::new("reg")
+      .args(["query", key, "/v", value_name])
+      .output()
+      .ok()?;
+    if !out.status.success() {
+      return None;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    for line in text.lines() {
+      if !line.contains(value_name) {
+        continue;
+      }
+      if let Some(pos) = line.find("REG_SZ") {
+        let val = line[(pos + "REG_SZ".len())..].trim();
+        if !val.is_empty() {
+          return Some(val.to_string());
+        }
+      }
+    }
+    None
+  }
+
+  fn detect_steam_root_paths() -> Vec<PathBuf> {
+    let mut roots = Vec::<PathBuf>::new();
+    let mut seen = HashSet::<String>::new();
+    let mut push_unique = |p: PathBuf| {
+      if !p.exists() {
+        return;
+      }
+      let key = p.to_string_lossy().to_lowercase();
+      if seen.insert(key) {
+        roots.push(p);
+      }
+    };
+
+    if let Ok(pf86) = std::env::var("PROGRAMFILES(X86)") {
+      push_unique(PathBuf::from(pf86).join("Steam"));
+    }
+    if let Ok(pf) = std::env::var("PROGRAMFILES") {
+      push_unique(PathBuf::from(pf).join("Steam"));
+    }
+    if let Ok(local) = std::env::var("LOCALAPPDATA") {
+      push_unique(PathBuf::from(local).join("Steam"));
+    }
+    if let Some(path) = parse_reg_sz_value("HKCU\\Software\\Valve\\Steam", "SteamPath") {
+      push_unique(PathBuf::from(path.replace('/', "\\")));
+    }
+    if let Some(path) = parse_reg_sz_value("HKLM\\SOFTWARE\\WOW6432Node\\Valve\\Steam", "InstallPath") {
+      push_unique(PathBuf::from(path));
+    }
+    if let Some(path) = parse_reg_sz_value("HKLM\\SOFTWARE\\Valve\\Steam", "InstallPath") {
+      push_unique(PathBuf::from(path));
+    }
+    roots
+  }
+
+  fn collect_steamapps_paths(steam_root: &Path) -> Vec<PathBuf> {
+    let mut out = Vec::<PathBuf>::new();
+    let mut seen = HashSet::<String>::new();
+    let mut push_unique = |p: PathBuf| {
+      if !p.exists() {
+        return;
+      }
+      let key = p.to_string_lossy().to_lowercase();
+      if seen.insert(key) {
+        out.push(p);
+      }
+    };
+
+    let main = steam_root.join("steamapps");
+    push_unique(main.clone());
+
+    let library_vdf = main.join("libraryfolders.vdf");
+    let content = match std::fs::read_to_string(&library_vdf) {
+      Ok(c) => c,
+      Err(_) => return out,
+    };
+
+    for line in content.lines() {
+      let tokens = extract_quoted_tokens(line);
+      if tokens.len() < 2 {
+        continue;
+      }
+
+      if tokens[0].eq_ignore_ascii_case("path") {
+        let p = tokens[1].replace("\\\\", "\\");
+        push_unique(PathBuf::from(p).join("steamapps"));
+        continue;
+      }
+
+      // Legacy format:
+      // "1"   "D:\\SteamLibrary"
+      if tokens[0].chars().all(|c| c.is_ascii_digit()) {
+        let raw = tokens[1].replace("\\\\", "\\");
+        if raw.contains(":\\") || raw.starts_with("\\\\") {
+          push_unique(PathBuf::from(raw).join("steamapps"));
+        }
+      }
+    }
+
+    out
+  }
+
+  fn icon_data_url_from_file(path: &Path) -> Option<String> {
+    let bytes = std::fs::read(path).ok()?;
+    if bytes.is_empty() {
+      return None;
+    }
+    let ext = path
+      .extension()
+      .and_then(|e| e.to_str())
+      .unwrap_or("")
+      .to_ascii_lowercase();
+    let mime = match ext.as_str() {
+      "jpg" | "jpeg" => "image/jpeg",
+      "png" => "image/png",
+      "webp" => "image/webp",
+      "bmp" => "image/bmp",
+      _ => "application/octet-stream",
+    };
+    let b64 = base64::engine::general_purpose::STANDARD.encode(bytes);
+    Some(format!("data:{};base64,{}", mime, b64))
+  }
+
+  fn find_steam_icon(steam_root: &Path, app_id: &str) -> Option<String> {
+    let library_cache = steam_root.join("appcache").join("librarycache");
+    if !library_cache.exists() {
+      return None;
+    }
+
+    let candidates = [
+      format!("{}_icon.jpg", app_id),
+      format!("{}_icon.png", app_id),
+      format!("{}_icon.webp", app_id),
+      format!("{}_library_600x900.jpg", app_id),
+      format!("{}_library_600x900_2x.jpg", app_id),
+      format!("{}_library_capsule.jpg", app_id),
+      format!("{}_library_capsule_2x.jpg", app_id),
+      format!("{}_header.jpg", app_id),
+      format!("{}_header_2x.jpg", app_id),
+      format!("{}_capsule_231x87.jpg", app_id),
+      format!("{}_capsule_616x353.jpg", app_id),
+      format!("{}_hero.jpg", app_id),
+    ];
+
+    for file in candidates {
+      let p = library_cache.join(file);
+      if p.exists() {
+        if let Some(data_url) = icon_data_url_from_file(&p) {
+          return Some(data_url);
+        }
+      }
+    }
+    None
+  }
+
+  fn steam_icon_cdn_fallback(app_id: &str) -> Option<String> {
+    if !app_id.chars().all(|c| c.is_ascii_digit()) {
+      return None;
+    }
+    Some(format!(
+      "https://cdn.cloudflare.steamstatic.com/steam/apps/{}/library_600x900.jpg",
+      app_id
+    ))
+  }
+
+  let mut apps = Vec::<ScannedApp>::new();
+  let mut seen_app_ids = HashMap::<String, usize>::new();
+  let mut seen_name = HashSet::<String>::new();
+
+  for steam_root in detect_steam_root_paths() {
+    for steamapps in collect_steamapps_paths(&steam_root) {
+      let rd = match std::fs::read_dir(&steamapps) {
+        Ok(r) => r,
+        Err(_) => continue,
+      };
+      for entry in rd.filter_map(Result::ok) {
+        let path = entry.path();
+        if !path.is_file() {
+          continue;
+        }
+        let file_name = path
+          .file_name()
+          .and_then(|v| v.to_str())
+          .unwrap_or("")
+          .to_ascii_lowercase();
+        if !file_name.starts_with("appmanifest_") || !file_name.ends_with(".acf") {
+          continue;
+        }
+        let content = match std::fs::read_to_string(&path) {
+          Ok(c) => c,
+          Err(_) => continue,
+        };
+
+        let app_id = get_vdf_value(&content, "appid").or_else(|| {
+          let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+          stem.strip_prefix("appmanifest_").map(|s| s.to_string())
+        });
+        let app_id = match app_id {
+          Some(id) if id.chars().all(|c| c.is_ascii_digit()) => id,
+          _ => continue,
+        };
+        let name = match get_vdf_value(&content, "name") {
+          Some(n) if !n.trim().is_empty() => n.trim().to_string(),
+          _ => continue,
+        };
+        let icon = find_steam_icon(&steam_root, &app_id).or_else(|| steam_icon_cdn_fallback(&app_id));
+
+        if let Some(idx) = seen_app_ids.get(&app_id).copied() {
+          if apps[idx].icon.is_none() && icon.is_some() {
+            apps[idx].icon = icon;
+          }
+          continue;
+        }
+
+        let key = name.to_lowercase();
+        if !seen_name.insert(key) {
+          continue;
+        }
+
+        let idx = apps.len();
+        seen_app_ids.insert(app_id.clone(), idx);
+        apps.push(ScannedApp {
+          name,
+          launch: format!("steam://run/{}", app_id),
+          icon,
+        });
+      }
+    }
+  }
+
+  apps
+}
