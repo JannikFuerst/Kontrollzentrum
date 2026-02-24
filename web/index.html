@@ -13,18 +13,11 @@
       <div class="notes-dock">
         <div class="side-toggles">
           <button class="notes-toggle" id="notesToggle" type="button" aria-expanded="false" aria-controls="notesPanel">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 4h7l3 3v13H7V4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-              <path d="M14 4v3h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              <path d="M9 11h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
+            <span class="notes-emoji-icon" aria-hidden="true">📒</span>
             <span data-i18n="notes_toggle">Notizen</span>
           </button>
           <button class="notes-toggle" id="clipboardToggle" type="button" aria-expanded="false" aria-controls="clipboardPanel">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="7" y="4.5" width="10" height="15" rx="2.2" stroke="currentColor" stroke-width="1.6"/>
-              <path d="M10 4h4M10 9h4M10 12.5h4M10 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
+            <span class="notes-emoji-icon" aria-hidden="true">✂️</span>
             <span data-i18n="clipboard_toggle">Clipboard</span>
           </button>
         </div>
@@ -39,14 +32,8 @@
           <button class="notes-delete" id="notesDelete" type="button" data-i18n="notes_delete_page">Seite löschen</button>
           <button class="notes-clear" id="notesClear" type="button" data-i18n="notes_clear_page">Seite leeren</button>
           <button class="notes-lock" id="notesLock" type="button" aria-pressed="false" aria-label="Bearbeitung entsperrt">
-            <svg class="lock-open" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M7 10V8a5 5 0 0 1 9.5-2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              <rect x="5" y="10" width="14" height="10" rx="2.4" stroke="currentColor" stroke-width="1.6"/>
-            </svg>
-            <svg class="lock-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="5" y="10" width="14" height="10" rx="2.4" stroke="currentColor" stroke-width="1.6"/>
-              <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
+            <span class="lock-open" aria-hidden="true">🔓</span>
+            <span class="lock-closed" aria-hidden="true">🔒</span>
           </button>
           <div class="notes-status" id="notesStatus">Gespeichert</div>
         </div>
@@ -83,22 +70,16 @@
       <div class="top-actions">
         <button class="btn" id="addBtn" type="button">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
           </svg>
           <span data-i18n="add_app">App hinzufügen</span>
         </button>
         <div class="lang-switch" id="langSwitch">
-          <button class="gear-btn" id="voiceSettingsBtn" type="button" aria-label="Spracheingabe" title="Spracheingabe" data-i18n-aria-label="voice_settings_aria" data-i18n-title="voice_settings_title_btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="9" y="3.8" width="6" height="10.4" rx="3" stroke="currentColor" stroke-width="1.6"/>
-              <path d="M6.2 10.8a5.8 5.8 0 0 0 11.6 0M12 16.8v3.6M9.2 20.4h5.6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
-          </button>
           <button class="gear-btn lang-btn" id="languageBtn" type="button" aria-label="Sprache" title="Sprache" aria-haspopup="true" aria-expanded="false">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.6"/>
-              <path d="M3.8 12h16.4M12 3.5c2.7 2.4 4.3 5.4 4.3 8.5s-1.6 6.1-4.3 8.5M12 3.5c-2.7 2.4-4.3 5.4-4.3 8.5s1.6 6.1 4.3 8.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            </svg>
+            <span class="gear-emoji-icon" aria-hidden="true">🌍</span>
+          </button>
+          <button class="gear-btn" id="voiceSettingsBtn" type="button" aria-label="Spracheingabe" title="Spracheingabe" data-i18n-aria-label="voice_settings_aria" data-i18n-title="voice_settings_title_btn">
+            <span class="gear-emoji-icon" aria-hidden="true">🎙️</span>
           </button>
           <div class="lang-menu" id="languageMenu" role="menu" aria-hidden="true">
             <button type="button" class="lang-item" data-lang="en" role="menuitem">English</button>
@@ -106,42 +87,44 @@
           </div>
         </div>
         <button class="gear-btn" id="settingsBtn" type="button" aria-label="Einstellungen" title="Einstellungen" data-i18n-aria-label="settings_aria" data-i18n-title="settings_title_btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 7h10M18 7h2M14 7v8M4 17h6M12 17h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-            <circle cx="14" cy="7" r="2.2" stroke="currentColor" stroke-width="1.6"/>
-            <circle cx="8" cy="17" r="2.2" stroke="currentColor" stroke-width="1.6"/>
-          </svg>
+          <span class="gear-emoji-icon" aria-hidden="true">⚙️</span>
         </button>
       </div>
     </div>
 
     <div class="tabs-wrap">
-      <div class="tabs" role="tablist" aria-label="Filter">
-        <div class="tab active" data-tab="all" role="tab" aria-selected="true">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z"
-                stroke="currentColor" stroke-width="1.6" />
-        </svg>
-        <span data-i18n="tab_all">Alle</span> <span class="badge" id="badgeAll">0</span>
+      <div class="over-tabs" id="overTabs" role="tablist" aria-label="Überkategorien">
+        <div class="tab active over-tab-static" data-tab="super:all" data-super="__all__" role="tab" aria-selected="true">
+          <span class="over-icon" aria-hidden="true">🔗</span>
+          <span data-i18n="tab_all">Alle</span>
         </div>
+      </div>
 
-        <div class="tab" data-tab="fav" role="tab" aria-selected="false">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3.6 14.6 9l5.9.8-4.3 4.2 1 5.9L12 17.2 6.8 20l1-5.9-4.3-4.2 5.9-.8L12 3.6Z"
-                  stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <div class="tabs-panel">
+        <div class="search category-search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" stroke-width="1.7"/>
+            <path d="M16.2 16.2 21 21" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
           </svg>
-        <span data-i18n="tab_favorites">Favoriten</span> <span class="badge" id="badgeFav">0</span>
-      </div>
-
-        <div id="catTabs" class="cat-tabs"></div>
-
-        <div class="tab" data-tab="misc" role="tab" aria-selected="false">
-          <span data-i18n="tab_misc">Sonstiges</span> <span class="badge" id="badgeMisc">0</span>
+          <input id="categorySearch" type="text" data-i18n-placeholder="category_search_placeholder" placeholder="Durchsuchen (STRG+G)..." />
         </div>
-      </div>
+        <div class="tabs" role="tablist" aria-label="Filter">
+          <div class="tab" data-tab="all" role="tab" aria-selected="true">
+            <span aria-hidden="true">🔗</span>
+            <span data-i18n="tab_all">Alle</span> <span class="badge" id="badgeAll">0</span>
+          </div>
 
-      <div class="tabs-actions">
-        <button class="tab tab-add-btn" id="catAddToggle" type="button" aria-label="Kategorien verwalten" data-i18n-aria-label="manage_categories_aria">+</button>
+          <div class="tab" data-tab="fav" role="tab" aria-selected="false">
+            <span aria-hidden="true">⭐</span>
+            <span data-i18n="tab_favorites">Favoriten</span> <span class="badge" id="badgeFav">0</span>
+          </div>
+
+          <div id="catTabs" class="cat-tabs"></div>
+        </div>
+        <div class="tabs-actions">
+          <button class="tab tab-add-btn" id="catAddToggle" type="button" aria-label="Kategorien verwalten" data-i18n-aria-label="manage_categories_aria">+</button>
+          <button class="tab tab-collapse-btn" id="catCollapseToggle" type="button" aria-label="Kategorien einklappen" title="Kategorien einklappen">⮞</button>
+        </div>
       </div>
     </div>
 
@@ -165,7 +148,7 @@
         <p data-i18n="empty_subtitle">Füge deine erste App hinzu</p>
         <button class="btn secondary" type="button" id="addBtn2">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round"/>
+            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
           </svg>
           <span data-i18n="add_app">App hinzufügen</span>
         </button>

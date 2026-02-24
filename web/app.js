@@ -1,16 +1,20 @@
-console.log("app.js loaded ✅");
+﻿console.log("app.js loaded ✅");
 
 document.addEventListener("DOMContentLoaded", async () => {
 
   // Tabs + State
   let activeTab = "all";
   let searchTerm = "";
+  let categorySearchTerm = "";
 
   const grid = document.getElementById("appGrid");
   const empty = document.getElementById("emptyState");
   const pinnedSection = document.getElementById("pinnedSection");
   const pinnedRow = document.getElementById("pinnedRow");
   const search = document.getElementById("search");
+  const categorySearch = document.getElementById("categorySearch");
+  const categorySearchWrap = document.querySelector(".category-search");
+  const catCollapseToggle = document.getElementById("catCollapseToggle");
   const versionTag = document.getElementById("versionTag");
   const notesToggle = document.getElementById("notesToggle");
   const notesPanel = document.getElementById("notesPanel");
@@ -30,6 +34,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const voiceSettingsBtn = document.getElementById("voiceSettingsBtn");
   const languageBtn = document.getElementById("languageBtn");
   const languageMenu = document.getElementById("languageMenu");
+  const CAT_RAIL_COLLAPSED_KEY = "kc_cat_rail_collapsed";
+  let catRailCollapsed = localStorage.getItem(CAT_RAIL_COLLAPSED_KEY) === "1";
 
   const LANG_KEY = "kc_lang";
   const i18n = {
@@ -57,6 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboard_empty: "Noch keine Einträge.",
       app_title: "Kontrollzentrum",
       search_placeholder: "Apps durchsuchen (STRG+F)...",
+      category_search_placeholder: "Durchsuchen (STRG+G)...",
       add_app: "App hinzufügen",
       add: "Hinzufügen",
       save: "Speichern",
@@ -66,7 +73,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       tab_all: "Alle",
       tab_favorites: "Favoriten",
       tab_misc: "Sonstiges",
-      manage_categories_aria: "Kategorien verwalten",
+      manage_categories_aria: "Kategorie hinzufügen",
       pinned_heading: "Angepinnt",
       empty_title: "Noch keine Apps",
       empty_subtitle: "Füge deine erste App hinzu",
@@ -96,7 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       update_available_dismiss: "Nein danke",
       clipboard_clear_confirm: "Clipboard-Verlauf wirklich leeren?",
       category_delete_btn: "Löschen",
-      confirm_delete_category: "Kategorie \"{name}\" löschen? Apps werden nach \"Sonstiges\" verschoben.",
+      confirm_delete_category: "Kategorie \"{name}\" löschen? Apps bleiben unter \"Alle\" sichtbar.",
       alert_tauri_missing: "Tauri API nicht verfügbar (window.__TAURI__.core.invoke fehlt).",
       alert_open_failed: "Konnte nicht öffnen: {message}",
       card_type_desktop: "Desktop",
@@ -107,6 +114,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       aria_delete: "Löschen",
       title_delete: "Löschen",
       confirm_delete_app: "\"{name}\" wirklich löschen?",
+      app_ctx_add_favorite: "Zu Favoriten hinzufügen",
+      app_ctx_remove_favorite: "Aus Favoriten entfernen",
+      app_ctx_edit: "Bearbeiten",
+      app_ctx_delete: "Löschen",
       alert_scan_choose: "Bitte eine App aus dem Scan wählen.",
       alert_fill_required: "Bitte Name und URL/Pfad ausfüllen.",
       alert_web_invalid: "Web-Apps brauchen eine URL/Domain (z.B. discord.com/app oder https://discord.com/app).",
@@ -137,8 +148,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       cat_manage_title: "Kategorien verwalten",
       cat_new_label: "Neue Kategorie",
       cat_new_placeholder: "z.B. Lernen, Finanzen...",
-      cat_manage_help: "Löschen verschiebt Apps automatisch nach \"Sonstiges\".",
+      cat_manage_help: "Gelöschte Kategorien sind nicht mehr auswählbar, Apps bleiben unter \"Alle\" sichtbar.",
       cat_existing_label: "Vorhandene Kategorien",
+      cat_kind_sub: "Unterkategorie",
+      cat_kind_super: "Überkategorie",
+      cat_new_placeholder_super: "z.B. Games, Arbeit...",
+      cat_manage_help_super: "Überkategorien bündeln Unterkategorien (z.B. Games / Steam).",
+      cat_ctx_remove_super: "Aus Überkategorie entfernen",
+      cat_ctx_move_to_super: "Zu Überkategorie verschieben",
+      cat_ctx_delete_category: "Kategorie löschen",
+      cat_ctx_delete_super: "Überkategorie löschen",
+      cat_ctx_no_super: "Keine Überkategorie vorhanden",
+      super_icon_title: "Icon wählen",
+      super_icon_search_placeholder: "Icons durchsuchen...",
+      super_icon_empty: "Keine passenden Icons gefunden.",
+      super_icon_upload: "Eigenes Icon hochladen",
+      super_icon_use: "Verwenden",
+      category_icon_btn: "Icon",
       settings_title: "Einstellungen",
       settings_hotkey_label: "Hotkey (App ein/ausblenden)",
       settings_hotkey_placeholder: "Drücke 'Aufnehmen'...",
@@ -201,8 +227,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_no_image: "Kein Bild gewählt",
       settings_custom_image_active: "Custom Hintergrund aktiv",
       settings_upload_image: "Bild hochladen",
-      settings_allowed_sizes: "Erlaubte Größe: 1920x1080, 2560x1440, 3840x2160, 5184x3456",
-      settings_bg_error: "Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.",
+      settings_allowed_sizes: "Alle Bildgroessen sind erlaubt",
+      settings_bg_error: "Bild konnte nicht geladen werden. Bitte ein gueltiges Bildformat verwenden.",
       modal_path_label: "Pfad / URI *",
       modal_path_placeholder: "z.B. discord:// oder steam://run/730 oder file:///C:/...",
       modal_path_help: "Empfohlen: URI (discord://, steam://, spotify://, ms-settings:...). file:/// geht je nach Windows-Einstellung.",
@@ -236,6 +262,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboard_empty: "No entries yet.",
       app_title: "Control Center",
       search_placeholder: "Search apps (CTRL+F)...",
+      category_search_placeholder: "Search (CTRL+G)...",
       add_app: "Add app",
       add: "Add",
       save: "Save",
@@ -245,7 +272,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       tab_all: "All",
       tab_favorites: "Favorites",
       tab_misc: "Misc",
-      manage_categories_aria: "Manage categories",
+      manage_categories_aria: "Add category",
       pinned_heading: "Pinned",
       empty_title: "No apps yet",
       empty_subtitle: "Add your first app",
@@ -275,7 +302,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       update_available_dismiss: "No thanks",
       clipboard_clear_confirm: "Clear clipboard history?",
       category_delete_btn: "Delete",
-      confirm_delete_category: "Delete category \"{name}\"? Apps will be moved to \"Sonstiges\".",
+      confirm_delete_category: "Delete category \"{name}\"? Apps remain visible under \"All\".",
       alert_tauri_missing: "Tauri API is unavailable (window.__TAURI__.core.invoke missing).",
       alert_open_failed: "Could not open: {message}",
       card_type_desktop: "Desktop",
@@ -286,6 +313,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       aria_delete: "Delete",
       title_delete: "Delete",
       confirm_delete_app: "Delete \"{name}\"?",
+      app_ctx_add_favorite: "Add to favorites",
+      app_ctx_remove_favorite: "Remove from favorites",
+      app_ctx_edit: "Edit",
+      app_ctx_delete: "Delete",
       alert_scan_choose: "Please select an app from scan.",
       alert_fill_required: "Please fill name and URL/path.",
       alert_web_invalid: "Web apps need a URL/domain (e.g. discord.com/app or https://discord.com/app).",
@@ -315,8 +346,23 @@ document.addEventListener("DOMContentLoaded", async () => {
       cat_manage_title: "Manage categories",
       cat_new_label: "New category",
       cat_new_placeholder: "e.g. Learning, Finance...",
-      cat_manage_help: "Deleting moves apps automatically to \"Sonstiges\".",
+      cat_manage_help: "Deleted categories are no longer selectable; apps remain visible under \"All\".",
       cat_existing_label: "Existing categories",
+      cat_kind_sub: "Subcategory",
+      cat_kind_super: "Supercategory",
+      cat_new_placeholder_super: "e.g. Games, Work...",
+      cat_manage_help_super: "Supercategories group subcategories (e.g. Games / Steam).",
+      cat_ctx_remove_super: "Remove from supercategory",
+      cat_ctx_move_to_super: "Move to supercategory",
+      cat_ctx_delete_category: "Delete category",
+      cat_ctx_delete_super: "Delete supercategory",
+      cat_ctx_no_super: "No supercategory available",
+      super_icon_title: "Choose icon",
+      super_icon_search_placeholder: "Search icons...",
+      super_icon_empty: "No matching icons found.",
+      super_icon_upload: "Upload custom icon",
+      super_icon_use: "Use icon",
+      category_icon_btn: "Icon",
       settings_title: "Settings",
       settings_hotkey_label: "Hotkey (toggle app)",
       settings_hotkey_placeholder: "Press 'Capture'...",
@@ -379,8 +425,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_no_image: "No image selected",
       settings_custom_image_active: "Custom background active",
       settings_upload_image: "Upload image",
-      settings_allowed_sizes: "Allowed sizes: 1920x1080, 2560x1440, 3840x2160, 5184x3456",
-      settings_bg_error: "Invalid image size. Use 1920x1080, 2560x1440, 3840x2160 or 5184x3456.",
+      settings_allowed_sizes: "All image sizes are allowed",
+      settings_bg_error: "Image could not be loaded. Please use a valid image format.",
       modal_path_label: "Path / URI *",
       modal_path_placeholder: "e.g. discord:// or steam://run/730 or file:///C:/...",
       modal_path_help: "Recommended: URI (discord://, steam://, spotify://, ms-settings:...). file:/// depends on Windows settings.",
@@ -420,9 +466,29 @@ document.addEventListener("DOMContentLoaded", async () => {
       const key = el.getAttribute("data-i18n-title");
       if (key) el.setAttribute("title", t(key));
     });
+    if (voiceSettingsBtn){
+      voiceSettingsBtn.dataset.tip = t("voice_settings_title_btn");
+      voiceSettingsBtn.removeAttribute("title");
+    }
     if (languageBtn){
       languageBtn.setAttribute("aria-label", t("language"));
-      languageBtn.setAttribute("title", t("language"));
+      languageBtn.dataset.tip = t("language");
+      languageBtn.removeAttribute("title");
+    }
+    const settingsTopBtn = document.getElementById("settingsBtn");
+    if (settingsTopBtn){
+      settingsTopBtn.dataset.tip = t("settings_title_btn");
+      settingsTopBtn.removeAttribute("title");
+    }
+    if (notesToggle){
+      notesToggle.dataset.tip = t("notes_toggle");
+      notesToggle.setAttribute("aria-label", t("notes_toggle"));
+      notesToggle.removeAttribute("title");
+    }
+    if (clipboardToggle){
+      clipboardToggle.dataset.tip = t("clipboard_toggle");
+      clipboardToggle.setAttribute("aria-label", t("clipboard_toggle"));
+      clipboardToggle.removeAttribute("title");
     }
     if (languageMenu){
       languageMenu.querySelectorAll(".lang-item").forEach((item) => {
@@ -465,10 +531,50 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Tabs (delegation)
+  const tabsWrapEl = document.querySelector(".tabs-wrap");
+  const overTabs = document.getElementById("overTabs");
   const tabsEl = document.querySelector(".tabs");
-  tabsEl?.addEventListener("click", (e) => {
+  let overTabSuppressClickUntil = 0;
+
+  function applyCategoryRailState(){
+    if (tabsWrapEl){
+      tabsWrapEl.classList.toggle("cat-collapsed", catRailCollapsed);
+    }
+    if (catCollapseToggle){
+      const label = catRailCollapsed
+        ? (currentLang === "de" ? "Kategorien ausklappen" : "Expand categories")
+        : (currentLang === "de" ? "Kategorien einklappen" : "Collapse categories");
+      catCollapseToggle.textContent = catRailCollapsed ? "⮜" : "⮞";
+      catCollapseToggle.setAttribute("aria-label", label);
+      catCollapseToggle.setAttribute("title", label);
+    }
+  }
+
+  function saveCategoryRailState(){
+    localStorage.setItem(CAT_RAIL_COLLAPSED_KEY, catRailCollapsed ? "1" : "0");
+  }
+
+  function setCategoryRailCollapsed(nextValue, options = {}){
+    const next = Boolean(nextValue);
+    const focusSearch = Boolean(options.focusSearch);
+    const changed = catRailCollapsed !== next;
+    catRailCollapsed = next;
+    if (changed) saveCategoryRailState();
+    applyCategoryRailState();
+    if (changed) renderCategories();
+    if (focusSearch && !catRailCollapsed && categorySearch){
+      categorySearch.focus();
+      categorySearch.select();
+    }
+  }
+  tabsWrapEl?.addEventListener("click", (e) => {
     const t = e.target.closest(".tab");
-    if (!t || t.classList.contains("tab-add-btn") || t.classList.contains("tab-add-ok")) return;
+    if (!t || t.classList.contains("tab-add-btn") || t.classList.contains("tab-collapse-btn") || t.classList.contains("tab-add-ok")) return;
+    if (t.dataset.super && Date.now() < overTabSuppressClickUntil) return;
+    if (t.dataset.super){
+      setActiveSuper(t.dataset.super);
+      return;
+    }
     const tabValue = t.dataset.tab || "all";
     setActiveTab(tabValue);
   });
@@ -504,6 +610,25 @@ document.addEventListener("DOMContentLoaded", async () => {
     render();
   });
 
+  categorySearch?.addEventListener("input", () => {
+    categorySearchTerm = (categorySearch.value || "").toLowerCase().trim();
+    renderCategories();
+  });
+  categorySearchWrap?.addEventListener("click", (e) => {
+    if (!catRailCollapsed) return;
+    e.preventDefault();
+    setCategoryRailCollapsed(false, { focusSearch: true });
+  });
+  categorySearch?.addEventListener("focus", () => {
+    if (!catRailCollapsed) return;
+    setCategoryRailCollapsed(false, { focusSearch: true });
+  });
+  catCollapseToggle?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCategoryRailCollapsed(!catRailCollapsed);
+  });
+
   languageBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
     toggleLanguageMenu();
@@ -525,14 +650,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   applyI18nToDom();
 
-  // Ctrl+F / Cmd+F focuses app search (prevent system find-in-page)
+  // Ctrl+F / Cmd+F focuses app search, Ctrl+G / Cmd+G focuses category search.
   document.addEventListener("keydown", (e) => {
-    const isFind = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f";
-    if (!isFind) return;
+    const withMod = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+    const isAppFind = withMod && key === "f";
+    const isCategoryFind = withMod && key === "g";
+    if (!isAppFind && !isCategoryFind) return;
     e.preventDefault();
-    if (search){
+    if (isAppFind && search){
       search.focus();
       search.select();
+      return;
+    }
+    if (isCategoryFind && categorySearch){
+      setCategoryRailCollapsed(false, { focusSearch: true });
     }
   });
 
@@ -613,6 +745,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const catManageList = document.getElementById("catManageList");
   const catManageInput = document.getElementById("catManageInput");
   const catManageAdd = document.getElementById("catManageAdd");
+  const catManageHelp = document.getElementById("catManageHelp");
+  const catKindSwitch = document.getElementById("catKindSwitch");
+  const catKindSub = document.getElementById("catKindSub");
+  const catKindSuper = document.getElementById("catKindSuper");
+  const superIconOverlay = document.getElementById("superIconOverlay");
+  const superIconClose = document.getElementById("superIconClose");
+  const superIconCancel = document.getElementById("superIconCancel");
+  const superIconSave = document.getElementById("superIconSave");
+  const superIconGrid = document.getElementById("superIconGrid");
+  const superIconPreview = document.getElementById("superIconPreview");
+  const superIconSearch = document.getElementById("superIconSearch");
+  const superIconEmpty = document.getElementById("superIconEmpty");
+  const superIconForLabel = document.getElementById("superIconForLabel");
+  const superIconUpload = document.getElementById("superIconUpload");
+  const superIconUploadBtn = document.getElementById("superIconUploadBtn");
+  const catSuperIconPick = document.getElementById("catSuperIconPick");
+  const catSuperIconMark = document.getElementById("catSuperIconMark");
 
   const appType = document.getElementById("appType");
   const appCategory = document.getElementById("appCategory");
@@ -623,6 +772,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const scanSelect = document.getElementById("scanSelect");
   const scanLoading = document.getElementById("scanLoading");
   const scanRefresh = document.getElementById("scanRefresh");
+
 
   function setText(sel, key){
     const el = document.querySelector(sel);
@@ -752,6 +902,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     setPh("#catManageInput", "cat_new_placeholder");
     setText("#catManageOverlay [data-i18n='cat_manage_help']", "cat_manage_help");
     setText("#catManageOverlay [data-i18n='cat_existing_label']", "cat_existing_label");
+    setText("#catKindSub", "cat_kind_sub");
+    setText("#catKindSuper", "cat_kind_super");
+    setText("#superIconTitle", "super_icon_title");
+    setPh("#superIconSearch", "super_icon_search_placeholder");
+    setText("#superIconEmpty", "super_icon_empty");
+    setText("#superIconUploadBtn", "super_icon_upload");
+    setText("#superIconSave", "super_icon_use");
+    document.querySelectorAll(".cat-icon-pick .cat-icon-text").forEach((el) => {
+      el.textContent = t("category_icon_btn");
+    });
+    updateCatManageModeUi();
   }
 
   let editingId = null;
@@ -1577,7 +1738,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   startClipboardPolling();
 
   function applyTheme(theme){
-    const t = theme === "light" ? "light" : "dark";
+    const t = "dark";
     document.documentElement.setAttribute("data-theme", t);
     document.body.setAttribute("data-theme", t);
     localStorage.setItem("kc_theme", t);
@@ -1610,20 +1771,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Theme init
-  const savedTheme = localStorage.getItem("kc_theme") || "dark";
-  applyTheme(savedTheme);
-  if (themeToggle) themeToggle.checked = savedTheme === "light";
+  applyTheme("dark");
+  if (themeToggle) themeToggle.checked = false;
   const savedAccent = localStorage.getItem("kc_accent") || "purple";
   applyAccent(savedAccent);
 
   const BG_MODES = ["theme", "mono", "duo", "custom"];
-  const BG_SIZES = [
-    { w: 1920, h: 1080 }, // FHD
-    { w: 2560, h: 1440 }, // WQHD
-    { w: 3840, h: 2160 }, // 4K
-    { w: 5184, h: 3456 }  // 5K 3:2
-  ];
-
   function applyBackground(mode){
     let m = mode || "theme";
     if (m === "calm") m = "mono";
@@ -1888,7 +2041,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyModalI18n();
     const saved = localStorage.getItem("kc_hotkey") || "";
     if (hotkeyInput) hotkeyInput.value = saved;
-    if (themeToggle) themeToggle.checked = (localStorage.getItem("kc_theme") || "dark") === "light";
+    if (themeToggle) themeToggle.checked = false;
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
     syncBackgroundUI(bgMode);
@@ -1926,9 +2079,196 @@ document.addEventListener("DOMContentLoaded", async () => {
     voiceSettingsOverlay.setAttribute("aria-hidden", "true");
   }
 
-  function openCatManage(){
+  function updateCatManageModeUi(){
+    const isSuper = catManageMode === "super";
+    [catKindSub, catKindSuper].forEach((btn) => {
+      if (!btn) return;
+      const active = btn.dataset.kind === catManageMode;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    if (catManageInput){
+      catManageInput.placeholder = isSuper ? t("cat_new_placeholder_super") : t("cat_new_placeholder");
+    }
+    if (catManageHelp){
+      catManageHelp.textContent = isSuper ? t("cat_manage_help_super") : t("cat_manage_help");
+    }
+    if (catSuperIconPick){
+      catSuperIconPick.classList.remove("hidden");
+    }
+    updateCatSuperIconButton();
+  }
+
+  function updateCatSuperIconButton(){
+    if (!catSuperIconMark) return;
+    const draftIcon = catManageMode === "super" ? draftSuperIcon : draftCategoryIcon;
+    if (draftIcon?.type === "emoji"){
+      catSuperIconMark.textContent = draftIcon.value;
+      return;
+    }
+    if (draftIcon?.type === "image"){
+      catSuperIconMark.textContent = "IMG";
+      return;
+    }
+    const typed = normalizeCategory(catManageInput?.value);
+    catSuperIconMark.textContent = (typed ? typed.charAt(0).toUpperCase() : "?");
+  }
+
+  function setCatManageMode(nextMode){
+    catManageMode = nextMode === "super" ? "super" : "sub";
+    updateCatManageModeUi();
+    renderCategoryManager();
+  }
+
+  function getSuperIcon(superName){
+    const key = normalizeSuperName(superName);
+    const existing = superIconMap[key];
+    if (existing && existing.type === "emoji" && existing.value) return existing;
+    if (existing && existing.type === "image" && existing.value) return existing;
+    return null;
+  }
+
+  function getCategoryIcon(categoryName){
+    const key = normalizeSuperName(categoryName);
+    const existing = categoryIconMap[key];
+    if (existing && existing.type === "emoji" && existing.value) return existing;
+    if (existing && existing.type === "image" && existing.value) return existing;
+    return null;
+  }
+
+  function updateSuperIconPreview(){
+    if (!superIconPreview) return;
+    superIconPreview.innerHTML = "";
+    if (!pendingSuperIcon){
+      superIconPreview.textContent = "?";
+      return;
+    }
+    if (pendingSuperIcon.type === "image"){
+      const img = document.createElement("img");
+      img.src = pendingSuperIcon.value;
+      img.alt = "";
+      superIconPreview.appendChild(img);
+      return;
+    }
+    superIconPreview.textContent = pendingSuperIcon.value;
+  }
+
+  function normalizeIconSearchValue(value){
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+  }
+
+  function renderSuperIconGrid(){
+    if (!superIconGrid) return;
+    superIconGrid.innerHTML = "";
+    const query = normalizeIconSearchValue(superIconQuery);
+    const filtered = SUPER_ICON_PRESETS.filter((item) => {
+      if (!query) return true;
+      if (normalizeIconSearchValue(item.emoji).includes(query)) return true;
+      return (item.tags || []).some((tag) => normalizeIconSearchValue(tag).includes(query));
+    });
+    filtered.forEach((item) => {
+      const emoji = item.emoji;
+      const btn = document.createElement("button");
+      btn.className = "super-icon-item";
+      btn.type = "button";
+      btn.textContent = emoji;
+      const active = pendingSuperIcon?.type === "emoji" && pendingSuperIcon?.value === emoji;
+      btn.classList.toggle("active", active);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+      btn.addEventListener("click", () => {
+        pendingSuperIcon = { type: "emoji", value: emoji };
+        updateSuperIconPreview();
+        renderSuperIconGrid();
+        if (superIconSave) superIconSave.disabled = false;
+      });
+      superIconGrid.appendChild(btn);
+    });
+    if (superIconEmpty){
+      superIconEmpty.classList.toggle("hidden", filtered.length > 0);
+    }
+  }
+
+  function openSuperIconPicker(superName, mode = "edit", target = "super"){
+    if (!superIconOverlay) return;
+    pendingSuperTarget = target === "category" ? "category" : "super";
+    pendingSuperMode = mode === "create" ? "create" : "edit";
+    pendingSuperName = normalizeCategory(superName || catManageInput?.value || "");
+    if (pendingSuperTarget === "category"){
+      pendingSuperIcon = pendingSuperMode === "create"
+        ? (draftCategoryIcon ? { ...draftCategoryIcon } : null)
+        : getCategoryIcon(pendingSuperName);
+    } else {
+      pendingSuperIcon = pendingSuperMode === "create"
+        ? (draftSuperIcon ? { ...draftSuperIcon } : null)
+        : getSuperIcon(pendingSuperName);
+    }
+    if (superIconForLabel){
+      superIconForLabel.textContent = pendingSuperName || t(pendingSuperTarget === "category" ? "cat_kind_sub" : "cat_kind_super");
+    }
+    superIconQuery = "";
+    if (superIconSearch) superIconSearch.value = "";
+    updateSuperIconPreview();
+    renderSuperIconGrid();
+    if (superIconUpload) superIconUpload.value = "";
+    if (superIconSave) superIconSave.disabled = !pendingSuperIcon;
+    superIconOverlay.classList.add("show");
+    superIconOverlay.setAttribute("aria-hidden", "false");
+  }
+function closeSuperIconPicker(){
+    if (!superIconOverlay) return;
+    superIconOverlay.classList.remove("show");
+    superIconOverlay.setAttribute("aria-hidden", "true");
+    pendingSuperName = "";
+    pendingSuperIcon = null;
+    pendingSuperTarget = "super";
+    superIconQuery = "";
+    if (superIconSearch) superIconSearch.value = "";
+  }
+
+  function applySuperCategoryWithIcon(){
+    const superName = normalizeCategory(pendingSuperName);
+    if (pendingSuperTarget === "category"){
+      if (pendingSuperMode === "create"){
+        draftCategoryIcon = pendingSuperIcon ? { ...pendingSuperIcon } : null;
+        updateCatSuperIconButton();
+        closeSuperIconPicker();
+        catManageInput?.focus();
+        return;
+      }
+      if (!superName || !pendingSuperIcon) return;
+      const catKey = normalizeSuperName(superName);
+      categoryIconMap[catKey] = { ...pendingSuperIcon };
+      saveCategoryIconMap(categoryIconMap);
+      renderCategories();
+      renderCategoryManager();
+      closeSuperIconPicker();
+      return;
+    }
+    if (pendingSuperMode === "create"){
+      draftSuperIcon = pendingSuperIcon ? { ...pendingSuperIcon } : null;
+      updateCatSuperIconButton();
+      closeSuperIconPicker();
+      catManageInput?.focus();
+      return;
+    }
+    if (!superName || !pendingSuperIcon) return;
+    const superKey = normalizeSuperName(superName);
+    superIconMap[superKey] = { ...pendingSuperIcon };
+    saveSuperIconMap(superIconMap);
+    renderCategories();
+    renderCategoryManager();
+    closeSuperIconPicker();
+  }
+function openCatManage(){
     if (!catManageOverlay) return;
     applyModalI18n();
+    draftSuperIcon = null;
+    draftCategoryIcon = null;
+    setCatManageMode("sub");
     renderCategoryManager();
     catManageOverlay.classList.add("show");
     catManageOverlay.setAttribute("aria-hidden", "false");
@@ -1983,6 +2323,28 @@ document.addEventListener("DOMContentLoaded", async () => {
   voiceSettingsCancel?.addEventListener("click", closeVoiceSettings);
   catManageClose?.addEventListener("click", closeCatManage);
   catManageCancel?.addEventListener("click", closeCatManage);
+  superIconClose?.addEventListener("click", closeSuperIconPicker);
+  superIconCancel?.addEventListener("click", closeSuperIconPicker);
+  superIconSave?.addEventListener("click", applySuperCategoryWithIcon);
+  superIconSearch?.addEventListener("input", () => {
+    superIconQuery = superIconSearch.value || "";
+    renderSuperIconGrid();
+  });
+  superIconUploadBtn?.addEventListener("click", () => superIconUpload?.click());
+  superIconUpload?.addEventListener("change", async (e) => {
+    const file = e.target?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = String(reader.result || "");
+      if (!/^data:image\//i.test(result)) return;
+      pendingSuperIcon = { type: "image", value: result };
+      updateSuperIconPreview();
+      renderSuperIconGrid();
+      if (superIconSave) superIconSave.disabled = false;
+    };
+    reader.readAsDataURL(file);
+  });
 
   overlay?.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
@@ -1995,6 +2357,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   catManageOverlay?.addEventListener("click", (e) => {
     if (e.target === catManageOverlay) closeCatManage();
+  });
+  superIconOverlay?.addEventListener("click", (e) => {
+    if (e.target === superIconOverlay) closeSuperIconPicker();
   });
 
   confirmClose?.addEventListener("click", closeConfirm);
@@ -2020,6 +2385,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     if (e.key === "Escape" && voiceSettingsOverlay?.classList.contains("show")) {
       closeVoiceSettings();
+      return;
+    }
+    if (e.key === "Escape" && superIconOverlay?.classList.contains("show")) {
+      closeSuperIconPicker();
       return;
     }
     if (e.key === "Escape" && catManageOverlay?.classList.contains("show")) {
@@ -2144,7 +2513,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   themeToggle?.addEventListener("change", () => {
-    applyTheme(themeToggle.checked ? "light" : "dark");
+    applyTheme("dark");
   });
 
   accentRow?.addEventListener("click", (e) => {
@@ -2184,14 +2553,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     try{
       const dataUrl = await fileToDataUrl(file);
-      const size = await getImageSize(dataUrl);
-      const match = size && BG_SIZES.some(s => s.w === size.w && s.h === size.h);
-      if (!match){
-        showBgError(true);
-        if (bgUploadName) bgUploadName.value = `Falsche Größe (${size?.w || "?"}x${size?.h || "?"})`;
-        bgUpload.value = "";
-        return;
-      }
       showBgError(false);
       applyCustomBackground(dataUrl);
       applyBackground("custom");
@@ -2334,15 +2695,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  function getImageSize(dataUrl){
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
-      img.onerror = () => resolve(null);
-      img.src = dataUrl;
-    });
-  }
-
   // Typ UI (Label/Placeholder/Help)
   function syncTypeUI(){
     const typeValue = appType?.value || "web";
@@ -2374,9 +2726,35 @@ document.addEventListener("DOMContentLoaded", async () => {
   scanRefresh?.addEventListener("click", () => loadScanApps(true));
 
   // Storage
+  function repairMojibakeString(input){
+    const value = String(input ?? "");
+    if (!/[ÃÂðâ]/.test(value)) return value;
+    try{
+      const bytes = new Uint8Array(Array.from(value).map((ch) => ch.charCodeAt(0) & 0xff));
+      const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+      return /�/.test(decoded) ? value : decoded;
+    }catch{
+      return value;
+    }
+  }
+
+  function repairMojibakeValue(value){
+    if (typeof value === "string") return repairMojibakeString(value);
+    if (Array.isArray(value)) return value.map(repairMojibakeValue);
+    if (value && typeof value === "object"){
+      const out = {};
+      Object.keys(value).forEach((k) => {
+        out[k] = repairMojibakeValue(value[k]);
+      });
+      return out;
+    }
+    return value;
+  }
+
   function loadApps(){
     try{
-      return JSON.parse(localStorage.getItem("kc_apps") || "[]");
+      const raw = JSON.parse(localStorage.getItem("kc_apps") || "[]");
+      return Array.isArray(raw) ? raw.map((item) => repairMojibakeValue(item)) : [];
     }catch{
       return [];
     }
@@ -2387,6 +2765,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   let apps = loadApps();
+  saveApps(apps);
 
   function loadPinnedOrder(){
     try{
@@ -2418,9 +2797,350 @@ document.addEventListener("DOMContentLoaded", async () => {
   let categoryOrders = loadCategoryOrders();
 
   const defaultCategories = ["Sonstiges", "Social", "Tools", "Gaming", "Media", "Work"];
+  const SUPER_ALL = "__all__";
+  const SUPER_GENERAL = "General";
+  const SUPER_CATEGORIES_KEY = "kc_super_categories";
+  const SUPER_ICON_MAP_KEY = "kc_super_icon_map";
+  const CATEGORY_ICON_MAP_KEY = "kc_category_icon_map";
+  const SUPER_TAB_ORDER_KEY = "kc_super_tab_order";
+  const SUPER_ICON_PRESETS = [
+    { emoji: "🎮", tags: ["game", "gaming", "spiele"] }, { emoji: "🕹️", tags: ["arcade", "game", "retro"] },
+    { emoji: "👾", tags: ["pixel", "game", "space"] }, { emoji: "🎯", tags: ["target", "goal", "focus"] },
+    { emoji: "🏆", tags: ["trophy", "winner", "cup"] }, { emoji: "⚽", tags: ["football", "soccer", "sport"] },
+    { emoji: "🏀", tags: ["basketball", "sport"] }, { emoji: "🏈", tags: ["football", "sport", "nfl"] },
+    { emoji: "⚾", tags: ["baseball", "sport"] }, { emoji: "🎾", tags: ["tennis", "sport"] },
+    { emoji: "🏐", tags: ["volleyball", "sport"] }, { emoji: "🏓", tags: ["pingpong", "sport"] },
+    { emoji: "🏸", tags: ["badminton", "sport"] }, { emoji: "🥊", tags: ["boxing", "fight", "sport"] },
+    { emoji: "🏎️", tags: ["race", "car", "motorsport"] }, { emoji: "🚴", tags: ["bike", "cycling", "sport"] },
+    { emoji: "🎵", tags: ["music", "audio", "song"] }, { emoji: "🎶", tags: ["music", "song"] },
+    { emoji: "🎧", tags: ["headphones", "audio", "sound"] }, { emoji: "🎤", tags: ["microphone", "voice", "podcast"] },
+    { emoji: "🎬", tags: ["movie", "film", "video"] }, { emoji: "📺", tags: ["tv", "stream", "video"] },
+    { emoji: "🎞️", tags: ["film", "movie", "media"] }, { emoji: "📸", tags: ["camera", "photo", "image"] },
+    { emoji: "📷", tags: ["photo", "camera"] }, { emoji: "🎨", tags: ["art", "design", "creative"] },
+    { emoji: "🖌️", tags: ["paint", "art", "brush"] }, { emoji: "🧠", tags: ["brain", "learning", "ai"] },
+    { emoji: "📚", tags: ["books", "lernen", "study"] }, { emoji: "📖", tags: ["book", "reading"] },
+    { emoji: "📝", tags: ["notes", "text", "write"] }, { emoji: "✏️", tags: ["edit", "pencil", "write"] },
+    { emoji: "📌", tags: ["pin", "important", "mark"] }, { emoji: "📎", tags: ["clip", "attach", "file"] },
+    { emoji: "📁", tags: ["folder", "files", "directory"] }, { emoji: "📂", tags: ["folder", "open", "files"] },
+    { emoji: "🗂️", tags: ["archive", "folders", "docs"] }, { emoji: "🗃️", tags: ["storage", "box", "archive"] },
+    { emoji: "💼", tags: ["work", "business", "office"] }, { emoji: "🧳", tags: ["travel", "trip", "luggage"] },
+    { emoji: "🛠️", tags: ["tools", "settings", "repair"] }, { emoji: "🔧", tags: ["wrench", "tool"] },
+    { emoji: "🪛", tags: ["screwdriver", "tool"] }, { emoji: "🧰", tags: ["toolbox", "tools"] },
+    { emoji: "⚙️", tags: ["settings", "config", "gear"] }, { emoji: "🔩", tags: ["bolt", "tool", "hardware"] },
+    { emoji: "💻", tags: ["laptop", "computer", "pc"] }, { emoji: "🖥️", tags: ["desktop", "monitor", "pc"] },
+    { emoji: "🖨️", tags: ["printer", "office"] }, { emoji: "⌨️", tags: ["keyboard", "input"] },
+    { emoji: "🖱️", tags: ["mouse", "input"] }, { emoji: "📱", tags: ["phone", "mobile", "smartphone"] },
+    { emoji: "📲", tags: ["mobile", "chat", "message"] }, { emoji: "🔋", tags: ["battery", "power"] },
+    { emoji: "🌐", tags: ["web", "internet", "browser"] }, { emoji: "🔒", tags: ["lock", "security", "safe"] },
+    { emoji: "🔓", tags: ["unlock", "open", "security"] }, { emoji: "🔑", tags: ["key", "security", "access"] },
+    { emoji: "🔐", tags: ["security", "password", "lock"] }, { emoji: "🔍", tags: ["search", "find", "zoom"] },
+    { emoji: "🔎", tags: ["search", "find"] }, { emoji: "🧪", tags: ["lab", "test", "experiment"] },
+    { emoji: "🧬", tags: ["science", "dna", "lab"] }, { emoji: "📊", tags: ["chart", "stats", "analytics"] },
+    { emoji: "📈", tags: ["growth", "chart", "business"] }, { emoji: "📉", tags: ["down", "chart"] },
+    { emoji: "🧮", tags: ["calc", "calculator", "math"] }, { emoji: "💰", tags: ["money", "finance", "cash"] },
+    { emoji: "💳", tags: ["card", "payment", "bank"] }, { emoji: "🏦", tags: ["bank", "finance"] },
+    { emoji: "🧾", tags: ["receipt", "invoice", "finance"] }, { emoji: "🛒", tags: ["shop", "cart", "store"] },
+    { emoji: "🛍️", tags: ["shopping", "store", "buy"] }, { emoji: "📦", tags: ["package", "shipping", "box"] },
+    { emoji: "🚚", tags: ["delivery", "shipping", "logistics"] }, { emoji: "📬", tags: ["mailbox", "mail"] },
+    { emoji: "✉️", tags: ["mail", "email", "message"] }, { emoji: "📧", tags: ["email", "mail"] },
+    { emoji: "📨", tags: ["incoming", "mail"] }, { emoji: "📩", tags: ["outgoing", "mail"] },
+    { emoji: "📰", tags: ["news", "paper", "press"] }, { emoji: "🗞️", tags: ["news", "newspaper"] },
+    { emoji: "🗓️", tags: ["calendar", "date", "plan"] }, { emoji: "📅", tags: ["calendar", "schedule"] },
+    { emoji: "⏰", tags: ["alarm", "time", "clock"] }, { emoji: "⏱️", tags: ["timer", "time"] },
+    { emoji: "🕒", tags: ["clock", "time"] }, { emoji: "✅", tags: ["check", "done", "ok"] },
+    { emoji: "☑️", tags: ["checkbox", "done"] }, { emoji: "⭐", tags: ["star", "favorite", "fav"] },
+    { emoji: "🌟", tags: ["star", "highlight"] }, { emoji: "🔥", tags: ["fire", "hot", "trend"] },
+    { emoji: "💡", tags: ["idea", "light", "brainstorm"] }, { emoji: "🚀", tags: ["rocket", "launch", "start"] },
+    { emoji: "🛰️", tags: ["satellite", "space"] }, { emoji: "🧭", tags: ["compass", "navigation"] },
+    { emoji: "🗺️", tags: ["map", "travel", "navigation"] }, { emoji: "☁️", tags: ["cloud", "storage", "sync"] },
+    { emoji: "🌙", tags: ["moon", "night", "dark"] }, { emoji: "☀️", tags: ["sun", "light", "day"] },
+    { emoji: "🌈", tags: ["rainbow", "color"] }, { emoji: "🌊", tags: ["water", "wave", "ocean"] },
+    { emoji: "🌳", tags: ["tree", "nature", "green"] }, { emoji: "🍀", tags: ["luck", "nature"] },
+    { emoji: "🍎", tags: ["apple", "food", "fruit"] }, { emoji: "🍕", tags: ["pizza", "food"] },
+    { emoji: "☕", tags: ["coffee", "drink"] }, { emoji: "🍺", tags: ["beer", "drink"] },
+    { emoji: "🏠", tags: ["home", "house"] }, { emoji: "🏢", tags: ["office", "building", "work"] },
+    { emoji: "🏬", tags: ["mall", "store", "building"] }, { emoji: "🚗", tags: ["car", "auto", "vehicle"] },
+    { emoji: "🚌", tags: ["bus", "transport"] }, { emoji: "🚆", tags: ["train", "transport"] },
+    { emoji: "✈️", tags: ["flight", "plane", "travel"] }, { emoji: "🚢", tags: ["ship", "travel"] },
+    { emoji: "🎁", tags: ["gift", "present"] }, { emoji: "🧸", tags: ["toy", "cute"] },
+    { emoji: "🐶", tags: ["dog", "pet", "animal"] }, { emoji: "🐱", tags: ["cat", "pet", "animal"] },
+    { emoji: "🐼", tags: ["panda", "animal"] }, { emoji: "🦊", tags: ["fox", "animal"] },
+    { emoji: "🐵", tags: ["monkey", "animal"] }, { emoji: "🐧", tags: ["penguin", "animal"] },
+    { emoji: "🐬", tags: ["dolphin", "animal"] }, { emoji: "🦄", tags: ["unicorn", "magic"] },
+    { emoji: "🤖", tags: ["robot", "ai", "bot"] }, { emoji: "🧩", tags: ["puzzle", "game", "logic"] },
+    { emoji: "🔮", tags: ["magic", "future"] }, { emoji: "🕶️", tags: ["glasses", "style"] },
+    { emoji: "🎩", tags: ["hat", "style", "magic"] }, { emoji: "💬", tags: ["chat", "message", "comment"] },
+    { emoji: "💭", tags: ["thought", "chat", "note"] }, { emoji: "📞", tags: ["phone", "call"] },
+    { emoji: "📡", tags: ["signal", "network", "antenna"] }, { emoji: "📶", tags: ["wifi", "network", "signal"] },
+    { emoji: "🧵", tags: ["thread", "textile"] }, { emoji: "🪄", tags: ["magic", "wand"] },
+    { emoji: "🪙", tags: ["coin", "money"] }, { emoji: "🪐", tags: ["planet", "space"] },
+    { emoji: "🧱", tags: ["brick", "build"] }, { emoji: "📋", tags: ["clipboard", "copy", "paste"] },
+    { emoji: "📄", tags: ["document", "file", "text"] }, { emoji: "🗒️", tags: ["notepad", "notes"] },
+    { emoji: "📒", tags: ["notebook", "notes"] }, { emoji: "📓", tags: ["notebook", "notes"] },
+    { emoji: "📔", tags: ["book", "notes"] }, { emoji: "📕", tags: ["book", "red"] },
+    { emoji: "📗", tags: ["book", "green"] }, { emoji: "📘", tags: ["book", "blue"] },
+    { emoji: "📙", tags: ["book", "orange"] }, { emoji: "🧷", tags: ["pin", "attach"] },
+    { emoji: "📍", tags: ["pin", "location", "map"] }, { emoji: "🧿", tags: ["eye", "symbol"] },
+    { emoji: "🔔", tags: ["notification", "bell", "alert"] }, { emoji: "📣", tags: ["announce", "megaphone"] },
+    { emoji: "📢", tags: ["announce", "speaker"] }, { emoji: "🔊", tags: ["volume", "sound", "audio"] },
+    { emoji: "🔇", tags: ["mute", "audio"] }, { emoji: "🧯", tags: ["safety", "fire"] },
+    { emoji: "🩺", tags: ["health", "medical"] }, { emoji: "💊", tags: ["health", "medical"] },
+    { emoji: "⚕️", tags: ["medical", "health"] }, { emoji: "🏥", tags: ["hospital", "health"] },
+    { emoji: "🎓", tags: ["education", "school", "study"] }, { emoji: "🏫", tags: ["school", "education"] },
+    { emoji: "🧑‍💻", tags: ["developer", "code", "programming"] }, { emoji: "👨‍💻", tags: ["developer", "code"] },
+    { emoji: "👩‍💻", tags: ["developer", "code"] }, { emoji: "🔗", tags: ["link", "chain", "connect"] },
+    { emoji: "📤", tags: ["upload", "export", "send"] }, { emoji: "📥", tags: ["download", "import", "receive"] },
+    { emoji: "🗑️", tags: ["delete", "trash", "remove"] }, { emoji: "🧹", tags: ["clean", "clear"] },
+    { emoji: "🧼", tags: ["clean", "wash"] }, { emoji: "⚡", tags: ["power", "energy", "fast"] },
+    { emoji: "🔌", tags: ["power", "plug"] }, { emoji: "🪫", tags: ["battery", "low"] },
+    { emoji: "🛡️", tags: ["shield", "security", "protection"] }, { emoji: "🧲", tags: ["magnet", "tool", "physics"] },
+    { emoji: "🪜", tags: ["ladder", "build", "work"] }, { emoji: "🪵", tags: ["wood", "material", "build"] },
+    { emoji: "🔬", tags: ["microscope", "science", "lab"] }, { emoji: "🔭", tags: ["telescope", "space", "science"] },
+    { emoji: "🧫", tags: ["petri", "lab", "biology"] }, { emoji: "🧹", tags: ["sweep", "clean", "maintenance"] },
+    { emoji: "🪣", tags: ["bucket", "clean", "tools"] }, { emoji: "🧨", tags: ["dynamite", "explosive", "fun"] },
+    { emoji: "🕯️", tags: ["candle", "light", "calm"] }, { emoji: "🪔", tags: ["lamp", "light", "diya"] },
+    { emoji: "🧭", tags: ["navigate", "compass", "travel"] }, { emoji: "🏁", tags: ["finish", "race", "flag"] },
+    { emoji: "🚦", tags: ["traffic", "lights", "road"] }, { emoji: "🛣️", tags: ["road", "travel", "route"] },
+    { emoji: "🧠", tags: ["focus", "mind", "smart"] }, { emoji: "🫶", tags: ["heart", "care", "support"] },
+    { emoji: "❤️", tags: ["love", "heart", "favorite"] }, { emoji: "💜", tags: ["heart", "purple"] },
+    { emoji: "💙", tags: ["heart", "blue"] }, { emoji: "💚", tags: ["heart", "green"] },
+    { emoji: "🖤", tags: ["heart", "black"] }, { emoji: "💯", tags: ["hundred", "score", "success"] },
+    { emoji: "❗", tags: ["warning", "important", "alert"] }, { emoji: "❓", tags: ["question", "help"] },
+    { emoji: "‼️", tags: ["important", "alert", "warning"] }, { emoji: "📛", tags: ["name", "label", "tag"] },
+    { emoji: "🏷️", tags: ["label", "tag", "marker"] }, { emoji: "🔖", tags: ["bookmark", "save", "mark"] },
+    { emoji: "🪪", tags: ["id", "identity", "card"] }, { emoji: "📇", tags: ["index", "contacts", "cards"] },
+    { emoji: "📑", tags: ["bookmark", "document", "tabs"] }, { emoji: "📜", tags: ["scroll", "document", "history"] },
+    { emoji: "🧾", tags: ["bill", "invoice", "receipt"] }, { emoji: "📐", tags: ["ruler", "measure", "design"] },
+    { emoji: "📏", tags: ["measure", "length", "ruler"] }, { emoji: "🧪", tags: ["experiment", "test", "research"] },
+    { emoji: "🧑‍🔬", tags: ["scientist", "research", "lab"] }, { emoji: "🧑‍🏫", tags: ["teacher", "education", "school"] },
+    { emoji: "🧑‍⚖️", tags: ["law", "justice", "legal"] }, { emoji: "⚖️", tags: ["legal", "balance", "law"] },
+    { emoji: "🧑‍🚒", tags: ["firefighter", "rescue", "safety"] }, { emoji: "🧑‍🔧", tags: ["mechanic", "repair", "tools"] },
+    { emoji: "🧑‍🍳", tags: ["cook", "kitchen", "food"] }, { emoji: "🍽️", tags: ["meal", "food", "dining"] },
+    { emoji: "🥗", tags: ["food", "salad", "healthy"] }, { emoji: "🍔", tags: ["burger", "food", "fastfood"] },
+    { emoji: "🌮", tags: ["taco", "food"] }, { emoji: "🍜", tags: ["ramen", "food", "noodles"] },
+    { emoji: "🍣", tags: ["sushi", "food"] }, { emoji: "🍰", tags: ["cake", "dessert", "sweet"] },
+    { emoji: "🍩", tags: ["donut", "dessert", "sweet"] }, { emoji: "🍼", tags: ["baby", "bottle", "care"] },
+    { emoji: "🧃", tags: ["juice", "drink"] }, { emoji: "🥤", tags: ["drink", "soda"] },
+    { emoji: "🫗", tags: ["pour", "drink", "liquid"] }, { emoji: "🏋️", tags: ["gym", "fitness", "sport"] },
+    { emoji: "🧘", tags: ["yoga", "health", "calm"] }, { emoji: "🏃", tags: ["run", "fitness", "sport"] },
+    { emoji: "🚶", tags: ["walk", "fitness", "movement"] }, { emoji: "🛌", tags: ["sleep", "rest", "bed"] },
+    { emoji: "🛏️", tags: ["bed", "sleep", "home"] }, { emoji: "🪑", tags: ["chair", "furniture", "home"] },
+    { emoji: "🚪", tags: ["door", "entry", "home"] }, { emoji: "🪟", tags: ["window", "home"] },
+    { emoji: "🧯", tags: ["extinguisher", "safety", "fire"] }, { emoji: "🪖", tags: ["helmet", "safety", "military"] },
+    { emoji: "📯", tags: ["horn", "announce", "audio"] }, { emoji: "🎺", tags: ["trumpet", "music", "instrument"] },
+    { emoji: "🎸", tags: ["guitar", "music", "instrument"] }, { emoji: "🎹", tags: ["piano", "music", "instrument"] },
+    { emoji: "🥁", tags: ["drums", "music", "instrument"] }, { emoji: "🎻", tags: ["violin", "music", "instrument"] },
+    { emoji: "📼", tags: ["video", "tape", "media"] }, { emoji: "💿", tags: ["disk", "media", "cd"] },
+    { emoji: "📀", tags: ["dvd", "media", "disk"] }, { emoji: "🧿", tags: ["symbol", "amulet", "eye"] },
+    { emoji: "📟", tags: ["pager", "device", "retro"] }, { emoji: "☎️", tags: ["phone", "call", "contact"] },
+    { emoji: "📠", tags: ["fax", "office", "communication"] }, { emoji: "📳", tags: ["vibrate", "phone", "mobile"] },
+    { emoji: "📴", tags: ["offline", "phone", "disable"] }, { emoji: "🛜", tags: ["wifi", "network", "internet"] },
+    { emoji: "🧑‍💼", tags: ["office", "business", "work"] }, { emoji: "👥", tags: ["team", "users", "group"] },
+    { emoji: "👤", tags: ["user", "profile", "account"] }, { emoji: "🫂", tags: ["community", "team", "social"] },
+    { emoji: "💻", tags: ["coding", "dev", "workspace"] }, { emoji: "🗄️", tags: ["cabinet", "archive", "storage"] },
+    { emoji: "🗑", tags: ["trash", "delete", "remove"] }, { emoji: "🗳️", tags: ["inbox", "collect", "archive"] },
+    { emoji: "🧺", tags: ["basket", "organize", "sort"] }, { emoji: "🧴", tags: ["tools", "utility", "clean"] },
+    { emoji: "🧠", tags: ["knowledge", "ideas", "thinking"] }, { emoji: "📔", tags: ["journal", "notes", "log"] },
+    { emoji: "📒", tags: ["planner", "notes", "organizer"] }, { emoji: "📃", tags: ["page", "doc", "document"] },
+    { emoji: "📜", tags: ["policy", "terms", "document"] }, { emoji: "📂", tags: ["project", "files", "folder"] },
+    { emoji: "🧾", tags: ["billing", "receipt", "finance"] }, { emoji: "📌", tags: ["bookmark", "pin", "save"] },
+    { emoji: "🔁", tags: ["sync", "repeat", "refresh"] }, { emoji: "🔄", tags: ["reload", "sync", "update"] },
+    { emoji: "↗️", tags: ["open", "external", "link"] }, { emoji: "↘️", tags: ["download", "direction", "arrow"] },
+    { emoji: "⛓️", tags: ["link", "chain", "connection"] }, { emoji: "🧷", tags: ["attach", "pin", "fasten"] },
+    { emoji: "🪪", tags: ["credentials", "id", "identity"] }, { emoji: "👮", tags: ["security", "privacy", "safe"] },
+    { emoji: "🔏", tags: ["signed", "security", "lock"] }, { emoji: "🛂", tags: ["access", "control", "security"] },
+    { emoji: "🧯", tags: ["emergency", "safety", "protection"] }, { emoji: "🚨", tags: ["alert", "emergency", "warning"] },
+    { emoji: "⚠️", tags: ["warning", "alert", "attention"] }, { emoji: "🆘", tags: ["help", "emergency", "support"] },
+    { emoji: "🗨️", tags: ["chat", "message", "comment"] }, { emoji: "🗯️", tags: ["talk", "speech", "chat"] },
+    { emoji: "💼", tags: ["portfolio", "business", "career"] }, { emoji: "📉", tags: ["report", "analytics", "stats"] },
+    { emoji: "🧭", tags: ["navigation", "guide", "direction"] }, { emoji: "🧪", tags: ["qa", "testing", "check"] },
+    { emoji: "🧱", tags: ["blocks", "builder", "construction"] }, { emoji: "🧬", tags: ["research", "science", "lab"] },
+    { emoji: "🧑‍⚕️", tags: ["medical", "doctor", "health"] }, { emoji: "🧑‍🚀", tags: ["space", "astro", "explore"] },
+    { emoji: "🛰", tags: ["satellite", "signal", "space"] }, { emoji: "🛸", tags: ["ufo", "space", "fun"] },
+    { emoji: "📍", tags: ["location", "pin", "place"] }, { emoji: "🗺", tags: ["maps", "route", "travel"] },
+    { emoji: "🧳", tags: ["trip", "travel", "tour"] }, { emoji: "🏝️", tags: ["island", "travel", "vacation"] },
+    { emoji: "🏞️", tags: ["landscape", "nature", "travel"] }, { emoji: "🏕️", tags: ["camp", "outdoor", "nature"] },
+    { emoji: "🧊", tags: ["cold", "ice", "cool"] }, { emoji: "🌋", tags: ["volcano", "hot", "nature"] },
+    { emoji: "🌪️", tags: ["storm", "weather", "wind"] }, { emoji: "⛈️", tags: ["rain", "storm", "weather"] },
+    { emoji: "🌤️", tags: ["weather", "sun", "cloud"] }, { emoji: "🌥️", tags: ["weather", "cloud"] },
+    { emoji: "📶", tags: ["signal", "network", "reception"] }, { emoji: "🧾", tags: ["expenses", "receipt", "accounting"] },
+    { emoji: "💹", tags: ["stocks", "market", "trading"] }, { emoji: "🏷", tags: ["label", "price", "tag"] },
+    { emoji: "🪪", tags: ["auth", "identity", "account"] }, { emoji: "🧿", tags: ["protect", "symbol", "amulet"] },
+    { emoji: "🔰", tags: ["beginner", "badge", "new"] }, { emoji: "🆕", tags: ["new", "fresh", "latest"] },
+    { emoji: "🆗", tags: ["ok", "confirm", "good"] }, { emoji: "🆒", tags: ["cool", "highlight", "special"] }
+  ];
+  let activeSuper = SUPER_ALL;
+  let catManageMode = "sub";
 
   function normalizeCategory(name){
     return String(name || "").trim().replace(/\s+/g, " ");
+  }
+
+  function splitCategoryPath(name){
+    const normalized = normalizeCategory(name);
+    if (!normalized) return { full: "", super: SUPER_GENERAL, leaf: "", label: "" };
+    const parts = normalized
+      .split(/\s*(?:\/|>)\s*/g)
+      .map((p) => normalizeCategory(p))
+      .filter(Boolean);
+    if (parts.length >= 2){
+      return {
+        full: normalized,
+        super: parts[0],
+        leaf: parts[parts.length - 1],
+        label: parts.slice(1).join(" / ")
+      };
+    }
+    return { full: normalized, super: SUPER_GENERAL, leaf: normalized, label: normalized };
+  }
+
+  function normalizeSuperName(name){
+    return normalizeCategory(String(name || "")).toLowerCase();
+  }
+
+  function loadSuperCategories(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(SUPER_CATEGORIES_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      const seen = new Set();
+      return raw
+        .map((name) => normalizeCategory(name))
+        .filter((name) => {
+          if (!name) return false;
+          const lower = normalizeSuperName(name);
+          if (lower === normalizeSuperName(SUPER_ALL) || lower === normalizeSuperName(SUPER_GENERAL)) return false;
+          if (seen.has(lower)) return false;
+          seen.add(lower);
+          return true;
+        });
+    }catch{
+      return [];
+    }
+  }
+
+  function saveSuperCategories(list){
+    localStorage.setItem(SUPER_CATEGORIES_KEY, JSON.stringify(list));
+  }
+
+  function loadSuperTabOrder(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(SUPER_TAB_ORDER_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      const seen = new Set();
+      return raw
+        .map((name) => normalizeSuperName(name))
+        .filter((name) => {
+          if (!name) return false;
+          if (name === normalizeSuperName(SUPER_ALL) || name === normalizeSuperName(SUPER_GENERAL)) return false;
+          if (seen.has(name)) return false;
+          seen.add(name);
+          return true;
+        });
+    }catch{
+      return [];
+    }
+  }
+
+  function saveSuperTabOrder(list){
+    localStorage.setItem(SUPER_TAB_ORDER_KEY, JSON.stringify(Array.isArray(list) ? list : []));
+  }
+
+  function loadSuperIconMap(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(SUPER_ICON_MAP_KEY) || "{}");
+      if (!raw || typeof raw !== "object") return {};
+      const clean = {};
+      Object.keys(raw).forEach((key) => {
+        const lower = normalizeSuperName(key);
+        if (!lower) return;
+        const entry = repairMojibakeValue(raw[key]);
+        if (!entry || typeof entry !== "object") return;
+        if (entry.type === "emoji" && typeof entry.value === "string" && entry.value.trim()){
+          clean[lower] = { type: "emoji", value: repairMojibakeString(entry.value).trim() };
+          return;
+        }
+        if (entry.type === "image" && typeof entry.value === "string" && /^data:image\//i.test(entry.value)){
+          clean[lower] = { type: "image", value: entry.value };
+        }
+      });
+      return clean;
+    }catch{
+      return {};
+    }
+  }
+
+  function saveSuperIconMap(map){
+    localStorage.setItem(SUPER_ICON_MAP_KEY, JSON.stringify(map || {}));
+  }
+
+  function loadCategoryIconMap(){
+    try{
+      const raw = JSON.parse(localStorage.getItem(CATEGORY_ICON_MAP_KEY) || "{}");
+      if (!raw || typeof raw !== "object") return {};
+      const clean = {};
+      Object.keys(raw).forEach((key) => {
+        const lower = normalizeSuperName(key);
+        if (!lower) return;
+        const entry = repairMojibakeValue(raw[key]);
+        if (!entry || typeof entry !== "object") return;
+        if (entry.type === "emoji" && typeof entry.value === "string" && entry.value.trim()){
+          clean[lower] = { type: "emoji", value: repairMojibakeString(entry.value).trim() };
+          return;
+        }
+        if (entry.type === "image" && typeof entry.value === "string" && /^data:image\//i.test(entry.value)){
+          clean[lower] = { type: "image", value: entry.value };
+        }
+      });
+      return clean;
+    }catch{
+      return {};
+    }
+  }
+
+  function saveCategoryIconMap(map){
+    localStorage.setItem(CATEGORY_ICON_MAP_KEY, JSON.stringify(map || {}));
+  }
+
+  function getOrderedUserCategories(){
+    const userCats = categories.filter(c => c.toLowerCase() !== "sonstiges");
+    return orderByList(userCats.map(name => ({ id: name, name })), categoryTabOrder).map(x => x.name);
+  }
+
+  function getVisibleCategoriesForSuper(superName){
+    const ordered = getOrderedUserCategories();
+    if (!superName || superName === SUPER_ALL) return ordered;
+    const wanted = normalizeSuperName(superName);
+    return ordered.filter((cat) => normalizeSuperName(splitCategoryPath(cat).super) === wanted);
+  }
+
+  function buildSuperMeta(){
+    const ordered = getOrderedUserCategories();
+    const map = new Map();
+    ordered.forEach((cat) => {
+      const path = splitCategoryPath(cat);
+      if (!map.has(path.super)){
+        map.set(path.super, { name: path.super, count: 0, categories: [] });
+      }
+      const group = map.get(path.super);
+      group.categories.push(cat);
+      group.count += apps.filter((a) => a.category === cat).length;
+    });
+    superCategories.forEach((name) => {
+      const key = normalizeSuperName(name);
+      if (!key || map.has(name) || Array.from(map.keys()).some((k) => normalizeSuperName(k) === key)) return;
+      map.set(name, { name, count: 0, categories: [] });
+    });
+    const groups = Array.from(map.values()).filter((group) => normalizeSuperName(group.name) !== normalizeSuperName(SUPER_GENERAL));
+    const orderedGroups = orderByList(
+      groups.map((group) => ({ id: normalizeSuperName(group.name), group })),
+      superTabOrder
+    ).map((entry) => entry.group);
+    const nextOrder = orderedGroups.map((group) => normalizeSuperName(group.name)).filter(Boolean);
+    if (JSON.stringify(nextOrder) !== JSON.stringify(superTabOrder)){
+      superTabOrder = nextOrder;
+      saveSuperTabOrder(superTabOrder);
+    }
+    return orderedGroups;
   }
 
   function loadCategories(){
@@ -2461,6 +3181,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let categories = loadCategories();
   let categoryTabOrder = loadCategoryTabOrder();
+  let superCategories = loadSuperCategories();
+  let superTabOrder = loadSuperTabOrder();
+  let superIconMap = loadSuperIconMap();
+  let categoryIconMap = loadCategoryIconMap();
+  saveSuperIconMap(superIconMap);
+  saveCategoryIconMap(categoryIconMap);
+  let pendingSuperName = "";
+  let pendingSuperIcon = null;
+  let pendingSuperMode = "edit";
+  let pendingSuperTarget = "super";
+  let superIconQuery = "";
+  let draftSuperIcon = null;
+  let draftCategoryIcon = null;
 
   // Merge any existing app categories into list (initial boot)
   apps.forEach(a => {
@@ -2470,6 +3203,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
   saveCategories(categories);
+  categories.forEach((cat) => {
+    const s = splitCategoryPath(cat).super;
+    const lower = normalizeSuperName(s);
+    if (!s || lower === normalizeSuperName(SUPER_GENERAL) || lower === normalizeSuperName(SUPER_ALL)) return;
+    if (!superCategories.some((x) => normalizeSuperName(x) === lower)) superCategories.push(s);
+    if (!superTabOrder.includes(lower)) superTabOrder.push(lower);
+  });
+  saveSuperCategories(superCategories);
+  saveSuperTabOrder(superTabOrder);
   categoryTabOrder = categoryTabOrder.filter(c => categories.some(x => x.toLowerCase() === c.toLowerCase()));
   categories
     .filter(c => c.toLowerCase() !== "sonstiges")
@@ -2500,67 +3242,185 @@ document.addEventListener("DOMContentLoaded", async () => {
     return ordered;
   }
 
+  function updateCategoryTabTooltip(tab, count = 0){
+    if (!tab) return;
+    const cat = String(tab.dataset.cat || "");
+    if (!cat) return;
+    const path = splitCategoryPath(cat);
+    const label = path.label || cat;
+    const value = `${label} (${count})`;
+    tab.dataset.tip = value;
+    tab.removeAttribute("title");
+    tab.setAttribute("aria-label", value);
+  }
+
   function renderCategories(){
+    closeCategoryContextMenu();
     if (appCategory){
       appCategory.innerHTML = "";
       categories.forEach(c => {
         const opt = document.createElement("option");
-        opt.textContent = c === "Sonstiges" ? t("tab_misc") : c;
+        if (c === "Sonstiges"){
+          opt.textContent = t("tab_misc");
+        } else {
+          const path = splitCategoryPath(c);
+          opt.textContent = path.super === SUPER_GENERAL ? path.label : `${path.super} / ${path.label}`;
+        }
         opt.value = c;
         appCategory.appendChild(opt);
       });
       if (!appCategory.value && categories.length) appCategory.value = categories[0];
     }
 
+    if (overTabs){
+      overTabs.querySelectorAll(".tab-super").forEach((el) => el.remove());
+      if (normalizeSuperName(activeSuper) === normalizeSuperName(SUPER_GENERAL)){
+        activeSuper = SUPER_ALL;
+      }
+      const supers = buildSuperMeta();
+      supers.forEach((group) => {
+        const tab = document.createElement("div");
+        tab.className = "tab tab-super";
+        tab.setAttribute("role", "tab");
+        tab.dataset.super = group.name;
+        tab.dataset.tab = `super:${group.name}`;
+        const iconWrap = document.createElement("span");
+        iconWrap.className = "over-icon";
+        iconWrap.setAttribute("aria-hidden", "true");
+        const selectedIcon = getSuperIcon(group.name);
+        if (selectedIcon?.type === "image"){
+          iconWrap.classList.add("over-icon-image");
+          const img = document.createElement("img");
+          img.src = selectedIcon.value;
+          img.alt = "";
+          iconWrap.appendChild(img);
+        } else if (selectedIcon?.type === "emoji"){
+          iconWrap.textContent = selectedIcon.value;
+        } else {
+          const initial = (group.name || "?").trim().charAt(0).toUpperCase() || "?";
+          iconWrap.textContent = initial;
+        }
+        const label = document.createElement("span");
+        label.className = "over-label";
+        label.textContent = group.name;
+        tab.appendChild(iconWrap);
+        tab.appendChild(label);
+        overTabs.appendChild(tab);
+      });
+      overTabs.querySelectorAll(".tab[data-super]").forEach((tab) => {
+        const superName = tab.dataset.super || SUPER_ALL;
+        const label = superName === SUPER_ALL ? t("tab_all") : superName;
+        tab.dataset.label = label;
+        tab.setAttribute("aria-label", label);
+        tab.removeAttribute("title");
+      });
+    }
+
     if (catTabs){
       catTabs.innerHTML = "";
-      const userCats = categories.filter(c => c.toLowerCase() !== "sonstiges");
-      const ordered = orderByList(userCats.map(name => ({ id: name, name })), categoryTabOrder)
-        .map(x => x.name);
+      const ordered = getVisibleCategoriesForSuper(activeSuper);
+      const visible = ordered.filter((cat) => {
+        if (!categorySearchTerm) return true;
+        const path = splitCategoryPath(cat);
+        const hay = `${cat} ${path.super} ${path.label}`.toLowerCase();
+        return hay.includes(categorySearchTerm);
+      });
 
-      ordered.forEach(c => {
+      visible.forEach(c => {
           const tab = document.createElement("div");
           tab.className = "tab tab-cat";
           tab.setAttribute("role", "tab");
           tab.dataset.tab = `cat:${c}`;
           tab.dataset.cat = c;
+          const path = splitCategoryPath(c);
+          const catIcon = getCategoryIcon(c);
+          let iconHtml = "";
+          if (catIcon?.type === "image"){
+            iconHtml = `<span class="cat-tab-icon cat-tab-icon-image" aria-hidden="true"><img src="${escapeHtml(catIcon.value)}" alt=""></span>`;
+          } else if (catIcon?.type === "emoji"){
+            iconHtml = `<span class="cat-tab-icon" aria-hidden="true">${escapeHtml(catIcon.value)}</span>`;
+          } else {
+            const initial = (path.label || c || "?").trim().charAt(0).toUpperCase() || "?";
+            iconHtml = `<span class="cat-tab-icon cat-tab-icon-fallback" aria-hidden="true">${escapeHtml(initial)}</span>`;
+          }
           tab.innerHTML = `
-            <span>${escapeHtml(c)}</span>
+            ${iconHtml}
+            <span class="cat-label">${escapeHtml(path.label)}</span>
             <span class="badge" data-cat-badge="${escapeHtml(c)}">0</span>
           `;
-
+          updateCategoryTabTooltip(tab, 0);
           catTabs.appendChild(tab);
         });
     }
+    const allBaseTab = document.querySelector(".tabs > .tab[data-tab='all']");
+    const favBaseTab = document.querySelector(".tabs > .tab[data-tab='fav']");
+    const showBaseTabs =
+      normalizeSuperName(activeSuper) === normalizeSuperName(SUPER_ALL) &&
+      !categorySearchTerm;
+    if (allBaseTab) allBaseTab.style.display = showBaseTabs ? "" : "none";
+    if (favBaseTab) favBaseTab.style.display = showBaseTabs ? "" : "none";
+    applyCategoryRailState();
+    refreshActiveTabClasses();
   }
 
   function renderCategoryManager(){
     if (!catManageList) return;
     catManageList.innerHTML = "";
+    if (catManageMode === "super"){
+      const sortedSupers = [...superCategories].sort((a, b) => a.localeCompare(b, "de"));
+      sortedSupers.forEach((superName) => {
+        const rowIcon = getSuperIcon(superName);
+        const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "🖼️" : "•");
+        const row = document.createElement("div");
+        row.className = "cat-item";
+        row.innerHTML = `
+          <div class="cat-name">${escapeHtml(superName)}</div>
+          <div class="cat-actions">
+            <button class="cat-icon-pick" type="button">
+              <span class="cat-icon-mark">${escapeHtml(rowIconText)}</span>
+              <span class="cat-icon-text">${escapeHtml(t("category_icon_btn"))}</span>
+            </button>
+            <button class="cat-del" type="button">${escapeHtml(t("category_delete_btn"))}</button>
+          </div>
+        `;
+        const iconBtn = row.querySelector(".cat-icon-pick");
+        iconBtn?.addEventListener("click", () => openSuperIconPicker(superName));
+        const delBtn = row.querySelector(".cat-del");
+        delBtn?.addEventListener("click", () => {
+          openConfirm(t("confirm_delete_category", { name: superName }), () => {
+            deleteSuperCategoryByName(superName);
+          });
+        });
+        catManageList.appendChild(row);
+      });
+      return;
+    }
+
     const sorted = [...categories]
       .filter(c => c.toLowerCase() !== "sonstiges")
       .sort((a, b) => a.localeCompare(b, "de"));
     sorted.forEach((c) => {
+      const rowIcon = getCategoryIcon(c);
+      const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "🖼️" : "•");
       const row = document.createElement("div");
       row.className = "cat-item";
       row.innerHTML = `
         <div class="cat-name">${escapeHtml(c)}</div>
-        <button class="cat-del" type="button" ${c === "Sonstiges" ? "disabled" : ""}>${escapeHtml(t("category_delete_btn"))}</button>
+        <div class="cat-actions">
+          <button class="cat-icon-pick" type="button">
+            <span class="cat-icon-mark">${escapeHtml(rowIconText)}</span>
+            <span class="cat-icon-text">${escapeHtml(t("category_icon_btn"))}</span>
+          </button>
+          <button class="cat-del" type="button" ${c === "Sonstiges" ? "disabled" : ""}>${escapeHtml(t("category_delete_btn"))}</button>
+        </div>
       `;
+      const iconBtn = row.querySelector(".cat-icon-pick");
+      iconBtn?.addEventListener("click", () => openSuperIconPicker(c, "edit", "category"));
       const delBtn = row.querySelector(".cat-del");
       if (delBtn && c !== "Sonstiges") {
         delBtn.addEventListener("click", () => {
           openConfirm(t("confirm_delete_category", { name: c }), () => {
-            categories = categories.filter(x => x.toLowerCase() !== c.toLowerCase());
-            apps = apps.map(a => (a.category === c ? { ...a, category: "Sonstiges" } : a));
-            saveApps(apps);
-            saveCategories(categories);
-            categoryTabOrder = categoryTabOrder.filter(x => x.toLowerCase() !== c.toLowerCase());
-            saveCategoryTabOrder(categoryTabOrder);
-            if (activeTab === `cat:${c}`) setActiveTab("misc");
-            renderCategories();
-            render();
-            renderCategoryManager();
+            deleteCategoryByName(c);
           });
         });
       }
@@ -2571,16 +3431,54 @@ document.addEventListener("DOMContentLoaded", async () => {
   function addCategoryFromInput(){
     const val = normalizeCategory(catManageInput?.value);
     if (!val) return;
-    if (categories.some(c => c.toLowerCase() === val.toLowerCase())){
+    if (catManageMode === "super"){
+      const superName = val.replace(/\s*(?:\/|>)\s*/g, " ").trim();
+      if (!superName) return;
+      const superKey = normalizeSuperName(superName);
+      if (!superCategories.some((name) => normalizeSuperName(name) === superKey)){
+        superCategories.push(superName);
+        saveSuperCategories(superCategories);
+      }
+      if (!superTabOrder.includes(superKey)){
+        superTabOrder.push(superKey);
+        saveSuperTabOrder(superTabOrder);
+      }
+      if (draftSuperIcon){
+        superIconMap[superKey] = { ...draftSuperIcon };
+        saveSuperIconMap(superIconMap);
+      }
+      draftSuperIcon = null;
+      updateCatSuperIconButton();
+      renderCategories();
+      setActiveSuper(superName);
+      if (catManageInput) catManageInput.value = "";
+      renderCategoryManager();
+      return;
+    }
+
+    const selectedSuper = normalizeCategory(activeSuper);
+    const useSuper = selectedSuper && selectedSuper !== SUPER_ALL && normalizeSuperName(selectedSuper) !== normalizeSuperName(SUPER_GENERAL);
+    const fullCategory = useSuper ? `${selectedSuper} / ${val}` : val;
+    if (categories.some(c => c.toLowerCase() === fullCategory.toLowerCase())){
       if (catManageInput) catManageInput.value = "";
       return;
     }
-    categories.push(val);
+    categories.push(fullCategory);
     saveCategories(categories);
-    categoryTabOrder.push(val);
+    categoryTabOrder.push(fullCategory);
     saveCategoryTabOrder(categoryTabOrder);
+    if (draftCategoryIcon){
+      categoryIconMap[normalizeSuperName(fullCategory)] = { ...draftCategoryIcon };
+      saveCategoryIconMap(categoryIconMap);
+    }
+    draftCategoryIcon = null;
+    updateCatSuperIconButton();
+    if (useSuper && !superCategories.some((name) => normalizeSuperName(name) === normalizeSuperName(selectedSuper))){
+      superCategories.push(selectedSuper);
+      saveSuperCategories(superCategories);
+    }
     renderCategories();
-    setActiveTab(`cat:${val}`);
+    setActiveTab(`cat:${fullCategory}`);
     if (catManageInput) catManageInput.value = "";
     renderCategoryManager();
   }
@@ -2588,6 +3486,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   catManageAdd?.addEventListener("click", addCategoryFromInput);
   catManageInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") addCategoryFromInput();
+  });
+  catManageInput?.addEventListener("input", () => {
+    if (catManageMode === "super" && !draftSuperIcon) updateCatSuperIconButton();
+    if (catManageMode === "sub" && !draftCategoryIcon) updateCatSuperIconButton();
+  });
+  catSuperIconPick?.addEventListener("click", () => {
+    const typed = normalizeCategory(catManageInput?.value);
+    openSuperIconPicker(typed || "", "create", catManageMode === "super" ? "super" : "category");
+  });
+  catKindSwitch?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-kind]");
+    if (!btn) return;
+    setCatManageMode(btn.dataset.kind);
+    catManageInput?.focus();
   });
 
   async function openLaunch(app){
@@ -2622,6 +3534,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     "bitte", "please", "mal", "doch", "den", "die", "das", "dem", "der", "ein", "eine",
     "the", "a", "an", "to", "app", "programm", "program", "kannst", "du", "can", "you"
   ]);
+  const APP_NAME_STOPWORDS = new Set([
+    "app", "desktop", "launcher", "client", "web", "tool", "tools", "programm", "program"
+  ]);
+  const MIN_APP_MATCH_SCORE = 56;
   const STATIC_APP_ALIASES = {
     cs2: [
       "cs2", "cs 2", "counter strike", "counter strike 2", "counter-strike", "counter-strike 2",
@@ -2664,6 +3580,39 @@ document.addEventListener("DOMContentLoaded", async () => {
       .replace(/[^a-z0-9\s]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
+  }
+
+  function compactSpeechText(input){
+    return normalizeSpeechText(input).replace(/\s+/g, "");
+  }
+
+  function phoneticSpeechText(input){
+    return compactSpeechText(input)
+      .replace(/ph/g, "f")
+      .replace(/ck/g, "k")
+      .replace(/tz/g, "z")
+      .replace(/th/g, "t")
+      .replace(/ie/g, "i")
+      .replace(/y/g, "i")
+      .replace(/qu/g, "kw")
+      .replace(/q/g, "k")
+      .replace(/x/g, "ks")
+      .replace(/v/g, "f")
+      .replace(/w/g, "v")
+      .replace(/c(?=[eiy])/g, "s")
+      .replace(/c/g, "k");
+  }
+
+  function tokenizeSpeech(input){
+    return normalizeSpeechText(input)
+      .split(" ")
+      .map((tkn) => tkn.trim())
+      .filter((tkn) => {
+        if (!tkn) return false;
+        if (APP_NAME_STOPWORDS.has(tkn)) return false;
+        if (tkn.length <= 1 && !/\d/.test(tkn)) return false;
+        return true;
+      });
   }
 
   function stripCommandFillers(tokens){
@@ -2836,8 +3785,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function buildAliasMap(){
     const aliasMap = new Map();
+    const pushAlias = (alias, canonical) => {
+      const normalized = normalizeSpeechText(alias);
+      if (!normalized) return;
+      aliasMap.set(normalized, canonical);
+      const compact = normalized.replace(/\s+/g, "");
+      if (compact) aliasMap.set(compact, canonical);
+      const phonetic = phoneticSpeechText(alias);
+      if (phonetic) aliasMap.set(phonetic, canonical);
+    };
     Object.entries(STATIC_APP_ALIASES).forEach(([canonical, aliases]) => {
-      aliases.forEach((alias) => aliasMap.set(normalizeSpeechText(alias), canonical));
+      aliases.forEach((alias) => pushAlias(alias, canonical));
     });
     return aliasMap;
   }
@@ -2849,14 +3807,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     apps.forEach((app) => {
       const name = normalizeSpeechText(app?.name);
       const launch = normalizeSpeechText(app?.launch);
+      const nameCompact = compactSpeechText(app?.name);
+      const launchCompact = compactSpeechText(app?.launch);
+      const namePhonetic = phoneticSpeechText(app?.name);
+      const launchPhonetic = phoneticSpeechText(app?.launch);
       const hay = `${name} ${launch}`;
+      const hayCompact = `${nameCompact} ${launchCompact}`;
+      const hayPhonetic = `${namePhonetic} ${launchPhonetic}`;
       let score = 0;
       hints.forEach((hint) => {
         const needle = normalizeSpeechText(hint);
+        const needleCompact = compactSpeechText(hint);
+        const needlePhonetic = phoneticSpeechText(hint);
         if (!needle) return;
         if (name === needle) score = Math.max(score, 100);
         else if (name.includes(needle)) score = Math.max(score, 85);
         else if (hay.includes(needle)) score = Math.max(score, 70);
+        if (needleCompact){
+          if (nameCompact === needleCompact) score = Math.max(score, 100);
+          else if (nameCompact.includes(needleCompact)) score = Math.max(score, 85);
+          else if (hayCompact.includes(needleCompact)) score = Math.max(score, 70);
+        }
+        if (needlePhonetic){
+          if (namePhonetic === needlePhonetic) score = Math.max(score, 98);
+          else if (namePhonetic.includes(needlePhonetic)) score = Math.max(score, 82);
+          else if (hayPhonetic.includes(needlePhonetic)) score = Math.max(score, 68);
+        }
       });
       if (score > bestScore){
         bestScore = score;
@@ -2866,15 +3842,31 @@ document.addEventListener("DOMContentLoaded", async () => {
     return best;
   }
 
-  function resolveAppByPhrase(targetPhrase){
+  function scoreStringSimilarity(needle, haystack){
+    const n = String(needle || "");
+    const h = String(haystack || "");
+    if (!n || !h) return 0;
+    if (n === h) return 1;
+    if (h.includes(n) || n.includes(h)) return 0.94;
+    const maxLen = Math.max(n.length, h.length);
+    const dist = levenshteinDistance(n, h);
+    const similarity = 1 - dist / maxLen;
+    return Math.max(0, similarity);
+  }
+
+  function resolveAppByPhraseDetailed(targetPhrase){
     const normalizedTarget = normalizeSpeechText(targetPhrase);
     if (!normalizedTarget) return null;
+    const normalizedTargetCompact = normalizedTarget.replace(/\s+/g, "");
+    const normalizedTargetPhonetic = phoneticSpeechText(targetPhrase);
+    const targetTokens = tokenizeSpeech(targetPhrase);
+    const targetTokenSet = new Set(targetTokens);
 
     const aliasMap = buildAliasMap();
-    const canonical = aliasMap.get(normalizedTarget) || null;
+    const canonical = aliasMap.get(normalizedTarget) || aliasMap.get(normalizedTargetCompact) || aliasMap.get(normalizedTargetPhonetic) || null;
     if (canonical){
       const app = pickCanonicalApp(canonical);
-      if (app) return app;
+      if (app) return { app, score: 155 };
     }
 
     let best = null;
@@ -2882,18 +3874,76 @@ document.addEventListener("DOMContentLoaded", async () => {
     apps.forEach((app) => {
       const name = normalizeSpeechText(app?.name);
       const launch = normalizeSpeechText(app?.launch);
+      const nameCompact = compactSpeechText(app?.name);
+      const launchCompact = compactSpeechText(app?.launch);
+      const namePhonetic = phoneticSpeechText(app?.name);
+      const launchPhonetic = phoneticSpeechText(app?.launch);
       if (!name && !launch) return;
       let score = 0;
+
+      // Strong exact and containment matches.
       if (name === normalizedTarget) score = 120;
       else if (name.includes(normalizedTarget)) score = 95;
       else if (normalizedTarget.includes(name) && name.length > 2) score = 90;
       else if (launch.includes(normalizedTarget)) score = 70;
+      else if (nameCompact && normalizedTargetCompact){
+        if (nameCompact === normalizedTargetCompact) score = 118;
+        else if (nameCompact.includes(normalizedTargetCompact)) score = 93;
+        else if (normalizedTargetCompact.includes(nameCompact) && nameCompact.length > 2) score = 88;
+        else if (launchCompact.includes(normalizedTargetCompact)) score = 68;
+      }
+
+      if (namePhonetic && normalizedTargetPhonetic){
+        if (namePhonetic === normalizedTargetPhonetic) score = Math.max(score, 114);
+        else if (namePhonetic.includes(normalizedTargetPhonetic)) score = Math.max(score, 89);
+        else if (launchPhonetic.includes(normalizedTargetPhonetic)) score = Math.max(score, 66);
+      }
+
+      // Weighted fuzzy similarity on multiple channels.
+      const simNameCompact = scoreStringSimilarity(normalizedTargetCompact, nameCompact);
+      const simNamePhonetic = scoreStringSimilarity(normalizedTargetPhonetic, namePhonetic);
+      const simLaunchCompact = scoreStringSimilarity(normalizedTargetCompact, launchCompact);
+      const simLaunchPhonetic = scoreStringSimilarity(normalizedTargetPhonetic, launchPhonetic);
+      if (simNameCompact >= 0.72) score = Math.max(score, Math.round(54 + simNameCompact * 48));
+      if (simNamePhonetic >= 0.7) score = Math.max(score, Math.round(50 + simNamePhonetic * 47));
+      if (simLaunchCompact >= 0.76) score = Math.max(score, Math.round(40 + simLaunchCompact * 34));
+      if (simLaunchPhonetic >= 0.74) score = Math.max(score, Math.round(38 + simLaunchPhonetic * 33));
+
+      // Token overlap to catch cases like "tik tok", "counter strike", etc.
+      const appTokenSet = new Set([
+        ...tokenizeSpeech(app?.name),
+        ...tokenizeSpeech(app?.launch)
+      ]);
+      if (targetTokenSet.size && appTokenSet.size){
+        let overlap = 0;
+        targetTokenSet.forEach((token) => {
+          if (appTokenSet.has(token)) overlap++;
+        });
+        if (overlap > 0){
+          const ratio = overlap / targetTokenSet.size;
+          const bonus = Math.round(42 + ratio * 48);
+          score = Math.max(score, bonus);
+        }
+      }
+
+      if (score > 0 && normalizedTargetCompact && nameCompact){
+        const startsSame = normalizedTargetCompact[0] === nameCompact[0];
+        if (startsSame) score += 2;
+      }
+
       if (score > bestScore){
         bestScore = score;
         best = app;
       }
     });
-    return best;
+    if (!best) return null;
+    return { app: best, score: bestScore };
+  }
+
+  function resolveAppByPhrase(targetPhrase){
+    const detailed = resolveAppByPhraseDetailed(targetPhrase);
+    if (!detailed) return null;
+    return detailed.score >= MIN_APP_MATCH_SCORE ? detailed.app : null;
   }
 
   function playListeningBeep(){
@@ -3221,7 +4271,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       commandRecognition = new SpeechRecognitionCtor();
       commandRecognition.continuous = false;
       commandRecognition.interimResults = false;
-      commandRecognition.maxAlternatives = 1;
+      commandRecognition.maxAlternatives = 5;
       commandRecognition.lang = getRecognitionLocale();
     }
 
@@ -3230,9 +4280,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       for (let i = event.resultIndex; i < event.results.length; i++){
         const result = event.results[i];
         if (!result.isFinal) continue;
-        const transcript = result[0]?.transcript || "";
+        const transcripts = [];
+        const altCount = Math.min(result.length || 0, 5);
+        for (let alt = 0; alt < altCount; alt++){
+          const transcript = String(result[alt]?.transcript || "").trim();
+          if (!transcript) continue;
+          transcripts.push(transcript);
+        }
+        if (!transcripts.length){
+          const fallback = String(result[0]?.transcript || "").trim();
+          if (fallback) transcripts.push(fallback);
+        }
         commandHandled = true;
-        await executeVoiceCommand(transcript);
+        await executeVoiceCommand(transcripts);
         try{ commandRecognition.stop(); }catch{}
         break;
       }
@@ -3275,22 +4335,61 @@ document.addEventListener("DOMContentLoaded", async () => {
     startCommandWindow();
   }
 
-  async function executeVoiceCommand(transcript){
-    const parsed = parseVoiceCommand(transcript);
-    if (!parsed){
+  function toTranscriptList(input){
+    if (Array.isArray(input)){
+      return input
+        .map((entry) => String(entry || "").trim())
+        .filter(Boolean);
+    }
+    const single = String(input || "").trim();
+    return single ? [single] : [];
+  }
+
+  function pickBestVoiceCommandMatch(input){
+    const transcripts = toTranscriptList(input);
+    let best = null;
+    transcripts.forEach((transcript) => {
+      const parsed = parseVoiceCommand(transcript);
+      if (!parsed) return;
+      const detailed = resolveAppByPhraseDetailed(parsed.target);
+      if (!detailed) return;
+      const candidate = {
+        transcript,
+        target: parsed.target,
+        app: detailed.app,
+        score: detailed.score
+      };
+      if (!best || candidate.score > best.score) best = candidate;
+    });
+    return best;
+  }
+
+  async function executeVoiceCommand(input){
+    const transcripts = toTranscriptList(input);
+    if (!transcripts.length){
       if (selectedVoiceName === "__none__") playCommandOutcomeTone("error");
       speakFeedback(t("voice_not_understood"));
       return;
     }
-    const app = resolveAppByPhrase(parsed.target);
-    if (!app){
+
+    const best = pickBestVoiceCommandMatch(transcripts);
+    if (!best){
       if (selectedVoiceName === "__none__") playCommandOutcomeTone("error");
-      speakFeedback(t("voice_app_not_found", { name: parsed.target }));
+      const firstParsed = parseVoiceCommand(transcripts[0]);
+      const fallbackName = firstParsed?.target || transcripts[0];
+      speakFeedback(t("voice_app_not_found", { name: fallbackName }));
       return;
     }
-    await openLaunch(app);
+
+    if (best.score < MIN_APP_MATCH_SCORE || !best.app){
+      if (selectedVoiceName === "__none__") playCommandOutcomeTone("error");
+      speakFeedback(t("voice_app_not_found", { name: best.target }));
+      return;
+    }
+
+    await openLaunch(best.app);
     if (selectedVoiceName === "__none__") playCommandOutcomeTone("success");
-    speakFeedback(t("voice_opening", { name: app.name || parsed.target }));
+    speakFeedback(t("voice_opening", { name: best.app.name || best.target }));
   }
 
   function bootstrapVoiceControl(){
@@ -3439,18 +4538,62 @@ document.addEventListener("DOMContentLoaded", async () => {
     iconBox.appendChild(fallback);
   }
 
-  function setActiveTab(tabValue){
-    activeTab = tabValue || "all";
+  function inferSuperFromActiveTab(tabValue){
+    if (tabValue === "all") return SUPER_ALL;
+    if (tabValue === "fav") return SUPER_ALL;
+    if (tabValue === "misc") return SUPER_ALL;
+    if (String(tabValue || "").startsWith("cat:")){
+      const cat = String(tabValue || "").slice(4);
+      return splitCategoryPath(cat).super;
+    }
+    return SUPER_ALL;
+  }
+
+  function setActiveSuper(superValue){
+    const nextSuper = String(superValue || SUPER_ALL);
+    activeSuper = nextSuper;
+
+    if (nextSuper === SUPER_ALL) return setActiveTab("all");
+
+    const visible = getVisibleCategoriesForSuper(nextSuper);
+    const currentCat = activeTab.startsWith("cat:") ? activeTab.slice(4) : "";
+    if (visible.includes(currentCat)){
+      setActiveTab(`cat:${currentCat}`, { preserveSuper: true });
+      return;
+    }
+    if (visible.length){
+      setActiveTab(`cat:${visible[0]}`, { preserveSuper: true });
+      return;
+    }
+    setActiveTab("all", { preserveSuper: true });
+  }
+
+  function refreshActiveTabClasses(){
     document.querySelectorAll(".tab").forEach(t => {
       const isActive = t.dataset.tab === activeTab;
+      const isSuperActive = Boolean(t.dataset.super) && t.dataset.super === activeSuper;
+      const active = isActive || isSuperActive;
       if (isActive) {
-        t.classList.add("active");
         t.setAttribute("aria-selected", "true");
+      } else if (t.dataset.super){
+        t.setAttribute("aria-selected", isSuperActive ? "true" : "false");
       } else {
-        t.classList.remove("active");
         t.setAttribute("aria-selected", "false");
       }
+      t.classList.toggle("active", active);
     });
+  }
+
+  function setActiveTab(tabValue, options = {}){
+    activeTab = tabValue || "all";
+    if (!options.preserveSuper){
+      const keepAllSuper =
+        normalizeSuperName(activeSuper) === normalizeSuperName(SUPER_ALL) &&
+        String(activeTab || "").startsWith("cat:");
+      activeSuper = keepAllSuper ? SUPER_ALL : inferSuperFromActiveTab(activeTab);
+    }
+    renderCategories();
+    refreshActiveTabClasses();
     render();
   }
 
@@ -3463,14 +4606,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     const badgeAll = document.getElementById("badgeAll");
     const badgeFav = document.getElementById("badgeFav");
     const badgeMisc = document.getElementById("badgeMisc");
-    if (badgeAll) badgeAll.textContent = String(apps.length);
-    if (badgeFav) badgeFav.textContent = String(apps.filter(a => a.fav).length);
+    const allCount = apps.length;
+    const favCount = apps.filter(a => a.fav).length;
+    if (badgeAll) badgeAll.textContent = String(allCount);
+    if (badgeFav) badgeFav.textContent = String(favCount);
     if (badgeMisc) badgeMisc.textContent = String(apps.filter(a => a.category === "Sonstiges").length);
+    const allBaseTab = document.querySelector(".tabs > .tab[data-tab='all']");
+    const favBaseTab = document.querySelector(".tabs > .tab[data-tab='fav']");
+    if (allBaseTab){
+      const tip = `${t("tab_all")} (${allCount})`;
+      allBaseTab.dataset.tip = tip;
+      allBaseTab.removeAttribute("title");
+      allBaseTab.setAttribute("aria-label", tip);
+    }
+    if (favBaseTab){
+      const tip = `${t("tab_favorites")} (${favCount})`;
+      favBaseTab.dataset.tip = tip;
+      favBaseTab.removeAttribute("title");
+      favBaseTab.setAttribute("aria-label", tip);
+    }
     const catBadges = document.querySelectorAll("[data-cat-badge]");
     catBadges.forEach(el => {
       const cat = el.getAttribute("data-cat-badge") || "";
       const count = apps.filter(a => a.category === cat).length;
       el.textContent = String(count);
+    });
+    catTabs?.querySelectorAll(".tab-cat").forEach((tab) => {
+      const cat = tab.dataset.cat || "";
+      const count = apps.filter((a) => a.category === cat).length;
+      updateCategoryTabTooltip(tab, count);
     });
 
     if (!grid || !empty) return;
@@ -3541,14 +4705,7 @@ document.addEventListener("DOMContentLoaded", async () => {
           </div>
 
           <div class="card-actions">
-            <button class="star ${app.fav ? "active" : ""}" type="button" aria-label="${escapeHtml(t("aria_favorite"))}">★</button>
-            <button class="edit" type="button" aria-label="${escapeHtml(t("aria_edit"))}" title="${escapeHtml(t("title_edit"))}">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 20h4l10.5-10.5-4-4L4 16v4Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-                <path d="M14.5 5.5 18.5 9.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
-              </svg>
-            </button>
-            <button class="del" type="button" aria-label="${escapeHtml(t("aria_delete"))}" title="${escapeHtml(t("title_delete"))}">🗑</button>
+            <button class="star ${app.fav ? "active" : ""}" type="button" aria-label="${escapeHtml(t("aria_favorite"))}" data-tip="${escapeHtml(t("aria_favorite"))}"><span class="action-emoji" aria-hidden="true">⭐</span></button>
           </div>
         </div>
 
@@ -3572,24 +4729,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         render();
       });
 
-      // Edit
-      const editBtn = card.querySelector(".edit");
-      editBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openEditModal(app);
-      });
-
-      // Delete
-      const del = card.querySelector(".del");
-      del.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openConfirm(t("confirm_delete_app", { name: app.name }), () => {
-          apps = apps.filter(a => a.id !== app.id);
-          saveApps(apps);
-          render();
-        });
-      });
-
       grid.appendChild(card);
     });
   }
@@ -3610,13 +4749,507 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // Category tab drag ordering (only user categories)
+  let overTabDrag = null;
+  let overTabGhost = null;
+  let overTabSlot = null;
+  let overTabLastReorderTs = 0;
+  const OVER_TAB_REORDER_INTERVAL = 70;
+
+  function createOverTabGhost(tab, x, y){
+    overTabGhost = tab.cloneNode(true);
+    overTabGhost.classList.add("over-tab-ghost");
+    const rect = tab.getBoundingClientRect();
+    overTabGhost.style.width = rect.width + "px";
+    overTabGhost.style.height = rect.height + "px";
+    overTabGhost.style.left = (x - rect.width / 2) + "px";
+    overTabGhost.style.top = (y - rect.height / 2) + "px";
+    document.body.appendChild(overTabGhost);
+    tab.style.display = "none";
+  }
+
+  function createOverTabSlot(tab){
+    overTabSlot = document.createElement("div");
+    overTabSlot.className = "over-tab-slot";
+    overTabSlot.style.width = tab.offsetWidth + "px";
+    overTabSlot.style.height = tab.offsetHeight + "px";
+    overTabs?.insertBefore(overTabSlot, tab.nextSibling);
+  }
+
+  function cleanupOverTabDrag(){
+    if (overTabGhost && overTabGhost.parentElement) overTabGhost.parentElement.removeChild(overTabGhost);
+    if (overTabSlot && overTabSlot.parentElement) overTabSlot.parentElement.removeChild(overTabSlot);
+    if (overTabDrag?.tab) overTabDrag.tab.style.display = "";
+    overTabGhost = null;
+    overTabSlot = null;
+    overTabDrag = null;
+  }
+
+  overTabs?.addEventListener("pointerdown", (e) => {
+    const tab = e.target.closest(".tab-super");
+    if (!tab) return;
+    if (e.button !== 0) return;
+    overTabDrag = {
+      tab,
+      startX: e.clientX,
+      startY: e.clientY,
+      moved: false
+    };
+    tab.setPointerCapture?.(e.pointerId);
+  });
+
+  overTabs?.addEventListener("pointermove", (e) => {
+    if (!overTabDrag) return;
+    const dx = e.clientX - overTabDrag.startX;
+    const dy = e.clientY - overTabDrag.startY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (!overTabDrag.moved){
+      if (dist < 6) return;
+      overTabDrag.moved = true;
+      createOverTabGhost(overTabDrag.tab, e.clientX, e.clientY);
+      createOverTabSlot(overTabDrag.tab);
+    }
+
+    if (overTabGhost){
+      overTabGhost.style.left = (e.clientX - overTabGhost.offsetWidth / 2) + "px";
+      overTabGhost.style.top = (e.clientY - overTabGhost.offsetHeight / 2) + "px";
+    }
+
+    const now = performance.now();
+    if (now - overTabLastReorderTs < OVER_TAB_REORDER_INTERVAL) return;
+    overTabLastReorderTs = now;
+
+    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest(".tab-super");
+    if (!target || target === overTabDrag.tab) return;
+    const rect = target.getBoundingClientRect();
+    const before = e.clientY < rect.top + rect.height / 2;
+    if (overTabSlot){
+      overTabs?.insertBefore(overTabSlot, before ? target : target.nextSibling);
+    }
+  });
+
+  overTabs?.addEventListener("pointerup", () => {
+    if (!overTabDrag) return;
+    if (overTabDrag.moved && overTabSlot){
+      overTabs?.insertBefore(overTabDrag.tab, overTabSlot);
+      const nextOrder = Array.from(overTabs.querySelectorAll(".tab-super"))
+        .map((el) => normalizeSuperName(el.dataset.super || ""))
+        .filter(Boolean);
+      superTabOrder = nextOrder;
+      saveSuperTabOrder(superTabOrder);
+      overTabSuppressClickUntil = Date.now() + 220;
+    }
+    cleanupOverTabDrag();
+  });
+
+  overTabs?.addEventListener("pointercancel", cleanupOverTabDrag);
+
   let tabDrag = null;
   let tabGhost = null;
   let tabSlot = null;
+  let tabSuperDropTarget = null;
+  let catContextMenu = null;
+  let catContextTarget = "";
+  let catContextType = "";
+  let appContextMenu = null;
+  let appContextTarget = "";
   let tabReflowRaf = 0;
   let tabReflowRects = null;
   let tabLastReorderTs = 0;
   const TAB_REORDER_INTERVAL = 70;
+
+  function ensureCategoryContextMenu(){
+    if (catContextMenu) return catContextMenu;
+    const menu = document.createElement("div");
+    menu.className = "cat-context-menu";
+    menu.id = "catContextMenu";
+    menu.hidden = true;
+    menu.addEventListener("contextmenu", (e) => e.preventDefault());
+    document.body.appendChild(menu);
+    catContextMenu = menu;
+    return menu;
+  }
+
+  function closeCategoryContextMenu(){
+    if (!catContextMenu) return;
+    catContextMenu.hidden = true;
+    catContextMenu.innerHTML = "";
+    catContextTarget = "";
+    catContextType = "";
+  }
+
+  function ensureAppContextMenu(){
+    if (appContextMenu) return appContextMenu;
+    const menu = document.createElement("div");
+    menu.className = "cat-context-menu app-context-menu";
+    menu.id = "appContextMenu";
+    menu.hidden = true;
+    menu.addEventListener("contextmenu", (e) => e.preventDefault());
+    document.body.appendChild(menu);
+    appContextMenu = menu;
+    return menu;
+  }
+
+  function closeAppContextMenu(){
+    if (!appContextMenu) return;
+    appContextMenu.hidden = true;
+    appContextMenu.innerHTML = "";
+    appContextTarget = "";
+  }
+
+  function findAppById(appId){
+    const id = String(appId || "");
+    if (!id) return null;
+    return apps.find((a) => a.id === id) || null;
+  }
+
+  function openAppContextMenu(appId, clientX, clientY){
+    const app = findAppById(appId);
+    if (!app) return;
+    closeCategoryContextMenu();
+    const menu = ensureAppContextMenu();
+    const favLabel = app.fav ? t("app_ctx_remove_favorite") : t("app_ctx_add_favorite");
+    menu.innerHTML = `
+      <button class="app-context-item" type="button" data-action="toggle-favorite">
+        ${escapeHtml(favLabel)}
+      </button>
+      <button class="app-context-item" type="button" data-action="edit-app">
+        ${escapeHtml(t("app_ctx_edit"))}
+      </button>
+      <button class="app-context-item danger" type="button" data-action="delete-app">
+        ${escapeHtml(t("app_ctx_delete"))}
+      </button>
+    `;
+    menu.hidden = false;
+    appContextTarget = app.id;
+
+    const pad = 10;
+    const maxX = window.innerWidth - menu.offsetWidth - pad;
+    const maxY = window.innerHeight - menu.offsetHeight - pad;
+    const left = Math.max(pad, Math.min(clientX, maxX));
+    const top = Math.max(pad, Math.min(clientY, maxY));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  }
+
+  function refreshAfterCategoryMove(nextSuper = activeSuper){
+    activeSuper = nextSuper || SUPER_ALL;
+    renderCategories();
+    refreshActiveTabClasses();
+    render();
+  }
+
+  function deleteCategoryByName(categoryName){
+    const target = normalizeCategory(categoryName);
+    if (!target || normalizeSuperName(target) === normalizeSuperName("Sonstiges")) return false;
+    const exists = categories.some((c) => c.toLowerCase() === target.toLowerCase());
+    if (!exists) return false;
+    categories = categories.filter((x) => x.toLowerCase() !== target.toLowerCase());
+    apps = apps.map((a) => (a.category === target ? { ...a, category: "Sonstiges" } : a));
+    saveApps(apps);
+    saveCategories(categories);
+    categoryTabOrder = categoryTabOrder.filter((x) => x.toLowerCase() !== target.toLowerCase());
+    saveCategoryTabOrder(categoryTabOrder);
+    if (categoryOrders[target]){
+      delete categoryOrders[target];
+      saveCategoryOrders(categoryOrders);
+    }
+    const targetKey = normalizeSuperName(target);
+    if (categoryIconMap[targetKey]){
+      delete categoryIconMap[targetKey];
+      saveCategoryIconMap(categoryIconMap);
+    }
+    if (activeTab === `cat:${target}`) setActiveTab("all");
+    else {
+      renderCategories();
+      refreshActiveTabClasses();
+      render();
+    }
+    renderCategoryManager();
+    return true;
+  }
+
+  function deleteSuperCategoryByName(superName){
+    const wanted = normalizeSuperName(superName);
+    if (!wanted || wanted === normalizeSuperName(SUPER_ALL) || wanted === normalizeSuperName(SUPER_GENERAL)) return false;
+
+    const matches = categories.filter((cat) => normalizeSuperName(splitCategoryPath(cat).super) === wanted);
+    const renameMap = new Map();
+    matches.forEach((cat) => {
+      const p = splitCategoryPath(cat);
+      const nextName = normalizeCategory(p.label || p.leaf || cat);
+      if (nextName) renameMap.set(cat, nextName);
+    });
+
+    apps = apps.map((app) => {
+      const next = renameMap.get(app.category);
+      return next ? { ...app, category: next } : app;
+    });
+    saveApps(apps);
+
+    let nextCategories = categories.filter((cat) => !renameMap.has(cat));
+    renameMap.forEach((nextName) => {
+      if (!nextCategories.some((existing) => existing.toLowerCase() === nextName.toLowerCase())){
+        nextCategories.push(nextName);
+      }
+    });
+    categories = nextCategories;
+    saveCategories(categories);
+
+    const orderSeen = new Set();
+    categoryTabOrder = categoryTabOrder
+      .map((name) => renameMap.get(name) || name)
+      .filter((name) => categories.some((c) => c.toLowerCase() === String(name).toLowerCase()))
+      .filter((name) => {
+        const key = String(name).toLowerCase();
+        if (orderSeen.has(key)) return false;
+        orderSeen.add(key);
+        return true;
+      });
+    categories
+      .filter((c) => c.toLowerCase() !== "sonstiges")
+      .forEach((c) => {
+        if (!categoryTabOrder.some((x) => x.toLowerCase() === c.toLowerCase())){
+          categoryTabOrder.push(c);
+        }
+      });
+    saveCategoryTabOrder(categoryTabOrder);
+
+    const nextOrders = {};
+    Object.entries(categoryOrders || {}).forEach(([cat, order]) => {
+      const mapped = renameMap.get(cat) || cat;
+      if (!categories.some((c) => c.toLowerCase() === String(mapped).toLowerCase())) return;
+      if (!nextOrders[mapped]) nextOrders[mapped] = Array.isArray(order) ? [...order] : [];
+      else if (Array.isArray(order)){
+        const seen = new Set(nextOrders[mapped]);
+        order.forEach((id) => {
+          if (seen.has(id)) return;
+          nextOrders[mapped].push(id);
+          seen.add(id);
+        });
+      }
+    });
+    categoryOrders = nextOrders;
+    saveCategoryOrders(categoryOrders);
+
+    const nextCategoryIcons = {};
+    Object.entries(categoryIconMap || {}).forEach(([catKey, icon]) => {
+      for (const [oldName, newName] of renameMap.entries()){
+        if (normalizeSuperName(oldName) === catKey){
+          const mappedKey = normalizeSuperName(newName);
+          if (!nextCategoryIcons[mappedKey]) nextCategoryIcons[mappedKey] = { ...icon };
+          return;
+        }
+      }
+      const stillExisting = categories.find((cat) => normalizeSuperName(cat) === catKey);
+      if (stillExisting){
+        if (!nextCategoryIcons[catKey]) nextCategoryIcons[catKey] = { ...icon };
+      }
+    });
+    categoryIconMap = nextCategoryIcons;
+    saveCategoryIconMap(categoryIconMap);
+
+    superCategories = superCategories.filter((name) => normalizeSuperName(name) !== wanted);
+    saveSuperCategories(superCategories);
+    superTabOrder = superTabOrder.filter((name) => name !== wanted);
+    saveSuperTabOrder(superTabOrder);
+    if (superIconMap[wanted]){
+      delete superIconMap[wanted];
+      saveSuperIconMap(superIconMap);
+    }
+
+    if (normalizeSuperName(activeSuper) === wanted) setActiveSuper(SUPER_ALL);
+    else {
+      renderCategories();
+      refreshActiveTabClasses();
+      render();
+    }
+    renderCategoryManager();
+    return true;
+  }
+
+  function openCategoryContextMenu(catName, clientX, clientY){
+    const cat = normalizeCategory(catName);
+    if (!cat) return;
+    closeAppContextMenu();
+    const menu = ensureCategoryContextMenu();
+    const catPath = splitCategoryPath(cat);
+    const currentSuperKey = normalizeSuperName(catPath.super);
+    const isInSuper = currentSuperKey !== normalizeSuperName(SUPER_GENERAL);
+
+    const superList = [...superCategories]
+      .filter((name) => {
+        const lower = normalizeSuperName(name);
+        return lower && lower !== normalizeSuperName(SUPER_ALL) && lower !== normalizeSuperName(SUPER_GENERAL);
+      })
+      .sort((a, b) => a.localeCompare(b, currentLang === "de" ? "de" : "en"));
+
+    const removeBtn = `
+      <button class="cat-context-item" type="button" data-action="remove-super" ${isInSuper ? "" : "disabled"}>
+        ${escapeHtml(t("cat_ctx_remove_super"))}
+      </button>
+    `;
+    const deleteBtn = `
+      <button class="cat-context-item danger" type="button" data-action="delete-category">
+        ${escapeHtml(t("cat_ctx_delete_category"))}
+      </button>
+    `;
+    const moveLabel = `<div class="cat-context-label">${escapeHtml(t("cat_ctx_move_to_super"))}</div>`;
+    const moveItems = superList.length
+      ? superList.map((superName) => {
+          const selected = normalizeSuperName(superName) === currentSuperKey;
+          return `
+            <button class="cat-context-item" type="button" data-action="move-super" data-super="${escapeHtml(superName)}" ${selected ? "disabled" : ""}>
+              ${escapeHtml(superName)}
+            </button>
+          `;
+        }).join("")
+      : `<div class="cat-context-empty">${escapeHtml(t("cat_ctx_no_super"))}</div>`;
+
+    menu.innerHTML = `${removeBtn}${deleteBtn}<div class="cat-context-sep"></div>${moveLabel}${moveItems}`;
+    menu.hidden = false;
+    catContextTarget = cat;
+    catContextType = "category";
+
+    const pad = 10;
+    const maxX = window.innerWidth - menu.offsetWidth - pad;
+    const maxY = window.innerHeight - menu.offsetHeight - pad;
+    const left = Math.max(pad, Math.min(clientX, maxX));
+    const top = Math.max(pad, Math.min(clientY, maxY));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  }
+
+  function openSuperContextMenu(superName, clientX, clientY){
+    const superLabel = normalizeCategory(superName);
+    if (!superLabel) return;
+    closeAppContextMenu();
+    const menu = ensureCategoryContextMenu();
+    menu.innerHTML = `
+      <button class="cat-context-item danger" type="button" data-action="delete-super">
+        ${escapeHtml(t("cat_ctx_delete_super"))}
+      </button>
+    `;
+    menu.hidden = false;
+    catContextTarget = superLabel;
+    catContextType = "super";
+
+    const pad = 10;
+    const maxX = window.innerWidth - menu.offsetWidth - pad;
+    const maxY = window.innerHeight - menu.offsetHeight - pad;
+    const left = Math.max(pad, Math.min(clientX, maxX));
+    const top = Math.max(pad, Math.min(clientY, maxY));
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+  }
+
+  function clearTabSuperDropTarget(){
+    if (!tabSuperDropTarget) return;
+    tabSuperDropTarget.classList.remove("drop-target");
+    tabSuperDropTarget = null;
+  }
+
+  function setTabSuperDropTarget(target){
+    if (tabSuperDropTarget === target) return;
+    clearTabSuperDropTarget();
+    if (!target) return;
+    target.classList.add("drop-target");
+    tabSuperDropTarget = target;
+  }
+
+  function getTabSuperDropTargetAt(x, y){
+    const target = document.elementFromPoint(x, y)?.closest(".tab-super");
+    if (!target) return null;
+    const superName = String(target.dataset.super || "");
+    if (!superName) return null;
+    return target;
+  }
+
+  function moveCategoryToSuper(catName, targetSuperName){
+    const oldCategory = normalizeCategory(catName);
+    if (!oldCategory) return false;
+
+    const path = splitCategoryPath(oldCategory);
+    const targetSuper = String(targetSuperName || SUPER_ALL);
+    const leafName = normalizeCategory(path.label || path.leaf || oldCategory);
+    if (!leafName) return false;
+
+    let nextCategory = "";
+    if (normalizeSuperName(targetSuper) === normalizeSuperName(SUPER_ALL)){
+      nextCategory = leafName;
+    } else {
+      const cleanSuper = normalizeCategory(targetSuper);
+      if (!cleanSuper) return false;
+      nextCategory = normalizeCategory(`${cleanSuper} / ${leafName}`);
+      const cleanSuperKey = normalizeSuperName(cleanSuper);
+      if (!superCategories.some((name) => normalizeSuperName(name) === cleanSuperKey)){
+        superCategories.push(cleanSuper);
+        saveSuperCategories(superCategories);
+      }
+      if (!superTabOrder.includes(cleanSuperKey)){
+        superTabOrder.push(cleanSuperKey);
+        saveSuperTabOrder(superTabOrder);
+      }
+    }
+
+    if (!nextCategory || nextCategory.toLowerCase() === oldCategory.toLowerCase()) return false;
+
+    const existing = categories.find((c) => c.toLowerCase() === nextCategory.toLowerCase());
+    const oldOrder = categoryOrders[oldCategory] || [];
+    const oldIconKey = normalizeSuperName(oldCategory);
+    const nextIconKey = normalizeSuperName(nextCategory);
+    const existingIconKey = normalizeSuperName(existing || "");
+    const oldIcon = categoryIconMap[oldIconKey] ? { ...categoryIconMap[oldIconKey] } : null;
+    let iconMapChanged = false;
+
+    if (existing && existing.toLowerCase() !== oldCategory.toLowerCase()){
+      apps = apps.map((app) => (app.category === oldCategory ? { ...app, category: existing } : app));
+      categories = categories.filter((c) => c.toLowerCase() !== oldCategory.toLowerCase());
+      categoryTabOrder = categoryTabOrder.filter((c) => c.toLowerCase() !== oldCategory.toLowerCase());
+      const mergedOrder = categoryOrders[existing] || [];
+      const seen = new Set(mergedOrder);
+      oldOrder.forEach((id) => {
+        if (seen.has(id)) return;
+        mergedOrder.push(id);
+        seen.add(id);
+      });
+      categoryOrders[existing] = mergedOrder;
+      delete categoryOrders[oldCategory];
+      if (oldIcon && existingIconKey && !categoryIconMap[existingIconKey]){
+        categoryIconMap[existingIconKey] = oldIcon;
+        iconMapChanged = true;
+      }
+      if (categoryIconMap[oldIconKey]){
+        delete categoryIconMap[oldIconKey];
+        iconMapChanged = true;
+      }
+      if (activeTab === `cat:${oldCategory}`) activeTab = `cat:${existing}`;
+    } else {
+      apps = apps.map((app) => (app.category === oldCategory ? { ...app, category: nextCategory } : app));
+      categories = categories.map((c) => (c.toLowerCase() === oldCategory.toLowerCase() ? nextCategory : c));
+      categoryTabOrder = categoryTabOrder.map((c) => (c.toLowerCase() === oldCategory.toLowerCase() ? nextCategory : c));
+      if (categoryOrders[oldCategory]){
+        categoryOrders[nextCategory] = oldOrder;
+        delete categoryOrders[oldCategory];
+      }
+      if (oldIcon){
+        categoryIconMap[nextIconKey] = oldIcon;
+        iconMapChanged = true;
+      }
+      if (categoryIconMap[oldIconKey]){
+        delete categoryIconMap[oldIconKey];
+        iconMapChanged = true;
+      }
+      if (activeTab === `cat:${oldCategory}`) activeTab = `cat:${nextCategory}`;
+    }
+
+    saveApps(apps);
+    saveCategories(categories);
+    saveCategoryTabOrder(categoryTabOrder);
+    saveCategoryOrders(categoryOrders);
+    if (iconMapChanged) saveCategoryIconMap(categoryIconMap);
+    return true;
+  }
+
   catTabs?.addEventListener("pointerdown", (e) => {
     const tab = e.target.closest(".tab-cat");
     if (!tab) return;
@@ -3647,14 +5280,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         tabGhost.style.left = (e.clientX - tabGhost.offsetWidth / 2) + "px";
         tabGhost.style.top = (e.clientY - tabGhost.offsetHeight / 2) + "px";
       }
+      setTabSuperDropTarget(getTabSuperDropTargetAt(e.clientX, e.clientY));
       return;
     }
     tabLastReorderTs = now;
 
+    const superTarget = getTabSuperDropTargetAt(e.clientX, e.clientY);
+    setTabSuperDropTarget(superTarget);
+    if (superTarget){
+      if (tabGhost){
+        tabGhost.style.left = (e.clientX - tabGhost.offsetWidth / 2) + "px";
+        tabGhost.style.top = (e.clientY - tabGhost.offsetHeight / 2) + "px";
+      }
+      return;
+    }
+
     const target = document.elementFromPoint(e.clientX, e.clientY)?.closest(".tab-cat");
     if (!target || target === tabDrag.tab) return;
     const rect = target.getBoundingClientRect();
-    const before = e.clientX < rect.left + rect.width / 2;
+    const before = e.clientY < rect.top + rect.height / 2;
     if (tabSlot){
       const rects = recordTabRects();
       catTabs.insertBefore(tabSlot, before ? target : target.nextSibling);
@@ -3668,22 +5312,175 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   catTabs?.addEventListener("pointerup", () => {
     if (!tabDrag) return;
+    let droppedToSuper = false;
+    if (tabDrag.moved && tabSuperDropTarget){
+      const draggedCategory = tabDrag.tab?.dataset?.cat || "";
+      const targetSuper = tabSuperDropTarget.dataset.super || SUPER_ALL;
+      droppedToSuper = moveCategoryToSuper(draggedCategory, targetSuper);
+    }
     if (tabDrag.moved && tabSlot){
-      const rects = recordTabRects();
-      catTabs.insertBefore(tabDrag.tab, tabSlot);
-      scheduleTabReflow(rects);
-      tabDrag.tab.style.display = "";
+      if (droppedToSuper){
+        tabDrag.tab.style.display = "";
+      } else {
+        const rects = recordTabRects();
+        catTabs.insertBefore(tabDrag.tab, tabSlot);
+        scheduleTabReflow(rects);
+        tabDrag.tab.style.display = "";
+      }
       tabSlot.remove();
     }
     if (tabDrag.moved){
-      const newOrder = Array.from(catTabs.querySelectorAll(".tab-cat")).map(el => el.dataset.cat).filter(Boolean);
-      categoryTabOrder = newOrder;
-      saveCategoryTabOrder(categoryTabOrder);
+      if (droppedToSuper){
+        refreshAfterCategoryMove(activeSuper);
+      } else {
+        const visibleOrder = Array.from(catTabs.querySelectorAll(".tab-cat")).map(el => el.dataset.cat).filter(Boolean);
+        const visibleSet = new Set(visibleOrder);
+        const rest = getOrderedUserCategories().filter((cat) => !visibleSet.has(cat));
+        categoryTabOrder = [...visibleOrder, ...rest];
+        saveCategoryTabOrder(categoryTabOrder);
+      }
       if (tabGhost && tabGhost.parentElement) tabGhost.parentElement.removeChild(tabGhost);
       tabGhost = null;
       tabSlot = null;
+      clearTabSuperDropTarget();
     }
     tabDrag = null;
+  });
+
+  catTabs?.addEventListener("pointercancel", () => {
+    if (tabGhost && tabGhost.parentElement) tabGhost.parentElement.removeChild(tabGhost);
+    tabGhost = null;
+    if (tabSlot && tabSlot.parentElement) tabSlot.parentElement.removeChild(tabSlot);
+    tabSlot = null;
+    if (tabDrag?.tab) tabDrag.tab.style.display = "";
+    clearTabSuperDropTarget();
+    tabDrag = null;
+  });
+
+  catTabs?.addEventListener("contextmenu", (e) => {
+    const tab = e.target.closest(".tab-cat");
+    if (!tab) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openCategoryContextMenu(tab.dataset.cat || "", e.clientX, e.clientY);
+  });
+
+  overTabs?.addEventListener("contextmenu", (e) => {
+    const tab = e.target.closest(".tab-super");
+    if (!tab) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openSuperContextMenu(tab.dataset.super || "", e.clientX, e.clientY);
+  });
+
+  // Disable native browser context menu everywhere in the app.
+  // Keep custom context menus for tabs and app cards.
+  document.addEventListener("contextmenu", (e) => {
+    const isCatTab = Boolean(e.target.closest(".tab-cat"));
+    const isSuperTab = Boolean(e.target.closest(".tab-super"));
+    const isCard = Boolean(e.target.closest(".card"));
+    const isInCatMenu = Boolean(e.target.closest(".cat-context-menu"));
+    const isInAppMenu = Boolean(e.target.closest(".app-context-menu"));
+    if (isCatTab || isSuperTab || isCard || isInCatMenu || isInAppMenu) return;
+    e.preventDefault();
+    closeCategoryContextMenu();
+    closeAppContextMenu();
+  }, true);
+
+  document.addEventListener("pointerdown", (e) => {
+    if (!catContextMenu || catContextMenu.hidden) return;
+    if (catContextMenu.contains(e.target)) return;
+    closeCategoryContextMenu();
+  });
+  document.addEventListener("pointerdown", (e) => {
+    if (!appContextMenu || appContextMenu.hidden) return;
+    if (appContextMenu.contains(e.target)) return;
+    closeAppContextMenu();
+  });
+
+  document.addEventListener("scroll", () => {
+    if (!catContextMenu || catContextMenu.hidden) return;
+    closeCategoryContextMenu();
+  }, true);
+  document.addEventListener("scroll", () => {
+    if (!appContextMenu || appContextMenu.hidden) return;
+    closeAppContextMenu();
+  }, true);
+
+  window.addEventListener("resize", closeCategoryContextMenu);
+  window.addEventListener("resize", closeAppContextMenu);
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    closeCategoryContextMenu();
+    closeAppContextMenu();
+  });
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".cat-context-item");
+    if (!btn || !catContextMenu || catContextMenu.hidden) return;
+    const action = btn.dataset.action;
+    const cat = catContextTarget;
+    if (!cat) return closeCategoryContextMenu();
+
+    if (action === "remove-super"){
+      const moved = moveCategoryToSuper(cat, SUPER_ALL);
+      if (moved) refreshAfterCategoryMove(activeSuper);
+      closeCategoryContextMenu();
+      return;
+    }
+
+    if (action === "delete-category" && catContextType === "category"){
+      openConfirm(t("confirm_delete_category", { name: cat }), () => {
+        deleteCategoryByName(cat);
+      });
+      closeCategoryContextMenu();
+      return;
+    }
+
+    if (action === "move-super"){
+      const targetSuper = normalizeCategory(btn.dataset.super || "");
+      if (!targetSuper) return closeCategoryContextMenu();
+      const moved = moveCategoryToSuper(cat, targetSuper);
+      if (moved) refreshAfterCategoryMove(activeSuper);
+      closeCategoryContextMenu();
+      return;
+    }
+
+    if (action === "delete-super" && catContextType === "super"){
+      openConfirm(t("confirm_delete_category", { name: cat }), () => {
+        deleteSuperCategoryByName(cat);
+      });
+      closeCategoryContextMenu();
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const btn = e.target.closest(".app-context-item");
+    if (!btn || !appContextMenu || appContextMenu.hidden) return;
+    const app = findAppById(appContextTarget);
+    if (!app) return closeAppContextMenu();
+    const action = btn.dataset.action || "";
+
+    if (action === "toggle-favorite"){
+      app.fav = !app.fav;
+      saveApps(apps);
+      closeAppContextMenu();
+      render();
+      return;
+    }
+    if (action === "edit-app"){
+      closeAppContextMenu();
+      openEditModal(app);
+      return;
+    }
+    if (action === "delete-app"){
+      closeAppContextMenu();
+      openConfirm(t("confirm_delete_app", { name: app.name }), () => {
+        apps = apps.filter((a) => a.id !== app.id);
+        saveApps(apps);
+        render();
+      });
+    }
   });
 
   function createTabGhost(tab, x, y){
@@ -3887,6 +5684,22 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   grid?.addEventListener("pointerdown", (e) => beginPointerDrag(e, grid, "category"));
   pinnedRow?.addEventListener("pointerdown", (e) => beginPointerDrag(e, pinnedRow, "pinned"));
+  grid?.addEventListener("contextmenu", (e) => {
+    const card = e.target.closest(".card");
+    if (!card || !grid.contains(card)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    suppressClickId = card.dataset.id || null;
+    openAppContextMenu(card.dataset.id || "", e.clientX, e.clientY);
+  });
+  pinnedRow?.addEventListener("contextmenu", (e) => {
+    const card = e.target.closest(".card");
+    if (!card || !pinnedRow.contains(card)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    suppressClickId = card.dataset.id || null;
+    openAppContextMenu(card.dataset.id || "", e.clientX, e.clientY);
+  });
   window.addEventListener("pointermove", onPointerMove);
   window.addEventListener("pointerup", onPointerUp);
 
@@ -3995,6 +5808,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   // initial
+  applyCategoryRailState();
   renderCategories();
   setIconNone();
   syncTypeUI();
@@ -4002,5 +5816,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   setTimeout(bootstrapVoiceControl, 900);
   document.addEventListener("pointerdown", bootstrapVoiceControl, { once: true });
 });
+
+
 
 

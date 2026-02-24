@@ -1,4 +1,4 @@
-<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
+﻿<div class="modal-overlay" id="modalOverlay" aria-hidden="true">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="modal-head">
       <div class="modal-title" id="modalTitle" data-i18n="modal_add_title">Neue App hinzufügen</div>
@@ -87,7 +87,7 @@
   <div class="modal modal-confirm" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
     <div class="modal-head">
       <div class="modal-title" id="confirmTitle" data-i18n="confirm_delete_default_title">Löschen bestätigen</div>
-      <button class="icon-btn" id="confirmClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">×</button>
+      <button class="icon-btn" id="confirmClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">&times;</button>
     </div>
     <div class="modal-body">
       <div class="confirm-text" id="confirmText" data-i18n="confirm_delete_default_message">Möchtest du diese App wirklich löschen?</div>
@@ -103,16 +103,23 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="catManageTitle">
     <div class="modal-head">
       <div class="modal-title" id="catManageTitle" data-i18n="cat_manage_title">Kategorien verwalten</div>
-      <button class="icon-btn" id="catManageClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">×</button>
+      <button class="icon-btn" id="catManageClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">&times;</button>
     </div>
     <div class="modal-body">
       <div class="field">
+        <div class="cat-kind-switch" id="catKindSwitch" role="tablist" aria-label="Kategorie Typ">
+          <button class="cat-kind-btn" id="catKindSuper" type="button" data-kind="super" role="tab" aria-selected="false" data-i18n="cat_kind_super">Überkategorie</button>
+          <button class="cat-kind-btn active" id="catKindSub" type="button" data-kind="sub" role="tab" aria-selected="true" data-i18n="cat_kind_sub">Unterkategorie</button>
+        </div>
         <div class="label" data-i18n="cat_new_label">Neue Kategorie</div>
-        <div class="row2">
+        <div class="row2 cat-manage-row">
+          <button class="cat-super-icon-pick hidden" id="catSuperIconPick" type="button" aria-label="Icon waehlen">
+            <span class="cat-super-icon-mark" id="catSuperIconMark">?</span>
+          </button>
           <input class="input" id="catManageInput" placeholder="z.B. Lernen, Finanzen..." data-i18n-placeholder="cat_new_placeholder" />
           <button class="btn-primary" id="catManageAdd" type="button" data-i18n="add">Hinzufügen</button>
         </div>
-        <div class="help-text" data-i18n="cat_manage_help">Löschen verschiebt Apps automatisch nach "Sonstiges".</div>
+        <div class="help-text" id="catManageHelp" data-i18n="cat_manage_help">Löschen verschiebt Apps automatisch nach "Sonstiges".</div>
       </div>
       <div class="field">
         <div class="label" data-i18n="cat_existing_label">Vorhandene Kategorien</div>
@@ -125,11 +132,37 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="superIconOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="superIconTitle">
+    <div class="modal-head">
+      <div class="modal-title" id="superIconTitle" data-i18n="super_icon_title">Icon waehlen</div>
+      <button class="icon-btn" id="superIconClose" type="button" aria-label="Schliessen" data-i18n-aria-label="close_aria">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="label" id="superIconForLabel">Ueberkategorie</div>
+      <div class="super-icon-preview" id="superIconPreview" aria-hidden="true">?</div>
+      <div class="super-icon-search">
+        <input id="superIconSearch" class="input" type="text" data-i18n-placeholder="super_icon_search_placeholder" placeholder="Icons durchsuchen..." />
+      </div>
+      <div class="super-icon-grid" id="superIconGrid"></div>
+      <div class="help-text super-icon-empty hidden" id="superIconEmpty" data-i18n="super_icon_empty">Keine passenden Icons gefunden.</div>
+      <div class="super-icon-upload-row">
+        <button class="btn-ghost" id="superIconUploadBtn" type="button" data-i18n="super_icon_upload">Eigenes Icon hochladen</button>
+        <input id="superIconUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml" hidden />
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-ghost" id="superIconCancel" type="button" data-i18n="cancel">Abbrechen</button>
+      <button class="btn-primary" id="superIconSave" type="button" data-i18n="super_icon_use">Verwenden</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="settingsOverlay" aria-hidden="true">
   <div class="modal modal-settings" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-head">
       <div class="modal-title" id="settingsTitle" data-i18n="settings_title">Einstellungen</div>
-      <button class="icon-btn" id="settingsClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">×</button>
+      <button class="icon-btn" id="settingsClose" type="button" aria-label="Schließen" data-i18n-aria-label="close_aria">&times;</button>
     </div>
     <div class="modal-body">
       <div class="field">
@@ -167,16 +200,6 @@
           </select>
         </div>
         <div class="help-text" data-i18n="settings_clip_help">Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit "Leeren" gelöscht werden.</div>
-      </div>
-      <div class="field">
-        <div class="label" data-i18n="settings_theme">Theme</div>
-        <div class="theme-row">
-          <span class="theme-label" data-i18n="settings_light_mode">Light Mode</span>
-          <label class="switch">
-            <input type="checkbox" id="themeToggle" />
-            <span class="slider"></span>
-          </label>
-        </div>
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_accent">Akzentfarbe</div>
@@ -282,7 +305,7 @@
       <div class="field">
         <div class="label" data-i18n="settings_voice_voice">Stimme</div>
         <select class="select" id="voiceSelect"></select>
-        <div class="help-text" data-i18n="settings_voice_voice_help">WÃ¤hle eine der verfÃ¼gbaren Systemstimmen aus.</div>
+        <div class="help-text" data-i18n="settings_voice_voice_help">Wähle eine der verfügbaren Systemstimmen aus.</div>
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_voice_tone">Aktivierungston</div>
@@ -293,7 +316,7 @@
           <option value="warm_ping" data-i18n="settings_voice_tone_warm_ping">Warm Ping</option>
           <option value="short_thud" data-i18n="settings_voice_tone_short_thud">Short Thud</option>
         </select>
-        <div class="help-text" data-i18n="settings_voice_tone_help">WÃ¤hle den Sound beim Aktivieren von Sprachbefehlen.</div>
+        <div class="help-text" data-i18n="settings_voice_tone_help">Wähle den Sound beim Aktivieren von Sprachbefehlen.</div>
       </div>
     </div>
     <div class="modal-foot">
@@ -302,6 +325,9 @@
     </div>
   </div>
 </div>
+
+
+
 
 
 
