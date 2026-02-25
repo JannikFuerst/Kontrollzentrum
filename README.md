@@ -1,65 +1,52 @@
-ï»¿# Kontrollzentrum
+# Kontrollzentrum
 
-Kontrollzentrum ist dein schneller App-Hub fuer Windows.
-Web-Apps, Desktop-Apps, Sprachsteuerung, Clipboard-History und Notizen in einer klaren, modernen OberflÃ¤che.
+Kontrollzentrum ist ein moderner App-Hub für Windows: schnell, klar und auf produktives Arbeiten ausgelegt.  
+Webseiten, Desktop-Programme, Kategorien, Sprachsteuerung, Notizen und Clipboard-Verlauf in einer Oberfläche.
 
-## Warum Kontrollzentrum
+## Version 2.0.2
 
-- Starte alles von einem Ort aus: Browser-Apps und Desktop-Programme
-- Finde Apps per Suche oder Sprachbefehl in Sekunden
-- Nutze Kategorien und Favoriten fuer einen sauberen Workflow
-- Halte Notizen und Clipboard-Verlauf direkt im Tool
-- Passe Look & Feel mit Theme, Accent und Background an
+`v2.0.2` ist das große UI- und Workflow-Update mit Fokus auf:
 
-## Highlights in v1.2.1
+- konsistenteres Design und bessere Lesbarkeit
+- sauberere Interaktionen im eingeklappten/ausgeklappten Modus
+- überarbeitete Add-App- und Settings-Flows
+- bessere Hotkey-Nutzung für einzelne Apps
 
-- Voice-Upgrade mit Option `Keine Stimme (nur Sound)`
-- Neue moderne Aktivierungssounds (Short Thud bleibt erhalten)
-- Besseres Sprach-Matching fuer App-Namen und Aliase
-- Steam-Game-Scan inkl. Steam-Launch-Links (`steam://run/<appid>`)
-- Steam-Cover/Icons verbessert (lokal + CDN-Fallback)
-- Scan-Verhalten verbessert: kein Auto-Scan beim Oeffnen, nur manuell
-- Update-Hinweis beim Start, wenn auf GitHub eine neuere Version verfuegbar ist
+## Kernfunktionen
+
+- Apps zentral verwalten (Web + Desktop)
+- Apps über Suche, Kategorien oder Favoriten starten
+- Desktop-Scan für installierte Programme
+- Sprachsteuerung mit Aktivierungswort
+- Notizen mit Seitenverwaltung
+- Clipboard-Verlauf mit Löschmodus (Anzahl oder Zeit)
+- Individuelle Akzentfarbe inkl. eigener Farbauswahl
+- Globaler Hotkey zum Anzeigen/Verstecken des Fensters
+
+## Highlights in v2.0.2
+
+- Deutlich überarbeitete Oberfläche in mehreren Bereichen (Karten, Popups, Dropdowns, Controls)
+- Neue/verbesserte Interaktionen für Kategorien und Unterkategorien
+- Verbesserte App-Bearbeitung mit stabilerem Verhalten im Modal
+- Hotkey-Flow pro App ausgebaut (inkl. eigener Hotkey-Kategorie)
+- Bessere Bedienung bei vielen Einträgen und kompakteren Layouts
+- Versionierung und Release-Flow für `v2.0.2` vereinheitlicht
 
 ## Download
 
-Die neueste Version findest du hier:
+Die aktuelle Version findest du unter:
 
-- Releases: https://github.com/JannikFuerst/Kontrollzentrum/releases
+- https://github.com/JannikFuerst/Kontrollzentrum/releases
 
-## Features
-
-- App-Management
-- Web + Desktop Apps in einer Grid-Ansicht
-- App-Scan fuer Windows-Apps + Steam-Games
-- Favoritenbereich mit Drag-and-Drop
-- Eigene Kategorien inkl. Management
-
-- Voice Control
-- Wake-Word + Command-Modus
-- Sprachfeedback oder Sound-only
-- Man/Female/No-Voice Auswahl
-- Mehrere Aktivierungstoene
-
-- Produktivitaet
-- Notizen mit mehreren Seiten und Lock
-- Clipboard-History mit Retention-Optionen
-- Global Hotkey zum Ein-/Ausblenden
-
-- Customization
-- Deutsch / Englisch
-- Light/Dark + Accent-Farben
-- Background-Modi inkl. Custom Image
-
-## Tech Stack
+## Technologie
 
 - Frontend: Vanilla HTML, CSS, JavaScript (`web/`)
-- Desktop: Tauri v2 (`src-tauri/`)
-- Backend: Rust Commands fuer Shell/Scan/Clipboard/Hotkey
+- Desktop-App: Tauri v2 (`src-tauri/`)
+- Backend: Rust (`src-tauri/src/`)
 
 ## Voraussetzungen
 
-- Windows 10/11
+- Windows 10 oder Windows 11
 - Node.js + npm
 - Rust Toolchain + Cargo
 
@@ -70,33 +57,42 @@ npm install
 npm run dev
 ```
 
-Wenn PowerShell-Skripte blockiert sind:
+Falls PowerShell-Skripte blockiert sind:
 
 ```bash
 cmd /c npm run dev
 ```
 
-## Build (Installer + Updater Artefakte)
+## Build (Installer)
 
 ```bash
 npm run build
 ```
 
-Tauri erzeugt dabei Installer/Bundles sowie Updater-Artefakte fuer Releases.
+Der Build erzeugt u. a.:
+
+- MSI-Installer
+- NSIS-Setup (`.exe`)
+- Updater-Artefakte (für GitHub Releases)
+
+## Release-Prozess
+
+1. Version hochziehen in:
+   - `package.json`
+   - `src-tauri/Cargo.toml`
+   - `src-tauri/tauri.conf.json`
+2. Commit erstellen
+3. Tag setzen: `vX.Y.Z`
+4. `main` + Tag pushen
+5. GitHub Action erstellt den Release-Build
 
 ## Projektstruktur
 
-- `web/` UI, Styling, Modals, App-Logik
-- `src-tauri/` Tauri-Konfig + Rust-Backend
-- `src-tauri/src/lib.rs` Desktop-Commands
-
-## Update-Flow
-
-- App-Version in `package.json`, `src-tauri/Cargo.toml` und `src-tauri/tauri.conf.json`
-- Release auf GitHub mit Tag `vX.Y.Z`
-- Updater-Dateien aus dem Build bei der Release hochladen
-- Beim naechsten App-Start sehen aeltere Versionen den Update-Hinweis
+- `web/` Frontend, UI-Komponenten, Modals, Styling
+- `src-tauri/` Tauri-Konfiguration und Rust-Backend
+- `.github/workflows/` CI/CD und Release-Automation
 
 ## Lizenz
 
 ISC
+

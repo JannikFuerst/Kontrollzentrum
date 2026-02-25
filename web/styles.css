@@ -22,7 +22,7 @@
   --shadow2: 0 8px 26px rgba(0,0,0,0.45);
 
   --side-panel-width: 360px;
-  --side-content-shift: 96px;
+  --side-content-shift: 220px;
   --dock-open-action-shift: 360px;
   --dock-open-search-cut: 602px;
   --dock-anim-duration: .36s;
@@ -266,6 +266,11 @@ html.bg-custom{
   max-width: none;
   min-width: 220px;
 }
+.layout.notes-open .wrap > main,
+.layout.clipboard-open .wrap > main{
+  padding-right: calc(var(--side-panel-width) + 20px);
+  box-sizing: border-box;
+}
 .layout.notes-open .top-actions .primary-actions,
 .layout.clipboard-open .top-actions .primary-actions{
   transform: translateX(calc(var(--dock-open-action-shift) * -1));
@@ -280,6 +285,10 @@ html.bg-custom{
   .layout.notes-open .top-actions .primary-actions,
   .layout.clipboard-open .top-actions .primary-actions{
     transform: none;
+  }
+  .layout.notes-open .wrap > main,
+  .layout.clipboard-open .wrap > main{
+    padding-right: 0;
   }
 }
 .notes-dock{
@@ -461,6 +470,8 @@ body[data-theme="light"] .icon-btn[data-tip]::after{
   pointer-events: auto;
   visibility: visible;
   max-height: min(82vh, 680px);
+  overflow-x: hidden;
+  overflow-y: auto;
   transition:
     opacity .24s cubic-bezier(.22,.7,.2,1),
     transform .28s cubic-bezier(.22,.7,.2,1),
@@ -663,6 +674,7 @@ body[data-theme="light"] .icon-btn[data-tip]::after{
 .notes-text{
   width: 100%;
   min-height: 220px;
+  max-height: min(60vh, 520px);
   border-radius: 12px;
   border: 1px solid rgba(255,255,255,0.10);
   background: rgba(255,255,255,0.03);
@@ -892,6 +904,10 @@ body[data-theme="light"] .clip-btn.danger{
   #clipboardPanel.show{
     max-height: min(78vh, 620px);
   }
+  .notes-panel.show{
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -912,7 +928,7 @@ body[data-theme="light"] .clip-btn.danger{
 @media (min-width: 861px) and (max-width: 1400px){
   :root{
     --side-panel-width: 330px;
-    --side-content-shift: 84px;
+    --side-content-shift: 190px;
   }
 }
 
@@ -1878,6 +1894,14 @@ body[data-theme="light"] .pinned-row .card{
   }
   .layout.cat-rail-collapsed .wrap > header{
     margin-left: -206px;
+  }
+  .layout.notes-open .wrap,
+  .layout.clipboard-open .wrap{
+    width: max(340px, calc(100vw - 440px - var(--side-panel-width) - 24px));
+  }
+  .layout.cat-rail-collapsed.layout.notes-open .wrap,
+  .layout.cat-rail-collapsed.layout.clipboard-open .wrap{
+    width: max(340px, calc(100vw - 242px - var(--side-panel-width) - 24px));
   }
 
   .wrap > .tabs-wrap::before{
