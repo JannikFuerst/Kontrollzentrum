@@ -72,6 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       close_aria: "Schließen",
       tab_all: "Alle",
       tab_favorites: "Favoriten",
+      tab_hotkeys: "Hotkeys",
       tab_misc: "Sonstiges",
       manage_categories_aria: "Kategorie hinzufügen",
       pinned_heading: "Angepinnt",
@@ -79,6 +80,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       empty_subtitle: "Füge deine erste App hinzu",
       scan_loading: "Scanne...",
       scan_none: "Keine Apps gefunden",
+      scan_select_placeholder: "App auswählen",
       unknown: "Unbekannt",
       modal_load_error: "Modal konnte nicht geladen werden. Check Console (F12).",
       scan_failed: "Scan fehlgeschlagen: {message}",
@@ -97,6 +99,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       confirm_delete_default_label: "Löschen",
       confirm_delete_default_title: "Löschen bestätigen",
       confirm_delete_default_message: "Möchtest du diese App wirklich löschen?",
+      super_limit_title: "Limit erreicht",
+      super_limit_message: "Du kannst maximal {max} Überkategorien erstellen.",
+      super_limit_ok: "Verstanden",
       update_available_title: "Update verfügbar",
       update_available_message: "Neue Version verfügbar: v{latest} (aktuell: v{current}).",
       update_available_action: "UPDATE",
@@ -128,9 +133,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal_icon_optional: "Icon (optional)",
       modal_icon_remove: "Icon entfernen",
       modal_icon_upload: "Icon hochladen",
+      modal_icon_upload_tip: "Icon hochladen (JPG/PNG)",
       modal_icon_auto: "Standard: automatisch aus URL (Favicon)",
       modal_icon_custom_help: "Oder eigenes PNG/JPG hochladen.",
-      modal_name_label: "Name *",
+      modal_name_label: "Name",
       modal_name_placeholder: "z.B. Notion / Discord",
       modal_type_label: "Typ",
       modal_type_web: "Web (https://...)",
@@ -143,8 +149,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal_found_apps: "Gefundene Apps",
       modal_scan_refresh: "Scan aktualisieren",
       modal_scan_help: "Wähle eine App aus dem Windows-Scan.",
-      modal_description_label: "Beschreibung",
-      modal_description_placeholder: "Optional",
+      modal_app_hotkey_label: "App Hotkey",
+      modal_app_hotkey_placeholder: "Drücke 'Aufnehmen'...",
+      modal_app_hotkey_clear: "Hotkey entfernen",
       cat_manage_title: "Kategorien verwalten",
       cat_new_label: "Neue Kategorie",
       cat_new_placeholder: "z.B. Lernen, Finanzen...",
@@ -175,7 +182,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_voice_wake_mode_label: "Ansprache",
       settings_voice_wake_mode_standard: "Standard (Kontrollzentrum / Control Center)",
       settings_voice_wake_mode_custom: "Custom",
-      settings_voice_wake_label: "Ansprech-String",
+      settings_voice_wake_label: "Aktivierungswort",
       settings_voice_wake_placeholder: "z.B. Kontrollzentrum, Control Center",
       settings_voice_wake_help: "Ein oder mehrere Wake-Words, mit Komma getrennt.",
       settings_voice_enabled: "Aktivieren",
@@ -200,6 +207,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_voice_tone_warm_ping: "Aurora Chime",
       settings_voice_tone_short_thud: "Short Thud",
       settings_voice_command_hint: "Sage z.B.: \"Kontrollzentrum starte CS2\" oder \"Control Center open Steam\".",
+      settings_voice_enable_info_title: "Sprachsteuerung aktiviert",
+      settings_voice_enable_info_message: "Sag zuerst dein Aktivierungswort und warte dann kurz auf den Signalton, bevor du den Befehl sprichst. Funktioniert nur, wenn Mikrofonzugriff erlaubt ist.",
+      settings_voice_mic_denied_title: "Mikrofonzugriff benötigt",
+      settings_voice_mic_denied_message: "Sprachsteuerung kann nur aktiviert werden, wenn Mikrofonzugriff erlaubt und nicht blockiert ist.",
       settings_voice_no_mic: "Keine Mikrofone gefunden",
       settings_voice_default_mic: "Systemstandard",
       settings_clipboard_label: "Clipboard Verlauf",
@@ -216,6 +227,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_theme: "Theme",
       settings_light_mode: "Light Mode",
       settings_accent: "Akzentfarbe",
+      settings_accent_custom: "Individuelle Farbe",
+      settings_accent_brightness: "Helligkeit",
       settings_background: "Hintergrund",
       settings_bg_standard: "Standard",
       settings_bg_mono: "Mono",
@@ -271,6 +284,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       close_aria: "Close",
       tab_all: "All",
       tab_favorites: "Favorites",
+      tab_hotkeys: "Hotkeys",
       tab_misc: "Misc",
       manage_categories_aria: "Add category",
       pinned_heading: "Pinned",
@@ -278,6 +292,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       empty_subtitle: "Add your first app",
       scan_loading: "Scanning...",
       scan_none: "No apps found",
+      scan_select_placeholder: "Select app",
       unknown: "Unknown",
       modal_load_error: "Could not load modal. Check console (F12).",
       scan_failed: "Scan failed: {message}",
@@ -296,6 +311,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       confirm_delete_default_label: "Delete",
       confirm_delete_default_title: "Confirm delete",
       confirm_delete_default_message: "Do you want to delete this app?",
+      super_limit_title: "Limit reached",
+      super_limit_message: "You can create up to {max} supercategories.",
+      super_limit_ok: "Got it",
       update_available_title: "Update available",
       update_available_message: "A new version is available: v{latest} (current: v{current}).",
       update_available_action: "UPDATE",
@@ -326,9 +344,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal_icon_optional: "Icon (optional)",
       modal_icon_remove: "Remove icon",
       modal_icon_upload: "Upload icon",
+      modal_icon_upload_tip: "Upload icon (JPG/PNG)",
       modal_icon_auto: "Default: automatic from URL (favicon)",
       modal_icon_custom_help: "Or upload your own PNG/JPG.",
-      modal_name_label: "Name *",
+      modal_name_label: "Name",
       modal_name_placeholder: "e.g. Notion / Discord",
       modal_type_label: "Type",
       modal_type_web: "Web (https://...)",
@@ -341,8 +360,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       modal_found_apps: "Found apps",
       modal_scan_refresh: "Refresh scan",
       modal_scan_help: "Choose an app from the Windows scan.",
-      modal_description_label: "Description",
-      modal_description_placeholder: "Optional",
+      modal_app_hotkey_label: "App hotkey",
+      modal_app_hotkey_placeholder: "Press 'Capture'...",
+      modal_app_hotkey_clear: "Remove hotkey",
       cat_manage_title: "Manage categories",
       cat_new_label: "New category",
       cat_new_placeholder: "e.g. Learning, Finance...",
@@ -373,7 +393,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_voice_wake_mode_label: "Addressing",
       settings_voice_wake_mode_standard: "Default (Kontrollzentrum / Control Center)",
       settings_voice_wake_mode_custom: "Custom",
-      settings_voice_wake_label: "Wake phrase",
+      settings_voice_wake_label: "Activation words",
       settings_voice_wake_placeholder: "e.g. Kontrollzentrum, Control Center",
       settings_voice_wake_help: "One or more wake words, separated by commas.",
       settings_voice_enabled: "Enable",
@@ -398,6 +418,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_voice_tone_warm_ping: "Aurora Chime",
       settings_voice_tone_short_thud: "Short Thud",
       settings_voice_command_hint: "Say e.g.: \"Kontrollzentrum starte CS2\" or \"Control Center open Steam\".",
+      settings_voice_enable_info_title: "Voice control enabled",
+      settings_voice_enable_info_message: "Say your activation word first and briefly wait for the cue tone before speaking the command. Works only if microphone access is allowed.",
+      settings_voice_mic_denied_title: "Microphone access required",
+      settings_voice_mic_denied_message: "Voice control can only be enabled when microphone access is allowed and not blocked.",
       settings_voice_no_mic: "No microphones found",
       settings_voice_default_mic: "System default",
       settings_clipboard_label: "Clipboard history",
@@ -414,6 +438,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_theme: "Theme",
       settings_light_mode: "Light mode",
       settings_accent: "Accent color",
+      settings_accent_custom: "Custom color",
+      settings_accent_brightness: "Brightness",
       settings_background: "Background",
       settings_bg_standard: "Default",
       settings_bg_mono: "Mono",
@@ -535,10 +561,127 @@ document.addEventListener("DOMContentLoaded", async () => {
   const overTabs = document.getElementById("overTabs");
   const tabsEl = document.querySelector(".tabs");
   let overTabSuppressClickUntil = 0;
+  const superHoverTooltip = document.createElement("div");
+  superHoverTooltip.className = "super-hover-tooltip";
+  superHoverTooltip.hidden = true;
+  document.body.appendChild(superHoverTooltip);
+  let superHoverTooltipTab = null;
+  const railHoverTooltip = document.createElement("div");
+  railHoverTooltip.className = "rail-hover-tooltip";
+  railHoverTooltip.hidden = true;
+  document.body.appendChild(railHoverTooltip);
+  let railHoverTooltipTab = null;
+
+  function getSuperTooltipLabel(tab){
+    if (!tab) return "";
+    return (tab.dataset.tip || tab.dataset.label || "").trim();
+  }
+
+  function positionSuperTooltip(tab){
+    if (!tab || !superHoverTooltip) return;
+    const rect = tab.getBoundingClientRect();
+    superHoverTooltip.style.left = `${Math.round(rect.right + 12)}px`;
+    superHoverTooltip.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
+  }
+
+  function showSuperTooltip(tab){
+    const label = getSuperTooltipLabel(tab);
+    if (!label){
+      hideSuperTooltip();
+      return;
+    }
+    superHoverTooltip.textContent = label;
+    superHoverTooltip.hidden = false;
+    superHoverTooltip.classList.add("show");
+    superHoverTooltipTab = tab;
+    positionSuperTooltip(tab);
+  }
+
+  function hideSuperTooltip(){
+    superHoverTooltipTab = null;
+    superHoverTooltip.classList.remove("show");
+    superHoverTooltip.hidden = true;
+  }
+
+  function getRailTooltipLabel(tab){
+    if (!tab) return "";
+    return (tab.dataset.tip || "").trim();
+  }
+
+  function positionRailTooltip(tab){
+    if (!tab || !railHoverTooltip) return;
+    const rect = tab.getBoundingClientRect();
+    railHoverTooltip.style.left = `${Math.round(rect.right + 20)}px`;
+    railHoverTooltip.style.top = `${Math.round(rect.top + rect.height / 2)}px`;
+  }
+
+  function showRailTooltip(tab){
+    if (!catRailCollapsed) return;
+    const label = getRailTooltipLabel(tab);
+    if (!label){
+      hideRailTooltip();
+      return;
+    }
+    railHoverTooltip.textContent = label;
+    railHoverTooltip.hidden = false;
+    railHoverTooltip.classList.add("show");
+    railHoverTooltipTab = tab;
+    positionRailTooltip(tab);
+  }
+
+  function hideRailTooltip(){
+    railHoverTooltipTab = null;
+    railHoverTooltip.classList.remove("show");
+    railHoverTooltip.hidden = true;
+  }
+
+  overTabs?.addEventListener("pointerover", (e) => {
+    const tab = e.target.closest(".tab[data-super]");
+    if (!tab || !overTabs.contains(tab)) return;
+    showSuperTooltip(tab);
+  });
+  overTabs?.addEventListener("pointermove", () => {
+    if (!superHoverTooltipTab) return;
+    positionSuperTooltip(superHoverTooltipTab);
+  });
+  overTabs?.addEventListener("pointerout", (e) => {
+    if (!superHoverTooltipTab) return;
+    const rel = e.relatedTarget;
+    const next = rel && rel.closest ? rel.closest(".tab[data-super]") : null;
+    if (next && overTabs.contains(next)){
+      showSuperTooltip(next);
+      return;
+    }
+    hideSuperTooltip();
+  });
+  overTabs?.addEventListener("pointercancel", hideSuperTooltip);
+  tabsEl?.addEventListener("pointerover", (e) => {
+    const tab = e.target.closest(".tab-cat[data-tip], .tabs > .tab[data-tab][data-tip]");
+    if (!tab || !tabsEl.contains(tab)) return;
+    showRailTooltip(tab);
+  });
+  tabsEl?.addEventListener("pointermove", () => {
+    if (!railHoverTooltipTab) return;
+    positionRailTooltip(railHoverTooltipTab);
+  });
+  tabsEl?.addEventListener("pointerout", (e) => {
+    if (!railHoverTooltipTab) return;
+    const rel = e.relatedTarget;
+    const next = rel && rel.closest ? rel.closest(".tab-cat[data-tip], .tabs > .tab[data-tab][data-tip]") : null;
+    if (next && tabsEl.contains(next)){
+      showRailTooltip(next);
+      return;
+    }
+    hideRailTooltip();
+  });
+  tabsEl?.addEventListener("pointercancel", hideRailTooltip);
 
   function applyCategoryRailState(){
     if (tabsWrapEl){
       tabsWrapEl.classList.toggle("cat-collapsed", catRailCollapsed);
+    }
+    if (layout){
+      layout.classList.toggle("cat-rail-collapsed", catRailCollapsed);
     }
     if (catCollapseToggle){
       const label = catRailCollapsed
@@ -582,6 +725,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Horizontal scroll with mouse wheel on category/tabs row
   tabsEl?.addEventListener("wheel", (e) => {
     if (!tabsEl) return;
+    // In desktop vertical rail mode keep native vertical scrolling.
+    if (tabsEl.scrollHeight > tabsEl.clientHeight + 1){
+      return;
+    }
     const isHorizontal = Math.abs(e.deltaX) > Math.abs(e.deltaY);
     if (!isHorizontal && e.deltaY === 0) return;
     // Prevent page scroll when the tabs can scroll horizontally
@@ -701,6 +848,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const hotkeyCancel = document.getElementById("hotkeyCancel");
   const themeToggle = document.getElementById("themeToggle");
   const accentRow = document.getElementById("accentRow");
+  const accentCustomTrigger = document.getElementById("accentCustomTrigger");
+  const accentCustomOverlay = document.getElementById("accentCustomOverlay");
+  const accentCustomClose = document.getElementById("accentCustomClose");
+  const accentCustom = document.getElementById("accentCustom");
+  const accentWheel = document.getElementById("accentWheel");
+  const accentWheelWrap = document.getElementById("accentWheelWrap");
+  const accentWheelThumb = document.getElementById("accentWheelThumb");
+  const accentBrightness = document.getElementById("accentBrightness");
   const bgChoices = document.getElementById("bgChoices");
   const bgUpload = document.getElementById("bgUpload");
   const bgUploadBtn = document.getElementById("bgUploadBtn");
@@ -711,19 +866,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   const bgDuoBottom = document.getElementById("bgDuoBottom");
   const bgError = document.getElementById("bgError");
   const clipboardRetentionMode = document.getElementById("clipboardRetentionMode");
+  const clipboardModeCountBtn = document.getElementById("clipboardModeCountBtn");
+  const clipboardModeTimeBtn = document.getElementById("clipboardModeTimeBtn");
+  const clipboardTimeButtons = document.getElementById("clipboardTimeButtons");
+  const clipboardCountButtons = document.getElementById("clipboardCountButtons");
   const clipboardTimeCycle = document.getElementById("clipboardTimeCycle");
   const clipboardMaxItems = document.getElementById("clipboardMaxItems");
   const clipboardTimeWrap = document.getElementById("clipboardTimeWrap");
   const clipboardCountWrap = document.getElementById("clipboardCountWrap");
   const voiceActivationToggle = document.getElementById("voiceActivationToggle");
-  const voiceActivationState = document.getElementById("voiceActivationState");
+  const voiceActivationOff = document.getElementById("voiceActivationOff");
+  const voiceActivationOn = document.getElementById("voiceActivationOn");
   const voiceWakeModeSelect = document.getElementById("voiceWakeModeSelect");
   const voiceWakeCustomWrap = document.getElementById("voiceWakeCustomWrap");
   const voiceWakeInput = document.getElementById("voiceWakeInput");
-  const voiceCommandHint = document.getElementById("voiceCommandHint");
   const voiceMicWrap = document.getElementById("voiceMicWrap");
   const voiceMicSelect = document.getElementById("voiceMicSelect");
-  const voiceSelect = document.getElementById("voiceSelect");
+  const voiceModeBtn = document.getElementById("voiceModeBtn");
+  const voiceModeIcon = document.getElementById("voiceModeIcon");
   const voiceToneSelect = document.getElementById("voiceToneSelect");
 
   const confirmOverlay = document.getElementById("confirmOverlay");
@@ -764,12 +924,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const catSuperIconMark = document.getElementById("catSuperIconMark");
 
   const appType = document.getElementById("appType");
+  const appTypeToggleBtn = document.getElementById("appTypeToggleBtn");
+  const appTypeToggleLabel = document.getElementById("appTypeToggleLabel");
+  const appHotkeyInput = document.getElementById("appHotkey");
+  const appHotkeyCapture = document.getElementById("appHotkeyCapture");
+  const appHotkeyClear = document.getElementById("appHotkeyClear");
   const appCategory = document.getElementById("appCategory");
+  const appCategoryButton = document.getElementById("appCategoryButton");
+  const appCategoryLabel = document.getElementById("appCategoryLabel");
+  const appCategoryMenu = document.getElementById("appCategoryMenu");
   const launchLabel = document.getElementById("launchLabel");
   const launchHelp = document.getElementById("launchHelp");
   const launchField = document.getElementById("launchField");
   const scanField = document.getElementById("scanField");
   const scanSelect = document.getElementById("scanSelect");
+  const scanSelectButton = document.getElementById("scanSelectButton");
+  const scanSelectLabel = document.getElementById("scanSelectLabel");
+  const scanSelectMenu = document.getElementById("scanSelectMenu");
   const scanLoading = document.getElementById("scanLoading");
   const scanRefresh = document.getElementById("scanRefresh");
 
@@ -813,15 +984,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setAttr("#modalClose", "aria-label", "close_aria");
     setAttr("#settingsClose", "aria-label", "close_aria");
+    setAttr("#accentCustomClose", "aria-label", "close_aria");
     setAttr("#voiceSettingsClose", "aria-label", "close_aria");
     setAttr("#catManageClose", "aria-label", "close_aria");
     setAttr("#confirmClose", "aria-label", "close_aria");
     setAttr("#scanRefresh", "title", "modal_scan_refresh");
     setAttr("#scanRefresh", "aria-label", "modal_scan_refresh");
-    setAttr("#iconRemove", "title", "modal_icon_remove");
     setAttr("#iconRemove", "aria-label", "modal_icon_remove");
-    setAttr("#iconUploadBtn", "title", "modal_icon_upload");
     setAttr("#iconUploadBtn", "aria-label", "modal_icon_upload");
+    setAttr("#iconRemove", "data-tip", "modal_icon_remove");
+    setAttr("#iconUploadBtn", "data-tip", "modal_icon_upload_tip");
+    document.querySelector("#iconRemove")?.removeAttribute("title");
+    document.querySelector("#iconUploadBtn")?.removeAttribute("title");
 
     setText("#settingsOverlay [data-i18n='settings_hotkey_label']", "settings_hotkey_label");
     setText("#settingsOverlay [data-i18n='settings_hotkey_help']", "settings_hotkey_help");
@@ -837,9 +1011,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_voice_help']", "settings_voice_voice_help");
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_tone']", "settings_voice_tone");
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_tone_help']", "settings_voice_tone_help");
-    setText("#voiceSelect option[value='__none__']", "settings_voice_none");
-    setText("#voiceSelect option[value='__male__']", "settings_voice_male");
-    setText("#voiceSelect option[value='__female__']", "settings_voice_female");
     setText("#voiceToneSelect option[value='soft_low']", "settings_voice_tone_soft_low");
     setText("#voiceToneSelect option[value='deep_click']", "settings_voice_tone_deep_click");
     setText("#voiceToneSelect option[value='duo_console']", "settings_voice_tone_duo_console");
@@ -854,6 +1025,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#settingsOverlay [data-i18n='settings_theme']", "settings_theme");
     setText("#settingsOverlay [data-i18n='settings_light_mode']", "settings_light_mode");
     setText("#settingsOverlay [data-i18n='settings_accent']", "settings_accent");
+    setText("#settingsOverlay [data-i18n='settings_accent_custom']", "settings_accent_custom");
+    setText("#settingsOverlay [data-i18n='settings_accent_brightness']", "settings_accent_brightness");
+    setAttr("#accentCustomTrigger", "aria-label", "settings_accent_custom");
+    setAttr("#accentCustomTrigger", "title", "settings_accent_custom");
     setText("#settingsOverlay [data-i18n='settings_background']", "settings_background");
     setText("#settingsOverlay [data-i18n='settings_bg_standard']", "settings_bg_standard");
     setText("#settingsOverlay [data-i18n='settings_bg_mono']", "settings_bg_mono");
@@ -868,8 +1043,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     setPh("#bgUploadName", "settings_no_image");
     setText("#bgUploadBtn", "settings_upload_image");
 
-    setText("#clipboardRetentionMode option[value='count']", "settings_clip_count");
-    setText("#clipboardRetentionMode option[value='time']", "settings_clip_time");
+    setAttr("#clipboardModeCountBtn", "aria-label", "settings_clip_count");
+    setAttr("#clipboardModeTimeBtn", "aria-label", "settings_clip_time");
+    setAttr("#clipboardModeCountBtn", "data-tip", "settings_clip_count");
+    setAttr("#clipboardModeTimeBtn", "data-tip", "settings_clip_time");
+    document.querySelector("#clipboardModeCountBtn")?.removeAttribute("title");
+    document.querySelector("#clipboardModeTimeBtn")?.removeAttribute("title");
     setText("#clipboardTimeCycle option[value='4']", "settings_hours_4");
     setText("#clipboardTimeCycle option[value='8']", "settings_hours_8");
     setText("#clipboardTimeCycle option[value='24']", "settings_hours_24");
@@ -877,8 +1056,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateVoiceActivationStatusLabel();
     const defaultMicOpt = document.querySelector("#voiceMicSelect option[value='']");
     if (defaultMicOpt) defaultMicOpt.textContent = t("settings_voice_default_mic");
-    const defaultVoiceOpt = document.querySelector("#voiceSelect option[value='']");
-    if (defaultVoiceOpt) defaultVoiceOpt.textContent = t("settings_voice_default_voice");
+    setAttr("#voiceModeBtn", "aria-label", "settings_voice_voice");
+    updateVoiceModeButton(voiceUiChoice);
 
     setText("#modalOverlay [data-i18n='modal_icon_optional']", "modal_icon_optional");
     setText("#modalOverlay [data-i18n='modal_icon_auto']", "modal_icon_auto");
@@ -887,7 +1066,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setPh("#appName", "modal_name_placeholder");
     setText("#modalOverlay [data-i18n='modal_type_label']", "modal_type_label");
     setText("#appType option[value='web']", "modal_type_web");
-    setText("#appType option[value='desktop']", "modal_type_desktop");
     setText("#appType option[value='scan']", "modal_type_scan");
     setText("#modalOverlay [data-i18n='modal_category_label']", "modal_category_label");
     setHtml("#launchLabel", "modal_url_label");
@@ -895,8 +1073,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#launchHelp", "modal_url_example");
     setText("#modalOverlay [data-i18n='modal_found_apps']", "modal_found_apps");
     setText("#modalOverlay [data-i18n='modal_scan_help']", "modal_scan_help");
-    setText("#modalOverlay [data-i18n='modal_description_label']", "modal_description_label");
-    setPh("#appDesc", "modal_description_placeholder");
+    setText("#modalOverlay [data-i18n='modal_app_hotkey_label']", "modal_app_hotkey_label");
+    setPh("#appHotkey", "modal_app_hotkey_placeholder");
+    setAttr("#appHotkeyClear", "aria-label", "modal_app_hotkey_clear");
+    setAttr("#appHotkeyClear", "data-tip", "modal_app_hotkey_clear");
+    if (!capturingAppHotkey) setText("#appHotkeyCapture", "settings_capture");
 
     setText("#catManageOverlay [data-i18n='cat_new_label']", "cat_new_label");
     setPh("#catManageInput", "cat_new_placeholder");
@@ -912,12 +1093,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelectorAll(".cat-icon-pick .cat-icon-text").forEach((el) => {
       el.textContent = t("category_icon_btn");
     });
+    syncAppTypeToggleUi();
+    syncAppCategoryUi();
+    syncScanSelectUi();
     updateCatManageModeUi();
   }
 
   let editingId = null;
 
   let scanApps = [];
+  let scanPrefillValue = "";
+  let scanPrefillLabel = "";
   const SCAN_CACHE_KEY = "kc_scan_cache_v9";
   const SCAN_CACHE_TTL = 1000 * 60 * 60 * 6; // 6h
 
@@ -945,6 +1131,128 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderScanApps();
   }
 
+  function syncScanSelectUi(){
+    if (!scanSelect || !scanSelectLabel) return;
+    const selected = scanSelect.selectedOptions?.[0];
+    const text = (selected?.textContent || "").trim();
+    scanSelectLabel.textContent = text || t("scan_select_placeholder");
+  }
+
+  let scanTypeaheadQuery = "";
+  let scanTypeaheadTimer = 0;
+
+  function resetScanTypeahead(){
+    scanTypeaheadQuery = "";
+    if (scanTypeaheadTimer){
+      clearTimeout(scanTypeaheadTimer);
+      scanTypeaheadTimer = 0;
+    }
+  }
+
+  function normalizeTypeaheadText(value){
+    return String(value || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function selectScanOptionByValue(value, closeMenu = false){
+    if (!scanSelect) return;
+    scanSelect.value = value || "";
+    applyScanSelectionIcon();
+    if (scanSelectMenu){
+      let selectedEl = null;
+      scanSelectMenu.querySelectorAll(".category-select-item").forEach((el) => {
+        const active = el.dataset.value === String(value || "");
+        if (active) selectedEl = el;
+        el.classList.toggle("selected", active);
+        el.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      selectedEl?.scrollIntoView({ block: "nearest" });
+    }
+    if (closeMenu) closeScanSelectMenu();
+  }
+
+  function handleScanTypeaheadKey(e){
+    if (!scanApps.length || !scanSelect || scanSelect.disabled) return;
+    if (e.key === "Escape"){
+      resetScanTypeahead();
+      closeScanSelectMenu();
+      return;
+    }
+    if (e.key === "Backspace"){
+      e.preventDefault();
+      e.stopPropagation();
+      scanTypeaheadQuery = scanTypeaheadQuery.slice(0, -1);
+      if (!scanTypeaheadQuery){
+        selectScanOptionByValue("", false);
+        return;
+      }
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey){
+      e.preventDefault();
+      e.stopPropagation();
+      if (scanSelectMenu?.classList.contains("hidden")) openScanSelectMenu();
+      scanTypeaheadQuery += e.key;
+    } else {
+      return;
+    }
+    if (scanTypeaheadTimer) clearTimeout(scanTypeaheadTimer);
+    scanTypeaheadTimer = setTimeout(() => { scanTypeaheadQuery = ""; }, 900);
+
+    const query = normalizeTypeaheadText(scanTypeaheadQuery);
+    if (!query) return;
+
+    const starts = scanApps.find((app) =>
+      normalizeTypeaheadText(app?.name || app?.title || "").startsWith(query)
+    );
+    const contains = starts || scanApps.find((app) =>
+      normalizeTypeaheadText(app?.name || app?.title || "").includes(query)
+    );
+    if (!contains) return;
+
+    const value = contains.launch || contains.path || "";
+    if (!value) return;
+    selectScanOptionByValue(value, false);
+  }
+
+  function positionDropdownMenu(menuEl, buttonEl){
+    if (!menuEl || !buttonEl || !buttonEl.parentElement) return;
+    const wrap = buttonEl.parentElement;
+    const rect = buttonEl.getBoundingClientRect();
+    const viewH = window.innerHeight || document.documentElement.clientHeight || 0;
+    const margin = 10;
+    const below = Math.max(0, viewH - rect.bottom - margin);
+    const above = Math.max(0, rect.top - margin);
+    const isScanMenu = menuEl === scanSelectMenu;
+    let openUp = above > (below + 24);
+    if (isScanMenu){
+      openUp = above >= 180 || above > below;
+    }
+    wrap.classList.toggle("open-up", openUp);
+    const room = openUp ? above : below;
+    const max = Math.max(160, Math.min(440, room - 8));
+    menuEl.style.maxHeight = `${max}px`;
+  }
+
+  function closeScanSelectMenu(){
+    if (!scanSelectMenu || !scanSelectButton || !scanSelectButton.parentElement) return;
+    scanSelectMenu.classList.add("hidden");
+    scanSelectButton.setAttribute("aria-expanded", "false");
+    scanSelectButton.parentElement.classList.remove("open");
+    scanSelectButton.parentElement.classList.remove("open-up");
+    scanSelectMenu.style.maxHeight = "";
+    resetScanTypeahead();
+  }
+
+  function openScanSelectMenu(){
+    if (!scanSelectMenu || !scanSelectButton || !scanSelectButton.parentElement) return;
+    if (scanSelect.disabled) return;
+    scanSelectMenu.classList.remove("hidden");
+    scanSelectButton.setAttribute("aria-expanded", "true");
+    scanSelectButton.parentElement.classList.add("open");
+    positionDropdownMenu(scanSelectMenu, scanSelectButton);
+  }
+
   async function loadScanApps(force = false){
     try{
       if (scanSelect){
@@ -955,6 +1263,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         opt.textContent = t("scan_loading");
         scanSelect.appendChild(opt);
       }
+      if (scanSelectMenu){
+        scanSelectMenu.innerHTML = "";
+        closeScanSelectMenu();
+      }
+      syncScanSelectUi();
       if (scanLoading) scanLoading.classList.remove("hidden");
 
       const cache = force ? null : loadScanCache();
@@ -997,12 +1310,38 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderScanApps(){
     if (!scanSelect) return;
     scanSelect.innerHTML = "";
+    if (scanSelectMenu){
+      scanSelectMenu.innerHTML = "";
+    }
     if (!scanApps.length){
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = t("scan_none");
-      scanSelect.appendChild(opt);
-      scanSelect.disabled = true;
+      if (scanPrefillValue){
+        const prefillOpt = document.createElement("option");
+        prefillOpt.value = scanPrefillValue;
+        prefillOpt.textContent = scanPrefillLabel || scanPrefillValue;
+        scanSelect.appendChild(prefillOpt);
+        if (scanSelectMenu){
+          const prefillItem = document.createElement("button");
+          prefillItem.type = "button";
+          prefillItem.className = "category-select-item";
+          prefillItem.dataset.value = scanPrefillValue;
+          prefillItem.textContent = prefillOpt.textContent;
+          prefillItem.setAttribute("aria-selected", "false");
+          prefillItem.addEventListener("click", () => {
+            selectScanOptionByValue(scanPrefillValue, true);
+          });
+          scanSelectMenu.appendChild(prefillItem);
+        }
+        scanSelect.disabled = false;
+        selectScanOptionByValue(scanPrefillValue, false);
+      } else {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = t("scan_none");
+        scanSelect.appendChild(opt);
+        scanSelect.disabled = true;
+        syncScanSelectUi();
+      }
+      closeScanSelectMenu();
       return;
     }
     scanSelect.disabled = false;
@@ -1016,14 +1355,63 @@ document.addEventListener("DOMContentLoaded", async () => {
       opt.value = app.launch || app.path || "";
       opt.textContent = app.name || app.title || t("unknown");
       scanSelect.appendChild(opt);
+
+      if (scanSelectMenu){
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "category-select-item";
+        item.dataset.value = opt.value;
+        item.textContent = opt.textContent;
+        item.setAttribute("aria-selected", "false");
+        item.addEventListener("click", () => {
+          selectScanOptionByValue(opt.value, true);
+        });
+        scanSelectMenu.appendChild(item);
+      }
     });
+    if (scanPrefillValue){
+      const exists = Array.from(scanSelect.options).some((opt) => opt.value === scanPrefillValue);
+      if (!exists){
+        const fallbackOpt = document.createElement("option");
+        fallbackOpt.value = scanPrefillValue;
+        fallbackOpt.textContent = scanPrefillLabel || scanPrefillValue;
+        scanSelect.appendChild(fallbackOpt);
+        if (scanSelectMenu){
+          const fallbackItem = document.createElement("button");
+          fallbackItem.type = "button";
+          fallbackItem.className = "category-select-item";
+          fallbackItem.dataset.value = scanPrefillValue;
+          fallbackItem.textContent = fallbackOpt.textContent;
+          fallbackItem.setAttribute("aria-selected", "false");
+          fallbackItem.addEventListener("click", () => {
+            selectScanOptionByValue(scanPrefillValue, true);
+          });
+          scanSelectMenu.appendChild(fallbackItem);
+        }
+      }
+      selectScanOptionByValue(scanPrefillValue, false);
+      return;
+    }
     applyScanSelectionIcon();
+    syncScanSelectUi();
   }
 
   function applyScanSelectionIcon(){
     if (!scanSelect) return;
     const selected = scanSelect.value || "";
-    const app = scanApps.find(a => a.launch === selected);
+    const app = scanApps.find(a => (a.launch || a.path || "") === selected);
+    if (iconState?.type === "custom"){
+      syncScanSelectUi();
+      return;
+    }
+    if (scanSelectMenu){
+      scanSelectMenu.querySelectorAll(".category-select-item").forEach((el) => {
+        const active = el.dataset.value === selected;
+        el.classList.toggle("selected", active);
+        el.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+    syncScanSelectUi();
     if (app?.icon){
       setIconCustom(app.icon);
     } else {
@@ -1032,8 +1420,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function openModal() {
+    if (!editingId && appCategory){
+      appCategory.value = "";
+    }
+    if (!editingId){
+      scanPrefillValue = "";
+      scanPrefillLabel = "";
+    }
     overlay.classList.add("show");
     overlay.setAttribute("aria-hidden", "false");
+    stopAppHotkeyCapture();
+    closeAppCategoryMenu();
+    closeScanSelectMenu();
+    syncAppCategoryUi();
+    syncScanSelectUi();
     setTimeout(() => document.getElementById("appName")?.focus(), 50);
     syncTypeUI();
     refreshIconFromUrl();
@@ -1134,13 +1534,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     layout.classList.toggle("notes-open", notesOpen);
     layout.classList.toggle("clipboard-open", clipboardOpen);
   }
+  let railAutoCollapsedBySidePanel = false;
+  let sidePanelSwitching = false;
+
+  function ensureRailCollapsedForSidePanel(){
+    if (catRailCollapsed) return;
+    railAutoCollapsedBySidePanel = true;
+    setCategoryRailCollapsed(true);
+  }
+
+  function restoreRailIfSidePanelsClosed(){
+    if (sidePanelSwitching) return;
+    const notesOpen = Boolean(notesPanel?.classList.contains("show"));
+    const clipboardOpen = Boolean(clipboardPanel?.classList.contains("show"));
+    if (notesOpen || clipboardOpen) return;
+    if (!railAutoCollapsedBySidePanel) return;
+    railAutoCollapsedBySidePanel = false;
+    setCategoryRailCollapsed(false);
+  }
 
   function openNotes(){
     if (!notesPanel) return;
+    sidePanelSwitching = true;
     closeClipboard();
+    sidePanelSwitching = false;
     notesPanel.classList.add("show");
     notesPanel.setAttribute("aria-hidden", "false");
     if (notesToggle) notesToggle.setAttribute("aria-expanded", "true");
+    ensureRailCollapsedForSidePanel();
     syncSidePanelsLayout();
     setTimeout(() => notesText?.focus(), 0);
   }
@@ -1151,6 +1572,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     notesPanel.setAttribute("aria-hidden", "true");
     if (notesToggle) notesToggle.setAttribute("aria-expanded", "false");
     syncSidePanelsLayout();
+    restoreRailIfSidePanelsClosed();
   }
 
   function setNotesStatus(text){
@@ -1433,6 +1855,30 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (clipboardMaxItems) clipboardMaxItems.value = String(cfg.maxItems);
     if (clipboardTimeWrap) clipboardTimeWrap.classList.toggle("hidden", cfg.mode !== "time");
     if (clipboardCountWrap) clipboardCountWrap.classList.toggle("hidden", cfg.mode !== "count");
+    if (clipboardModeCountBtn){
+      const active = cfg.mode === "count";
+      clipboardModeCountBtn.classList.toggle("active", active);
+      clipboardModeCountBtn.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+    if (clipboardModeTimeBtn){
+      const active = cfg.mode === "time";
+      clipboardModeTimeBtn.classList.toggle("active", active);
+      clipboardModeTimeBtn.setAttribute("aria-pressed", active ? "true" : "false");
+    }
+    if (clipboardTimeButtons){
+      clipboardTimeButtons.querySelectorAll(".clipboard-option-btn").forEach((btn) => {
+        const active = String(btn.dataset.value || "") === String(cfg.hours);
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+    if (clipboardCountButtons){
+      clipboardCountButtons.querySelectorAll(".clipboard-option-btn").forEach((btn) => {
+        const active = String(btn.dataset.value || "") === String(cfg.maxItems);
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
   }
 
   function updateClipboardModeBadge(){
@@ -1657,10 +2103,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function openClipboard(){
     if (!clipboardPanel) return;
+    sidePanelSwitching = true;
     closeNotes();
+    sidePanelSwitching = false;
     clipboardPanel.classList.add("show");
     clipboardPanel.setAttribute("aria-hidden", "false");
     if (clipboardToggle) clipboardToggle.setAttribute("aria-expanded", "true");
+    ensureRailCollapsedForSidePanel();
     syncSidePanelsLayout();
     updateClipboardModeBadge();
     renderClipboardItems();
@@ -1672,6 +2121,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     clipboardPanel.setAttribute("aria-hidden", "true");
     if (clipboardToggle) clipboardToggle.setAttribute("aria-expanded", "false");
     syncSidePanelsLayout();
+    restoreRailIfSidePanelsClosed();
   }
 
   if (clipboardToggle && clipboardPanel){
@@ -1697,33 +2147,49 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  clipboardRetentionMode?.addEventListener("change", () => {
-    saveClipboardRetentionSettings({
-      mode: clipboardRetentionMode.value,
-      hours: clipboardTimeCycle?.value || "24",
-      maxItems: clipboardMaxItems?.value || "25"
-    });
-    syncClipboardSettingsUI();
-    updateClipboardModeBadge();
-    persistAndRenderClipboard();
-  });
-
-  clipboardTimeCycle?.addEventListener("change", () => {
-    saveClipboardRetentionSettings({
-      mode: clipboardRetentionMode?.value || "time",
-      hours: clipboardTimeCycle.value,
-      maxItems: clipboardMaxItems?.value || "25"
-    });
-    syncClipboardSettingsUI();
-    updateClipboardModeBadge();
-    persistAndRenderClipboard();
-  });
-
-  clipboardMaxItems?.addEventListener("change", () => {
+  function onClipboardRetentionModeChanged(){
     saveClipboardRetentionSettings({
       mode: clipboardRetentionMode?.value || "count",
       hours: clipboardTimeCycle?.value || "24",
-      maxItems: clipboardMaxItems.value
+      maxItems: clipboardMaxItems?.value || "25"
+    });
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
+    persistAndRenderClipboard();
+  }
+
+  clipboardRetentionMode?.addEventListener("change", onClipboardRetentionModeChanged);
+  clipboardModeCountBtn?.addEventListener("click", () => {
+    if (clipboardRetentionMode) clipboardRetentionMode.value = "count";
+    onClipboardRetentionModeChanged();
+  });
+  clipboardModeTimeBtn?.addEventListener("click", () => {
+    if (clipboardRetentionMode) clipboardRetentionMode.value = "time";
+    onClipboardRetentionModeChanged();
+  });
+
+  clipboardTimeButtons?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".clipboard-option-btn");
+    if (!btn) return;
+    if (clipboardTimeCycle) clipboardTimeCycle.value = String(btn.dataset.value || "24");
+    saveClipboardRetentionSettings({
+      mode: clipboardRetentionMode?.value || "time",
+      hours: clipboardTimeCycle?.value || "24",
+      maxItems: clipboardMaxItems?.value || "25"
+    });
+    syncClipboardSettingsUI();
+    updateClipboardModeBadge();
+    persistAndRenderClipboard();
+  });
+
+  clipboardCountButtons?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".clipboard-option-btn");
+    if (!btn) return;
+    if (clipboardMaxItems) clipboardMaxItems.value = String(btn.dataset.value || "25");
+    saveClipboardRetentionSettings({
+      mode: clipboardRetentionMode?.value || "count",
+      hours: clipboardTimeCycle?.value || "24",
+      maxItems: clipboardMaxItems?.value || "25"
     });
     syncClipboardSettingsUI();
     updateClipboardModeBadge();
@@ -1756,23 +2222,97 @@ document.addEventListener("DOMContentLoaded", async () => {
     cyan:   { rgb: "6,182,212", rgb2: "8,145,178" },
     gray:   { rgb: "100,116,139", rgb2: "71,85,105" }
   };
+  const UI_ACCENTS = new Set(["purple", "blue", "green", "pink", "red"]);
+  const ACCENT_CUSTOM_BASE_KEY = "kc_accent_custom_base";
+  const ACCENT_CUSTOM_BRIGHTNESS_KEY = "kc_accent_custom_brightness";
+  let accentWheelCtx = null;
+  let accentBaseRgb = { r: 124, g: 58, b: 237 };
+  let accentBrightnessValue = 100;
 
-  function applyAccent(name){
-    const key = ACCENTS[name] ? name : "purple";
-    const val = ACCENTS[key];
-    document.documentElement.style.setProperty("--accent-rgb", val.rgb);
-    document.documentElement.style.setProperty("--accent2-rgb", val.rgb2);
-    localStorage.setItem("kc_accent", key);
+  function clampChannel(value){
+    return Math.max(0, Math.min(255, Math.round(Number(value) || 0)));
+  }
+
+  function parseRgbTriplet(value){
+    const m = String(value || "").trim().match(/^(\d{1,3}),(\d{1,3}),(\d{1,3})$/);
+    if (!m) return null;
+    return {
+      r: clampChannel(m[1]),
+      g: clampChannel(m[2]),
+      b: clampChannel(m[3])
+    };
+  }
+
+  function rgbToTriplet(rgb){
+    return `${clampChannel(rgb?.r)},${clampChannel(rgb?.g)},${clampChannel(rgb?.b)}`;
+  }
+
+  function setAccentVars(rgb, rgb2){
+    document.documentElement.style.setProperty("--accent-rgb", rgb);
+    document.documentElement.style.setProperty("--accent2-rgb", rgb2);
+  }
+
+  function computeAccentFromBase(base, brightness){
+    const factor = Math.max(0.4, Math.min(1.4, Number(brightness || 100) / 100));
+    const r = clampChannel(base.r * factor);
+    const g = clampChannel(base.g * factor);
+    const b = clampChannel(base.b * factor);
+    const d = 0.82;
+    return {
+      rgb: `${r},${g},${b}`,
+      rgb2: `${clampChannel(r * d)},${clampChannel(g * d)},${clampChannel(b * d)}`
+    };
+  }
+
+  function loadCustomAccentState(){
+    const savedBase = parseRgbTriplet(localStorage.getItem(ACCENT_CUSTOM_BASE_KEY));
+    if (savedBase) accentBaseRgb = savedBase;
+    const savedBrightness = parseInt(localStorage.getItem(ACCENT_CUSTOM_BRIGHTNESS_KEY) || "100", 10);
+    accentBrightnessValue = Number.isFinite(savedBrightness) ? Math.max(40, Math.min(140, savedBrightness)) : 100;
+    if (accentBrightness) accentBrightness.value = String(accentBrightnessValue);
+  }
+
+  function updateAccentSelectionUi(activeKey){
     if (accentRow){
-      accentRow.querySelectorAll(".accent-btn").forEach(btn => {
-        btn.classList.toggle("selected", btn.dataset.accent === key);
+      accentRow.querySelectorAll(".accent-btn").forEach((btn) => {
+        btn.classList.toggle("selected", btn.dataset.accent === activeKey);
       });
     }
+    if (accentCustomTrigger){
+      accentCustomTrigger.classList.toggle("selected", activeKey === "custom");
+      accentCustomTrigger.setAttribute("aria-pressed", activeKey === "custom" ? "true" : "false");
+    }
+    if (accentCustom){
+      accentCustom.classList.toggle("selected", activeKey === "custom");
+    }
+  }
+
+  function applyCustomAccent(persist = true){
+    const tone = computeAccentFromBase(accentBaseRgb, accentBrightnessValue);
+    setAccentVars(tone.rgb, tone.rgb2);
+    updateAccentSelectionUi("custom");
+    if (!persist) return;
+    localStorage.setItem("kc_accent", "custom");
+    localStorage.setItem(ACCENT_CUSTOM_BASE_KEY, rgbToTriplet(accentBaseRgb));
+    localStorage.setItem(ACCENT_CUSTOM_BRIGHTNESS_KEY, String(accentBrightnessValue));
+  }
+
+  function applyAccent(name){
+    if (name === "custom"){
+      applyCustomAccent(true);
+      return;
+    }
+    const key = UI_ACCENTS.has(name) && ACCENTS[name] ? name : "purple";
+    const val = ACCENTS[key];
+    setAccentVars(val.rgb, val.rgb2);
+    localStorage.setItem("kc_accent", key);
+    updateAccentSelectionUi(key);
   }
 
   // Theme init
   applyTheme("dark");
   if (themeToggle) themeToggle.checked = false;
+  loadCustomAccentState();
   const savedAccent = localStorage.getItem("kc_accent") || "purple";
   applyAccent(savedAccent);
 
@@ -1881,10 +2421,50 @@ document.addEventListener("DOMContentLoaded", async () => {
   const VOICE_WAKE_KEY = "kc_voice_wake";
   const VOICE_WAKE_MODE_KEY = "kc_voice_wake_mode";
   const VOICE_TONES = new Set(["soft_low", "deep_click", "duo_console", "warm_ping", "short_thud"]);
+  const VOICE_MODE_ORDER = ["__none__", "__female__", "__male__"];
   const DEFAULT_WAKE_INPUT = "Kontrollzentrum, Control Center";
+  let voiceUiChoice = "__none__";
 
-  function normalizeWakeMode(value){
-    return String(value || "").toLowerCase() === "custom" ? "custom" : "standard";
+  function normalizeWakeMode(){
+    return "custom";
+  }
+
+  function normalizeVoiceMode(value){
+    const normalized = sanitizeVoiceChoice(value);
+    return VOICE_MODE_ORDER.includes(normalized) ? normalized : "__none__";
+  }
+
+  function nextVoiceMode(value){
+    const current = normalizeVoiceMode(value);
+    const idx = VOICE_MODE_ORDER.indexOf(current);
+    const nextIdx = (idx + 1) % VOICE_MODE_ORDER.length;
+    return VOICE_MODE_ORDER[nextIdx];
+  }
+
+  function getVoiceModeIconGlyph(value){
+    const mode = normalizeVoiceMode(value);
+    if (mode === "__female__") return "🙍‍♀️";
+    if (mode === "__male__") return "🙍‍♂️";
+    return "🎵";
+  }
+
+  function voiceModeLabelKey(value){
+    const mode = normalizeVoiceMode(value);
+    if (mode === "__female__") return "settings_voice_female";
+    if (mode === "__male__") return "settings_voice_male";
+    return "settings_voice_none";
+  }
+
+  function updateVoiceModeButton(value){
+    voiceUiChoice = normalizeVoiceMode(value);
+    if (voiceModeIcon) voiceModeIcon.textContent = getVoiceModeIconGlyph(voiceUiChoice);
+    if (voiceModeBtn){
+      const label = t(voiceModeLabelKey(voiceUiChoice));
+      voiceModeBtn.dataset.mode = voiceUiChoice;
+      voiceModeBtn.setAttribute("data-tip", label);
+      voiceModeBtn.removeAttribute("title");
+      voiceModeBtn.setAttribute("aria-label", label);
+    }
   }
 
   function loadVoiceSettings(){
@@ -1892,12 +2472,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const enabled = rawEnabled !== "0" && rawEnabled !== "false" && rawEnabled !== "off";
     const micId = localStorage.getItem(VOICE_MIC_KEY) || "";
     const voiceName = sanitizeVoiceChoice(localStorage.getItem(VOICE_NAME_KEY) || "");
-    const toneRaw = localStorage.getItem(VOICE_TONE_KEY) || "soft_low";
-    const toneId = VOICE_TONES.has(toneRaw) ? toneRaw : "soft_low";
+    const toneId = "soft_low";
     const wakePhrase = localStorage.getItem(VOICE_WAKE_KEY) || DEFAULT_WAKE_INPUT;
-    const rawWakeMode = localStorage.getItem(VOICE_WAKE_MODE_KEY) || "";
-    const inferredMode = wakePhrase && wakePhrase.trim() !== DEFAULT_WAKE_INPUT ? "custom" : "standard";
-    const wakeMode = rawWakeMode ? normalizeWakeMode(rawWakeMode) : inferredMode;
+    const wakeMode = normalizeWakeMode();
     return { enabled, micId, voiceName, toneId, wakePhrase, wakeMode };
   }
 
@@ -1906,74 +2483,56 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem(VOICE_ENABLED_KEY, enabled ? "1" : "0");
     localStorage.setItem(VOICE_MIC_KEY, micId || "");
     localStorage.setItem(VOICE_NAME_KEY, sanitizeVoiceChoice(voiceName || ""));
-    localStorage.setItem(VOICE_TONE_KEY, VOICE_TONES.has(toneId) ? toneId : "soft_low");
+    localStorage.setItem(VOICE_TONE_KEY, "soft_low");
     localStorage.setItem(VOICE_WAKE_MODE_KEY, mode);
-    localStorage.setItem(VOICE_WAKE_KEY, mode === "custom" ? String(wakePhrase || "").trim() : DEFAULT_WAKE_INPUT);
+    const normalizedWake = String(wakePhrase || "").trim() || DEFAULT_WAKE_INPUT;
+    localStorage.setItem(VOICE_WAKE_KEY, normalizedWake);
   }
 
   function getVoiceSettingsFromUI(){
     const enabled = Boolean(voiceActivationToggle?.checked);
     const micId = String(voiceMicSelect?.value || "");
-    const voiceName = sanitizeVoiceChoice(String(voiceSelect?.value || ""));
-    const toneRaw = String(voiceToneSelect?.value || "soft_low");
-    const toneId = VOICE_TONES.has(toneRaw) ? toneRaw : "soft_low";
-    const wakeMode = normalizeWakeMode(voiceWakeModeSelect?.value || "standard");
+    const voiceName = normalizeVoiceMode(voiceUiChoice);
+    const toneId = "soft_low";
+    const wakeMode = normalizeWakeMode();
     const wakePhrase = String(voiceWakeInput?.value || "").trim();
     return { enabled, micId, voiceName, toneId, wakePhrase, wakeMode };
   }
 
-  function updateWakeModeUI(mode){
-    const wakeMode = normalizeWakeMode(mode || "standard");
-    if (voiceWakeModeSelect) voiceWakeModeSelect.value = wakeMode;
-    if (voiceWakeCustomWrap) voiceWakeCustomWrap.classList.toggle("hidden", wakeMode !== "custom");
+  function updateWakeModeUI(){
+    if (voiceWakeModeSelect) voiceWakeModeSelect.value = "custom";
+    if (voiceWakeCustomWrap) voiceWakeCustomWrap.classList.remove("hidden");
   }
 
   function updateVoiceActivationStatusLabel(){
-    if (!voiceActivationState) return;
     const enabled = Boolean(voiceActivationToggle?.checked);
-    voiceActivationState.textContent = enabled ? t("settings_voice_status_on") : t("settings_voice_status_off");
+    if (voiceActivationOn){
+      voiceActivationOn.classList.toggle("active", enabled);
+      voiceActivationOn.setAttribute("aria-pressed", enabled ? "true" : "false");
+    }
+    if (voiceActivationOff){
+      voiceActivationOff.classList.toggle("active", !enabled);
+      voiceActivationOff.setAttribute("aria-pressed", enabled ? "false" : "true");
+    }
   }
 
   function applyVoiceSettingsToUI(settings){
     if (voiceActivationToggle) voiceActivationToggle.checked = Boolean(settings?.enabled);
-    if (voiceCommandHint) voiceCommandHint.classList.toggle("hidden", !Boolean(settings?.enabled));
     if (voiceMicWrap) voiceMicWrap.classList.toggle("hidden", !Boolean(settings?.enabled));
     if (voiceToneSelect){
       const toneId = VOICE_TONES.has(settings?.toneId) ? settings.toneId : "soft_low";
       voiceToneSelect.value = toneId;
     }
-    updateWakeModeUI(settings?.wakeMode || "standard");
+    updateWakeModeUI();
     if (voiceWakeInput){
       voiceWakeInput.value = String(settings?.wakePhrase || DEFAULT_WAKE_INPUT);
     }
+    updateVoiceModeButton(settings?.voiceName || "__none__");
     updateVoiceActivationStatusLabel();
   }
 
   function refreshVoiceList(preferredVoiceName = ""){
-    if (!voiceSelect) return;
-    voiceSelect.innerHTML = "";
-    const autoOpt = document.createElement("option");
-    autoOpt.value = "";
-    autoOpt.textContent = t("settings_voice_default_voice");
-    voiceSelect.appendChild(autoOpt);
-
-    const noneOpt = document.createElement("option");
-    noneOpt.value = "__none__";
-    noneOpt.textContent = t("settings_voice_none");
-    voiceSelect.appendChild(noneOpt);
-
-    const maleOpt = document.createElement("option");
-    maleOpt.value = "__male__";
-    maleOpt.textContent = t("settings_voice_male");
-    voiceSelect.appendChild(maleOpt);
-
-    const femaleOpt = document.createElement("option");
-    femaleOpt.value = "__female__";
-    femaleOpt.textContent = t("settings_voice_female");
-    voiceSelect.appendChild(femaleOpt);
-
-    const known = new Set(Array.from(voiceSelect.options).map((opt) => opt.value));
-    voiceSelect.value = known.has(preferredVoiceName) ? preferredVoiceName : "";
+    updateVoiceModeButton(preferredVoiceName || "__none__");
   }
 
   async function requestMicPermissionForLabels(){
@@ -2031,6 +2590,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   function closeModal() {
     overlay.classList.remove("show");
     overlay.setAttribute("aria-hidden", "true");
+    stopAppHotkeyCapture();
+    closeAppCategoryMenu();
+    closeScanSelectMenu();
+    scanPrefillValue = "";
+    scanPrefillLabel = "";
     editingId = null;
     if (modalTitle) modalTitle.textContent = t("modal_add_title");
     if (submitBtn) submitBtn.textContent = t("add");
@@ -2063,13 +2627,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     refreshVoiceList(voiceSettings.voiceName);
     voiceSettingsOverlay.classList.add("show");
     voiceSettingsOverlay.setAttribute("aria-hidden", "false");
-    setTimeout(() => voiceActivationToggle?.focus(), 0);
+    setTimeout(() => (voiceActivationOn || voiceActivationOff || voiceActivationToggle)?.focus?.(), 0);
   }
 
   function closeSettings(){
     if (!settingsOverlay) return;
     settingsOverlay.classList.remove("show");
     settingsOverlay.setAttribute("aria-hidden", "true");
+    closeAccentCustomPopup();
     stopHotkeyCapture();
   }
 
@@ -2286,12 +2851,17 @@ function openCatManage(){
     onOk,
     okLabel = t("confirm_delete_default_label"),
     title = t("confirm_delete_default_title"),
-    cancelLabel = t("cancel")
+    cancelLabel = t("cancel"),
+    options = {}
   ){
     if (!confirmOverlay || !confirmText) return;
+    const singleButton = Boolean(options?.singleButton);
     confirmText.textContent = message || t("confirm_delete_default_message");
     if (confirmOk) confirmOk.textContent = okLabel || t("confirm_delete_default_label");
-    if (confirmCancel) confirmCancel.textContent = cancelLabel || t("cancel");
+    if (confirmCancel){
+      confirmCancel.textContent = cancelLabel || t("cancel");
+      confirmCancel.classList.toggle("hidden", singleButton);
+    }
     if (confirmTitle) confirmTitle.textContent = title || t("confirm_delete_default_title");
     confirmAction = onOk || null;
     confirmOverlay.classList.add("show");
@@ -2304,7 +2874,10 @@ function openCatManage(){
     confirmOverlay.classList.remove("show");
     confirmOverlay.setAttribute("aria-hidden", "true");
     if (confirmOk) confirmOk.textContent = t("confirm_delete_default_label");
-    if (confirmCancel) confirmCancel.textContent = t("cancel");
+    if (confirmCancel){
+      confirmCancel.textContent = t("cancel");
+      confirmCancel.classList.remove("hidden");
+    }
     if (confirmTitle) confirmTitle.textContent = t("confirm_delete_default_title");
     confirmAction = null;
   }
@@ -2361,6 +2934,18 @@ function openCatManage(){
   superIconOverlay?.addEventListener("click", (e) => {
     if (e.target === superIconOverlay) closeSuperIconPicker();
   });
+  document.addEventListener("click", (e) => {
+    if (appCategoryMenu && appCategoryButton){
+      const inMenu = appCategoryMenu.contains(e.target);
+      const inBtn = appCategoryButton.contains(e.target);
+      if (!inMenu && !inBtn) closeAppCategoryMenu();
+    }
+    if (scanSelectMenu && scanSelectButton){
+      const inMenu = scanSelectMenu.contains(e.target);
+      const inBtn = scanSelectButton.contains(e.target);
+      if (!inMenu && !inBtn) closeScanSelectMenu();
+    }
+  });
 
   confirmClose?.addEventListener("click", closeConfirm);
   confirmCancel?.addEventListener("click", closeConfirm);
@@ -2377,6 +2962,18 @@ function openCatManage(){
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && confirmOverlay?.classList.contains("show")) {
       closeConfirm();
+      return;
+    }
+    if (e.key === "Escape" && appCategoryMenu && !appCategoryMenu.classList.contains("hidden")) {
+      closeAppCategoryMenu();
+      return;
+    }
+    if (e.key === "Escape" && scanSelectMenu && !scanSelectMenu.classList.contains("hidden")) {
+      closeScanSelectMenu();
+      return;
+    }
+    if (e.key === "Escape" && accentCustomOverlay?.classList.contains("show")) {
+      closeAccentCustomPopup();
       return;
     }
     if (e.key === "Escape" && settingsOverlay?.classList.contains("show")) {
@@ -2451,6 +3048,18 @@ function openCatManage(){
     return parts.join("+");
   }
 
+  function normalizeShortcutText(value){
+    return String(value || "").replace(/\s+/g, "").toLowerCase();
+  }
+
+  function isTypingTarget(target){
+    const el = target instanceof Element ? target : null;
+    if (!el) return false;
+    if (el.closest("input, textarea, select")) return true;
+    if (el.closest("[contenteditable='true']")) return true;
+    return false;
+  }
+
   function onHotkeyKeydown(e){
     if (!capturingHotkey) return;
     e.preventDefault();
@@ -2470,6 +3079,40 @@ function openCatManage(){
     stopHotkeyCapture();
   }
 
+  let capturingAppHotkey = false;
+  function stopAppHotkeyCapture(){
+    if (!capturingAppHotkey) return;
+    capturingAppHotkey = false;
+    document.removeEventListener("keydown", onAppHotkeyKeydown, true);
+    if (appHotkeyCapture) appHotkeyCapture.textContent = t("settings_capture");
+  }
+
+  function startAppHotkeyCapture(){
+    capturingAppHotkey = true;
+    if (appHotkeyCapture) appHotkeyCapture.textContent = t("settings_capture_listen");
+    document.addEventListener("keydown", onAppHotkeyKeydown, true);
+  }
+
+  function onAppHotkeyKeydown(e){
+    if (!capturingAppHotkey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (e.key === "Escape"){
+      stopAppHotkeyCapture();
+      return;
+    }
+    if (e.key === "Backspace" || e.key === "Delete"){
+      if (appHotkeyInput) appHotkeyInput.value = "";
+      stopAppHotkeyCapture();
+      return;
+    }
+    const combo = normalizeKey(e);
+    if (!combo) return;
+    if (appHotkeyInput) appHotkeyInput.value = combo;
+    stopAppHotkeyCapture();
+  }
+
   hotkeyCapture?.addEventListener("click", () => {
     if (capturingHotkey) {
       stopHotkeyCapture();
@@ -2477,32 +3120,96 @@ function openCatManage(){
       startHotkeyCapture();
     }
   });
+  window.addEventListener("resize", () => {
+    if (appCategoryMenu && !appCategoryMenu.classList.contains("hidden")) {
+      positionDropdownMenu(appCategoryMenu, appCategoryButton);
+    }
+    if (scanSelectMenu && !scanSelectMenu.classList.contains("hidden")) {
+      positionDropdownMenu(scanSelectMenu, scanSelectButton);
+    }
+  });
+  appHotkeyCapture?.addEventListener("click", () => {
+    if (capturingAppHotkey){
+      stopAppHotkeyCapture();
+    } else {
+      startAppHotkeyCapture();
+    }
+  });
+  appHotkeyClear?.addEventListener("click", () => {
+    stopAppHotkeyCapture();
+    if (appHotkeyInput) appHotkeyInput.value = "";
+  });
 
   function onVoiceActivationChange(){
     const enabled = Boolean(voiceActivationToggle?.checked);
-    if (voiceCommandHint) voiceCommandHint.classList.toggle("hidden", !enabled);
     if (voiceMicWrap) voiceMicWrap.classList.toggle("hidden", !enabled);
     updateVoiceActivationStatusLabel();
     if (enabled) refreshVoiceMicList(String(voiceMicSelect?.value || ""), true);
   }
 
+  function showVoiceActivationInfoPopup(){
+    openConfirm(
+      t("settings_voice_enable_info_message"),
+      () => {},
+      t("ok"),
+      t("settings_voice_enable_info_title"),
+      "",
+      { singleButton: true }
+    );
+  }
+  function showVoiceMicDeniedPopup(){
+    openConfirm(
+      t("settings_voice_mic_denied_message"),
+      () => {},
+      t("ok"),
+      t("settings_voice_mic_denied_title"),
+      "",
+      { singleButton: true }
+    );
+  }
+
   voiceActivationToggle?.addEventListener("change", onVoiceActivationChange);
+  voiceModeBtn?.addEventListener("click", () => {
+    updateVoiceModeButton(nextVoiceMode(voiceUiChoice));
+  });
+  voiceActivationOff?.addEventListener("click", () => {
+    if (voiceActivationToggle) voiceActivationToggle.checked = false;
+    onVoiceActivationChange();
+  });
+  voiceActivationOn?.addEventListener("click", async () => {
+    const wasEnabled = Boolean(voiceActivationToggle?.checked);
+    if (!wasEnabled){
+      const micAllowed = await ensureVoiceMicAccess(true);
+      if (!micAllowed){
+        if (voiceActivationToggle) voiceActivationToggle.checked = false;
+        onVoiceActivationChange();
+        showVoiceMicDeniedPopup();
+        return;
+      }
+    }
+    if (voiceActivationToggle) voiceActivationToggle.checked = true;
+    onVoiceActivationChange();
+    if (!wasEnabled) showVoiceActivationInfoPopup();
+  });
   voiceWakeModeSelect?.addEventListener("change", () => {
     updateWakeModeUI(voiceWakeModeSelect.value);
   });
 
   hotkeySave?.addEventListener("click", async () => {
-    const val = hotkeyInput?.value || "";
-    await applyHotkey(val);
-    saveClipboardRetentionSettings({
-      mode: clipboardRetentionMode?.value || "count",
-      hours: clipboardTimeCycle?.value || "24",
-      maxItems: clipboardMaxItems?.value || "25"
-    });
-    syncClipboardSettingsUI();
-    updateClipboardModeBadge();
-    persistAndRenderClipboard();
-    closeSettings();
+    try{
+      const val = hotkeyInput?.value || "";
+      await applyHotkey(val);
+      saveClipboardRetentionSettings({
+        mode: clipboardRetentionMode?.value || "count",
+        hours: clipboardTimeCycle?.value || "24",
+        maxItems: clipboardMaxItems?.value || "25"
+      });
+      syncClipboardSettingsUI();
+      updateClipboardModeBadge();
+      persistAndRenderClipboard();
+    }finally{
+      closeSettings();
+    }
   });
 
   voiceSettingsSave?.addEventListener("click", () => {
@@ -2516,10 +3223,147 @@ function openCatManage(){
     applyTheme("dark");
   });
 
+  function openAccentCustomPopup(){
+    if (!accentCustomOverlay) return;
+    accentCustomOverlay.classList.remove("hidden");
+    accentCustomOverlay.classList.add("show");
+    accentCustomOverlay.setAttribute("aria-hidden", "false");
+    setAccentWheelThumbFromBase();
+  }
+
+  function closeAccentCustomPopup(){
+    if (!accentCustomOverlay) return;
+    accentCustomOverlay.classList.add("hidden");
+    accentCustomOverlay.classList.remove("show");
+    accentCustomOverlay.setAttribute("aria-hidden", "true");
+  }
+
   accentRow?.addEventListener("click", (e) => {
     const btn = e.target.closest(".accent-btn");
     if (!btn) return;
     applyAccent(btn.dataset.accent);
+  });
+  accentCustomTrigger?.addEventListener("click", () => {
+    openAccentCustomPopup();
+  });
+  accentCustomClose?.addEventListener("click", closeAccentCustomPopup);
+  accentCustomOverlay?.addEventListener("click", (e) => {
+    if (e.target === accentCustomOverlay) closeAccentCustomPopup();
+  });
+
+  function drawAccentWheel(){
+    if (!accentWheel) return;
+    const ctx = accentWheel.getContext("2d");
+    if (!ctx) return;
+    accentWheelCtx = ctx;
+    const w = accentWheel.width;
+    const h = accentWheel.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const radius = Math.min(w, h) / 2;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.clip();
+
+    const hue = ctx.createConicGradient(0, cx, cy);
+    hue.addColorStop(0, "#ff0000");
+    hue.addColorStop(1 / 6, "#ffff00");
+    hue.addColorStop(2 / 6, "#00ff00");
+    hue.addColorStop(3 / 6, "#00ffff");
+    hue.addColorStop(4 / 6, "#0000ff");
+    hue.addColorStop(5 / 6, "#ff00ff");
+    hue.addColorStop(1, "#ff0000");
+    ctx.fillStyle = hue;
+    ctx.fillRect(0, 0, w, h);
+
+    const radialWhite = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    radialWhite.addColorStop(0, "rgba(255,255,255,1)");
+    radialWhite.addColorStop(0.55, "rgba(255,255,255,0)");
+    radialWhite.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = radialWhite;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
+  }
+
+  function setAccentWheelThumb(x, y){
+    if (!accentWheelThumb || !accentWheelWrap) return;
+    const rect = accentWheelWrap.getBoundingClientRect();
+    accentWheelThumb.style.left = `${Math.max(0, Math.min(rect.width, x))}px`;
+    accentWheelThumb.style.top = `${Math.max(0, Math.min(rect.height, y))}px`;
+  }
+
+  function setAccentWheelThumbFromBase(){
+    if (!accentWheelCtx || !accentWheel || !accentWheelWrap) return;
+    const w = accentWheel.width;
+    const h = accentWheel.height;
+    let best = { d: Number.POSITIVE_INFINITY, x: w / 2, y: h / 2 };
+    const target = accentBaseRgb;
+    const step = 4;
+    for (let y = 0; y < h; y += step){
+      for (let x = 0; x < w; x += step){
+        const data = accentWheelCtx.getImageData(x, y, 1, 1).data;
+        if (data[3] === 0) continue;
+        const d = Math.abs(data[0] - target.r) + Math.abs(data[1] - target.g) + Math.abs(data[2] - target.b);
+        if (d < best.d) best = { d, x, y };
+      }
+    }
+    const rect = accentWheelWrap.getBoundingClientRect();
+    const scaleX = rect.width / w;
+    const scaleY = rect.height / h;
+    setAccentWheelThumb(best.x * scaleX, best.y * scaleY);
+  }
+
+  function pickAccentFromWheelEvent(event){
+    if (!accentWheel || !accentWheelCtx || !accentWheelWrap) return;
+    const wrapRect = accentWheelWrap.getBoundingClientRect();
+    const canvasRect = accentWheel.getBoundingClientRect();
+    const scaleX = accentWheel.width / canvasRect.width;
+    const scaleY = accentWheel.height / canvasRect.height;
+    const centerX = canvasRect.left + canvasRect.width / 2;
+    const centerY = canvasRect.top + canvasRect.height / 2;
+    const maxRadius = canvasRect.width / 2;
+
+    let px = event.clientX;
+    let py = event.clientY;
+    const dx = px - centerX;
+    const dy = py - centerY;
+    const dist = Math.hypot(dx, dy);
+    if (dist > maxRadius){
+      px = centerX + (dx / dist) * maxRadius;
+      py = centerY + (dy / dist) * maxRadius;
+    }
+
+    const cx = Math.max(0, Math.min(accentWheel.width - 1, Math.round((px - canvasRect.left) * scaleX)));
+    const cy = Math.max(0, Math.min(accentWheel.height - 1, Math.round((py - canvasRect.top) * scaleY)));
+    const data = accentWheelCtx.getImageData(cx, cy, 1, 1).data;
+    accentBaseRgb = { r: data[0], g: data[1], b: data[2] };
+    setAccentWheelThumb(px - wrapRect.left, py - wrapRect.top);
+    applyAccent("custom");
+  }
+
+  drawAccentWheel();
+  setAccentWheelThumbFromBase();
+
+  let accentWheelDragging = false;
+  accentWheelWrap?.addEventListener("pointerdown", (e) => {
+    accentWheelDragging = true;
+    pickAccentFromWheelEvent(e);
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!accentWheelDragging) return;
+    pickAccentFromWheelEvent(e);
+  });
+  window.addEventListener("pointerup", () => {
+    accentWheelDragging = false;
+  });
+
+  accentBrightness?.addEventListener("input", () => {
+    accentBrightnessValue = Math.max(40, Math.min(140, parseInt(accentBrightness.value || "100", 10) || 100));
+    applyAccent("custom");
   });
 
   bgChoices?.addEventListener("change", (e) => {
@@ -2599,9 +3443,20 @@ function openCatManage(){
 
     document.getElementById("appName").value = app.name || "";
     document.getElementById("appUrl").value = app.launch || "";
-    document.getElementById("appDesc").value = app.description || "";
-    if (appCategory) appCategory.value = app.category || "Sonstiges";
-    document.getElementById("appType").value = app.type === "desktop" ? "desktop" : "web";
+    if (appHotkeyInput) appHotkeyInput.value = String(app.hotkey || "");
+    if (app.type === "desktop"){
+      scanPrefillValue = String(app.launch || "");
+      scanPrefillLabel = String(app.name || app.launch || "");
+    } else {
+      scanPrefillValue = "";
+      scanPrefillLabel = "";
+    }
+    if (appCategory){
+      const preferred = String(app.category || "");
+      const hasPreferred = Array.from(appCategory.options).some((opt) => opt.value === preferred);
+      appCategory.value = hasPreferred ? preferred : (appCategory.options[0]?.value || "");
+    }
+    document.getElementById("appType").value = app.type === "desktop" ? "scan" : "web";
 
     applyIconStateFromApp(app);
 
@@ -2686,6 +3541,38 @@ function openCatManage(){
     refreshIconFromUrl();
   });
 
+  appCategoryButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!appCategoryMenu || !appCategoryButton) return;
+    const isOpen = !appCategoryMenu.classList.contains("hidden");
+    if (isOpen){
+      closeAppCategoryMenu();
+    } else {
+      closeScanSelectMenu();
+      openAppCategoryMenu();
+    }
+  });
+  appTypeToggleBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!appType) return;
+    appType.value = appType.value === "scan" ? "web" : "scan";
+    syncTypeUI();
+  });
+  scanSelectButton?.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!scanSelectMenu || !scanSelectButton) return;
+    const isOpen = !scanSelectMenu.classList.contains("hidden");
+    if (isOpen){
+      closeScanSelectMenu();
+    } else {
+      closeAppCategoryMenu();
+      openScanSelectMenu();
+    }
+  });
+  scanSelectButton?.addEventListener("keydown", handleScanTypeaheadKey);
+  scanSelectMenu?.addEventListener("keydown", handleScanTypeaheadKey);
+  appCategory?.addEventListener("change", syncAppCategoryUi);
+
   function fileToDataUrl(file){
     return new Promise((resolve, reject) => {
       const r = new FileReader();
@@ -2698,6 +3585,7 @@ function openCatManage(){
   // Typ UI (Label/Placeholder/Help)
   function syncTypeUI(){
     const typeValue = appType?.value || "web";
+    syncAppTypeToggleUi();
     if (!launchLabel || !appUrl || !launchHelp) return;
 
     if (typeValue === "web"){
@@ -2799,6 +3687,7 @@ function openCatManage(){
   const defaultCategories = ["Sonstiges", "Social", "Tools", "Gaming", "Media", "Work"];
   const SUPER_ALL = "__all__";
   const SUPER_GENERAL = "General";
+  const MAX_SUPER_CATEGORIES = 11;
   const SUPER_CATEGORIES_KEY = "kc_super_categories";
   const SUPER_ICON_MAP_KEY = "kc_super_icon_map";
   const CATEGORY_ICON_MAP_KEY = "kc_category_icon_map";
@@ -2996,6 +3885,28 @@ function openCatManage(){
 
   function normalizeSuperName(name){
     return normalizeCategory(String(name || "")).toLowerCase();
+  }
+
+  function superCategoryLimitMessage(){
+    return t("super_limit_message", { max: MAX_SUPER_CATEGORIES });
+  }
+
+  function showSuperCategoryLimitPopup(){
+    openConfirm(
+      superCategoryLimitMessage(),
+      null,
+      t("super_limit_ok"),
+      t("super_limit_title"),
+      t("cancel"),
+      { singleButton: true }
+    );
+  }
+
+  function wouldExceedSuperLimit(superName){
+    const key = normalizeSuperName(superName);
+    if (!key || key === normalizeSuperName(SUPER_ALL) || key === normalizeSuperName(SUPER_GENERAL)) return false;
+    if (superCategories.some((name) => normalizeSuperName(name) === key)) return false;
+    return superCategories.length >= MAX_SUPER_CATEGORIES;
   }
 
   function loadSuperCategories(){
@@ -3254,22 +4165,118 @@ function openCatManage(){
     tab.setAttribute("aria-label", value);
   }
 
+  function formatCategoryOptionLabel(categoryValue){
+    const c = String(categoryValue || "");
+    if (!c) return t("tab_all");
+    if (c === "Sonstiges") return t("tab_misc");
+    const path = splitCategoryPath(c);
+    return path.super === SUPER_GENERAL ? path.label : `${path.super} / ${path.label}`;
+  }
+
+  function syncAppCategoryUi(){
+    if (!appCategoryLabel || !appCategory) return;
+    const val = appCategory.value || "";
+    appCategoryLabel.textContent = formatCategoryOptionLabel(val);
+  }
+
+  function syncAppTypeToggleUi(){
+    if (!appType || !appTypeToggleLabel) return;
+    const typeValue = appType.value === "web" ? "web" : "scan";
+    appType.value = typeValue;
+    appTypeToggleLabel.textContent = typeValue === "web" ? t("modal_type_web") : t("modal_type_scan");
+    if (appTypeToggleBtn) appTypeToggleBtn.dataset.mode = typeValue;
+  }
+
+  function closeAppCategoryMenu(){
+    if (!appCategoryMenu || !appCategoryButton || !appCategoryButton.parentElement) return;
+    appCategoryMenu.classList.add("hidden");
+    appCategoryButton.setAttribute("aria-expanded", "false");
+    appCategoryButton.parentElement.classList.remove("open");
+    appCategoryButton.parentElement.classList.remove("open-up");
+    appCategoryMenu.style.maxHeight = "";
+  }
+
+  function openAppCategoryMenu(){
+    if (!appCategoryMenu || !appCategoryButton || !appCategoryButton.parentElement) return;
+    appCategoryMenu.classList.remove("hidden");
+    appCategoryButton.setAttribute("aria-expanded", "true");
+    appCategoryButton.parentElement.classList.add("open");
+    positionDropdownMenu(appCategoryMenu, appCategoryButton);
+  }
+
   function renderCategories(){
+    hideSuperTooltip();
+    hideRailTooltip();
     closeCategoryContextMenu();
     if (appCategory){
       appCategory.innerHTML = "";
-      categories.forEach(c => {
+      if (appCategoryMenu) appCategoryMenu.innerHTML = "";
+      const allOpt = document.createElement("option");
+      allOpt.textContent = t("tab_all");
+      allOpt.value = "";
+      appCategory.appendChild(allOpt);
+      if (appCategoryMenu){
+        const allItem = document.createElement("button");
+        allItem.type = "button";
+        allItem.className = "category-select-item";
+        allItem.dataset.value = "";
+        allItem.textContent = t("tab_all");
+        const selected = String(appCategory.value || "") === "";
+        allItem.classList.toggle("selected", selected);
+        allItem.setAttribute("aria-selected", selected ? "true" : "false");
+        allItem.addEventListener("click", () => {
+          appCategory.value = "";
+          syncAppCategoryUi();
+          closeAppCategoryMenu();
+          if (appCategoryMenu){
+            appCategoryMenu.querySelectorAll(".category-select-item").forEach((el) => {
+              const active = el.dataset.value === "";
+              el.classList.toggle("selected", active);
+              el.setAttribute("aria-selected", active ? "true" : "false");
+            });
+          }
+        });
+        appCategoryMenu.appendChild(allItem);
+      }
+      const selectableCategories = categories.filter((c) => String(c).toLowerCase() !== "sonstiges");
+      selectableCategories.forEach(c => {
         const opt = document.createElement("option");
-        if (c === "Sonstiges"){
-          opt.textContent = t("tab_misc");
-        } else {
-          const path = splitCategoryPath(c);
-          opt.textContent = path.super === SUPER_GENERAL ? path.label : `${path.super} / ${path.label}`;
-        }
+        opt.textContent = formatCategoryOptionLabel(c);
         opt.value = c;
         appCategory.appendChild(opt);
+
+        if (appCategoryMenu){
+          const item = document.createElement("button");
+          item.type = "button";
+          item.className = "category-select-item";
+          item.dataset.value = c;
+          item.textContent = formatCategoryOptionLabel(c);
+          const selected = String(appCategory.value || "") === c;
+          item.classList.toggle("selected", selected);
+          item.setAttribute("aria-selected", selected ? "true" : "false");
+          item.addEventListener("click", () => {
+            appCategory.value = c;
+            syncAppCategoryUi();
+            closeAppCategoryMenu();
+            if (appCategoryMenu){
+              appCategoryMenu.querySelectorAll(".category-select-item").forEach((el) => {
+                const active = el.dataset.value === c;
+                el.classList.toggle("selected", active);
+                el.setAttribute("aria-selected", active ? "true" : "false");
+              });
+            }
+          });
+          appCategoryMenu.appendChild(item);
+        }
       });
-      if (!appCategory.value && categories.length) appCategory.value = categories[0];
+      if (appCategoryMenu){
+        appCategoryMenu.querySelectorAll(".category-select-item").forEach((el) => {
+          const active = el.dataset.value === String(appCategory.value || "");
+          el.classList.toggle("selected", active);
+          el.setAttribute("aria-selected", active ? "true" : "false");
+        });
+      }
+      syncAppCategoryUi();
     }
 
     if (overTabs){
@@ -3311,6 +4318,7 @@ function openCatManage(){
         const superName = tab.dataset.super || SUPER_ALL;
         const label = superName === SUPER_ALL ? t("tab_all") : superName;
         tab.dataset.label = label;
+        tab.dataset.tip = label;
         tab.setAttribute("aria-label", label);
         tab.removeAttribute("title");
       });
@@ -3354,11 +4362,13 @@ function openCatManage(){
     }
     const allBaseTab = document.querySelector(".tabs > .tab[data-tab='all']");
     const favBaseTab = document.querySelector(".tabs > .tab[data-tab='fav']");
+    const hotkeysBaseTab = document.querySelector(".tabs > .tab[data-tab='hotkeys']");
     const showBaseTabs =
       normalizeSuperName(activeSuper) === normalizeSuperName(SUPER_ALL) &&
       !categorySearchTerm;
     if (allBaseTab) allBaseTab.style.display = showBaseTabs ? "" : "none";
     if (favBaseTab) favBaseTab.style.display = showBaseTabs ? "" : "none";
+    if (hotkeysBaseTab) hotkeysBaseTab.style.display = showBaseTabs ? "" : "none";
     applyCategoryRailState();
     refreshActiveTabClasses();
   }
@@ -3434,6 +4444,10 @@ function openCatManage(){
     if (catManageMode === "super"){
       const superName = val.replace(/\s*(?:\/|>)\s*/g, " ").trim();
       if (!superName) return;
+      if (wouldExceedSuperLimit(superName)){
+        showSuperCategoryLimitPopup();
+        return;
+      }
       const superKey = normalizeSuperName(superName);
       if (!superCategories.some((name) => normalizeSuperName(name) === superKey)){
         superCategories.push(superName);
@@ -3458,6 +4472,10 @@ function openCatManage(){
 
     const selectedSuper = normalizeCategory(activeSuper);
     const useSuper = selectedSuper && selectedSuper !== SUPER_ALL && normalizeSuperName(selectedSuper) !== normalizeSuperName(SUPER_GENERAL);
+    if (useSuper && wouldExceedSuperLimit(selectedSuper)){
+      showSuperCategoryLimitPopup();
+      return;
+    }
     const fullCategory = useSuper ? `${selectedSuper} / ${val}` : val;
     if (categories.some(c => c.toLowerCase() === fullCategory.toLowerCase())){
       if (catManageInput) catManageInput.value = "";
@@ -3527,6 +4545,26 @@ function openCatManage(){
     window.open(launch, "_blank", "noopener,noreferrer");
   }
 
+  document.addEventListener("keydown", (e) => {
+    if (capturingHotkey || capturingAppHotkey) return;
+    if (e.defaultPrevented || e.repeat) return;
+    if (isTypingTarget(e.target)) return;
+    if (overlay?.classList.contains("show")) return;
+    if (settingsOverlay?.classList.contains("show")) return;
+    if (voiceSettingsOverlay?.classList.contains("show")) return;
+    if (catManageOverlay?.classList.contains("show")) return;
+    if (superIconOverlay?.classList.contains("show")) return;
+    if (confirmOverlay?.classList.contains("show")) return;
+
+    const combo = normalizeKey(e);
+    if (!combo) return;
+    const hit = apps.find((app) => normalizeShortcutText(app?.hotkey) === normalizeShortcutText(combo));
+    if (!hit) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openLaunch(hit);
+  });
+
   const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   const DEFAULT_WAKE_PHRASES = ["kontrollzentrum", "kontroll zentrum", "control center", "controlcenter"];
   const COMMAND_VERBS = new Set(["starte", "start", "oeffne", "offne", "open", "launch", "run"]);
@@ -3568,6 +4606,7 @@ function openCatManage(){
   let selectedVoice = null;
   let selectedVoiceName = "";
   let selectedToneId = "soft_low";
+  let voiceMicAccessGranted = false;
   let wakePhrases = DEFAULT_WAKE_PHRASES.slice();
   let voiceEnabled = true;
   let selectedMicId = "";
@@ -3723,8 +4762,6 @@ function openCatManage(){
   }
 
   function resolveWakeInput(settings){
-    const mode = normalizeWakeMode(settings?.wakeMode || "standard");
-    if (mode !== "custom") return DEFAULT_WAKE_INPUT;
     const custom = String(settings?.wakePhrase || "").trim();
     return custom || DEFAULT_WAKE_INPUT;
   }
@@ -4026,6 +5063,37 @@ function openCatManage(){
     }
   }
 
+  async function ensureVoiceMicAccess(prompt = false){
+    if (!navigator.mediaDevices?.getUserMedia) return false;
+    try{
+      if (navigator.permissions?.query){
+        const status = await navigator.permissions.query({ name: "microphone" });
+        if (status.state === "granted"){
+          voiceMicAccessGranted = true;
+          return true;
+        }
+        if (status.state === "denied"){
+          voiceMicAccessGranted = false;
+          return false;
+        }
+      }
+    }catch{
+      // Permissions API optional; continue with fallback flow.
+    }
+    if (!prompt) return voiceMicAccessGranted;
+    let stream = null;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceMicAccessGranted = true;
+      return true;
+    }catch{
+      voiceMicAccessGranted = false;
+      return false;
+    } finally {
+      stream?.getTracks?.().forEach((t) => t.stop());
+    }
+  }
+
   function pickSpeechVoice(preferredName = ""){
     const synth = window.speechSynthesis;
     if (!synth) return null;
@@ -4102,15 +5170,14 @@ function openCatManage(){
     const raw = String(value || "").trim();
     if (raw === "__none__" || raw === "__male__" || raw === "__female__") return raw;
     const lowered = raw.toLowerCase();
-    if (lowered === "none" || lowered.includes("keine stimme")) return "__none__";
+    if (!raw) return "__none__";
+    if (lowered === "none" || lowered.includes("keine stimme") || lowered.includes("sound only")) return "__none__";
     if (lowered.includes("stefan")) return "__male__";
     if (lowered.includes("katja")) return "__female__";
-    if (lowered.includes("hedda")) return "";
+    if (lowered.includes("hedda")) return "__none__";
     if (lowered.includes("male") || lowered.includes("mann") || lowered === "man") return "__male__";
     if (lowered.includes("female") || lowered.includes("frau") || lowered === "woman") return "__female__";
-    if (!raw) return "";
-    if (raw.startsWith("__")) return "";
-    return raw;
+    return "__none__";
   }
 
   function getVoiceLangForRecognition(choice){
@@ -4216,7 +5283,7 @@ function openCatManage(){
   }
 
   function startWakeListening(){
-    if (!SpeechRecognitionCtor || !voiceEnabled) return;
+    if (!SpeechRecognitionCtor || !voiceEnabled || !voiceMicAccessGranted) return;
     if (!wakeRecognition){
       wakeRecognition = new SpeechRecognitionCtor();
       wakeRecognition.continuous = true;
@@ -4262,7 +5329,7 @@ function openCatManage(){
   }
 
   function startCommandWindow(){
-    if (!SpeechRecognitionCtor || !voiceEnabled) return;
+    if (!SpeechRecognitionCtor || !voiceEnabled || !voiceMicAccessGranted) return;
     commandModeActive = true;
     stopWakeListening();
     playListeningBeep();
@@ -4318,10 +5385,17 @@ function openCatManage(){
       try{ commandRecognition.stop(); }catch{}
     }, 4200);
 
-    try{ commandRecognition.start(); }catch{
-      commandModeActive = false;
-      startWakeListening();
-    }
+    setTimeout(() => {
+      if (!voiceEnabled || !voiceMicAccessGranted){
+        commandModeActive = false;
+        startWakeListening();
+        return;
+      }
+      try{ commandRecognition.start(); }catch{
+        commandModeActive = false;
+        startWakeListening();
+      }
+    }, 260);
   }
 
   function handleWakeDetected(tail){
@@ -4407,7 +5481,12 @@ function openCatManage(){
     }
     selectedVoice = pickSpeechVoice(selectedVoiceName);
     applyRecognitionLang();
-    if (voiceEnabled) startWakeListening();
+    if (voiceEnabled){
+      ensureVoiceMicAccess(false).then((allowed) => {
+        if (!allowed) return;
+        startWakeListening();
+      });
+    }
   }
 
   function applyVoiceRuntimeSettings(settings){
@@ -4424,7 +5503,14 @@ function openCatManage(){
       return;
     }
     bootstrapVoiceControl();
-    startWakeListening();
+    ensureVoiceMicAccess(false).then((allowed) => {
+      if (!allowed){
+        stopWakeListening();
+        stopCommandListening();
+        return;
+      }
+      startWakeListening();
+    });
   }
 
   if (window.speechSynthesis){
@@ -4437,6 +5523,7 @@ function openCatManage(){
 
   function matches(app){
     if (activeTab === "fav" && !app.fav) return false;
+    if (activeTab === "hotkeys" && !String(app.hotkey || "").trim()) return false;
     if (activeTab === "misc" && app.category !== "Sonstiges") return false;
     if (activeTab.startsWith("cat:")){
       const cat = activeTab.slice(4);
@@ -4444,7 +5531,7 @@ function openCatManage(){
     }
 
     if (searchTerm){
-      const hay = (app.name + " " + app.launch + " " + app.category + " " + (app.description || "")).toLowerCase();
+      const hay = (app.name + " " + app.launch + " " + app.category + " " + (app.hotkey || "") + " " + (app.description || "")).toLowerCase();
       if (!hay.includes(searchTerm)) return false;
     }
     return true;
@@ -4457,6 +5544,23 @@ function openCatManage(){
       .replaceAll(">","&gt;")
       .replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
+  }
+
+  function renderCardHotkeyHtml(value){
+    const raw = String(value || "").trim();
+    if (!raw) return "";
+    const parts = raw.split("+").map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return "";
+    const keysHtml = parts.map((part, idx) => {
+      const sep = idx < parts.length - 1 ? `<span class="card-hotkey-sep" aria-hidden="true">+</span>` : "";
+      return `<span class="card-hotkey-key">${escapeHtml(part)}</span>${sep}`;
+    }).join("");
+    return `
+      <div class="card-hotkey">
+        <span class="card-hotkey-icon" aria-hidden="true">⛓️‍💥</span>
+        <span class="card-hotkey-keys">${keysHtml}</span>
+      </div>
+    `;
   }
 
   function getInitials(name){
@@ -4605,14 +5709,18 @@ function openCatManage(){
     // badges
     const badgeAll = document.getElementById("badgeAll");
     const badgeFav = document.getElementById("badgeFav");
+    const badgeHotkeys = document.getElementById("badgeHotkeys");
     const badgeMisc = document.getElementById("badgeMisc");
     const allCount = apps.length;
     const favCount = apps.filter(a => a.fav).length;
+    const hotkeyCount = apps.filter(a => String(a.hotkey || "").trim()).length;
     if (badgeAll) badgeAll.textContent = String(allCount);
     if (badgeFav) badgeFav.textContent = String(favCount);
+    if (badgeHotkeys) badgeHotkeys.textContent = String(hotkeyCount);
     if (badgeMisc) badgeMisc.textContent = String(apps.filter(a => a.category === "Sonstiges").length);
     const allBaseTab = document.querySelector(".tabs > .tab[data-tab='all']");
     const favBaseTab = document.querySelector(".tabs > .tab[data-tab='fav']");
+    const hotkeyBaseTab = document.querySelector(".tabs > .tab[data-tab='hotkeys']");
     if (allBaseTab){
       const tip = `${t("tab_all")} (${allCount})`;
       allBaseTab.dataset.tip = tip;
@@ -4624,6 +5732,12 @@ function openCatManage(){
       favBaseTab.dataset.tip = tip;
       favBaseTab.removeAttribute("title");
       favBaseTab.setAttribute("aria-label", tip);
+    }
+    if (hotkeyBaseTab){
+      const tip = `${t("tab_hotkeys")} (${hotkeyCount})`;
+      hotkeyBaseTab.dataset.tip = tip;
+      hotkeyBaseTab.removeAttribute("title");
+      hotkeyBaseTab.setAttribute("aria-label", tip);
     }
     const catBadges = document.querySelectorAll("[data-cat-badge]");
     catBadges.forEach(el => {
@@ -4698,6 +5812,8 @@ function openCatManage(){
       });
 
       const typeBadge = app.type === "desktop" ? t("card_type_desktop") : t("card_type_web");
+      const hotkeyValue = String(app.hotkey || "").trim();
+      const hotkeyHtml = renderCardHotkeyHtml(hotkeyValue);
 
       card.innerHTML = `
         <div class="card-top">
@@ -4711,12 +5827,15 @@ function openCatManage(){
 
         <div class="card-name">${escapeHtml(app.name)}</div>
 
-        <div class="card-meta">
-          <span class="pill">${escapeHtml(app.category)}</span>
-          <span class="pill">${escapeHtml(typeBadge)}</span>
+        <div class="card-bottom">
+          <div class="card-meta">
+            <span class="pill card-type-pill">
+              <span class="card-type-dot" aria-hidden="true"></span>
+              ${escapeHtml(typeBadge)}
+            </span>
+          </div>
+          ${hotkeyHtml}
         </div>
-
-        <div class="card-desc">${escapeHtml(app.description || "")}</div>
       `;
       fillIcon(card.querySelector(".card-icon"), app);
 
@@ -5406,9 +6525,13 @@ function openCatManage(){
     if (!appContextMenu || appContextMenu.hidden) return;
     closeAppContextMenu();
   }, true);
+  document.addEventListener("scroll", hideSuperTooltip, true);
+  document.addEventListener("scroll", hideRailTooltip, true);
 
   window.addEventListener("resize", closeCategoryContextMenu);
   window.addEventListener("resize", closeAppContextMenu);
+  window.addEventListener("resize", hideSuperTooltip);
+  window.addEventListener("resize", hideRailTooltip);
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     closeCategoryContextMenu();
@@ -5707,8 +6830,8 @@ function openCatManage(){
   submitBtn?.addEventListener("click", () => {
     let name = document.getElementById("appName")?.value?.trim();
     let launch = document.getElementById("appUrl")?.value?.trim();
-    let cat  = document.getElementById("appCategory")?.value || "Sonstiges";
-    const desc = document.getElementById("appDesc")?.value?.trim() || "";
+    let cat  = document.getElementById("appCategory")?.value || "";
+    const appHotkey = String(appHotkeyInput?.value || "").trim();
     const typeRaw = document.getElementById("appType")?.value || "web";
     let type = typeRaw;
     const isEdit = Boolean(editingId);
@@ -5725,8 +6848,8 @@ function openCatManage(){
         const opt = scanSelect?.selectedOptions?.[0];
         name = opt?.textContent?.trim() || "";
       }
-      const app = scanApps.find(a => a.launch === selected);
-      if (app?.icon){
+      const app = scanApps.find(a => (a.launch || a.path || "") === selected);
+      if (iconState?.type !== "custom" && app?.icon){
         iconState = { type:"custom", value: app.icon };
       }
     }
@@ -5735,8 +6858,16 @@ function openCatManage(){
       alert(t("alert_fill_required"));
       return;
     }
-    if (!categories.some(c => c.toLowerCase() === String(cat).toLowerCase())){
-      cat = "Sonstiges";
+    if (appHotkey){
+      apps.forEach((item) => {
+        if (!item || item.id === editingId) return;
+        if (normalizeShortcutText(item.hotkey) === normalizeShortcutText(appHotkey)){
+          item.hotkey = "";
+        }
+      });
+    }
+    if (!categories.some(c => c.toLowerCase() === String(cat).toLowerCase()) || String(cat).toLowerCase() === "sonstiges"){
+      cat = categories.find((c) => String(c).toLowerCase() !== "sonstiges") || categories[0] || "";
     }
 
     // Mini-Validierung
@@ -5766,7 +6897,7 @@ function openCatManage(){
           type,          // "web" | "desktop"
           launch,        // url / uri / file:///
           category: cat,
-          description: desc,
+          hotkey: appHotkey,
           icon: iconState
         };
       }
@@ -5777,7 +6908,7 @@ function openCatManage(){
         type,          // "web" | "desktop"
         launch,        // url / uri / file:///
         category: cat,
-        description: desc,
+        hotkey: appHotkey,
         fav: false,
         icon: iconState,
         createdAt: Date.now()
@@ -5790,13 +6921,9 @@ function openCatManage(){
     // reset
     document.getElementById("appName").value = "";
     document.getElementById("appUrl").value = "";
-    document.getElementById("appDesc").value = "";
+    if (appHotkeyInput) appHotkeyInput.value = "";
     if (appCategory){
-      if (categories.some(c => c.toLowerCase() === "sonstiges")) {
-        appCategory.value = "Sonstiges";
-      } else if (categories.length){
-        appCategory.value = categories[0];
-      }
+      appCategory.value = "";
     }
     document.getElementById("appType").value = "scan";
     iconState = { type:"favicon", value:"" };

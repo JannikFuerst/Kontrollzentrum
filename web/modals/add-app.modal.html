@@ -6,21 +6,13 @@
     </div>
     <div class="modal-body">
       <div class="field">
-        <div class="label" style="display:flex;align-items:center;justify-content:space-between;">
-          <span data-i18n="modal_icon_optional">Icon (optional)</span>
-          <div style="display:flex;gap:8px;">
-            <button class="icon-btn" id="iconRemove" type="button" title="Icon entfernen" aria-label="Icon entfernen" data-i18n-title="modal_icon_remove" data-i18n-aria-label="modal_icon_remove">&#128465;</button>
-            <button class="icon-btn" id="iconUploadBtn" type="button" title="Icon hochladen" aria-label="Icon hochladen" data-i18n-title="modal_icon_upload" data-i18n-aria-label="modal_icon_upload">&#10514;</button>
-          </div>
-        </div>
-
-        <div style="display:flex;align-items:center;gap:12px;margin-top:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;">
           <div class="icon-tile selected" style="width:52px;height:52px;border-radius:14px;">
             <img id="iconPreviewImg" class="icon-img" alt="">
           </div>
-          <div style="display:flex;flex-direction:column;gap:4px;">
-            <div class="help-strong" data-i18n="modal_icon_auto">Standard: automatisch aus URL (Favicon)</div>
-            <div class="help-text" data-i18n="modal_icon_custom_help">Oder eigenes PNG/JPG hochladen.</div>
+          <div style="display:flex;gap:8px;">
+            <button class="icon-btn" id="iconRemove" type="button" aria-label="Icon entfernen" data-tip="Icon entfernen" data-i18n-aria-label="modal_icon_remove">🗑️</button>
+            <button class="icon-btn" id="iconUploadBtn" type="button" aria-label="Icon hochladen" data-tip="Icon hochladen (JPG/PNG)" data-i18n-aria-label="modal_icon_upload">⬆️</button>
           </div>
         </div>
 
@@ -28,23 +20,33 @@
       </div>
 
       <div class="field">
-        <div class="label" data-i18n="modal_name_label">Name <span class="req">*</span></div>
+        <div class="label" data-i18n="modal_name_label">Name</div>
         <input class="input" id="appName" placeholder="z.B. Notion / Discord" data-i18n-placeholder="modal_name_placeholder" />
       </div>
 
       <div class="row2">
         <div class="field">
           <div class="label" data-i18n="modal_type_label">Typ</div>
-          <select class="select" id="appType">
-            <option value="web" data-i18n="modal_type_web">Web (https://...)</option>
-            <option value="desktop" data-i18n="modal_type_desktop">Desktop (URI / file://)</option>
-            <option value="scan" selected data-i18n="modal_type_scan">Desktop (Scan Vorschläge)</option>
-          </select>
+          <div class="type-toggle-wrap">
+            <button class="type-toggle-btn" id="appTypeToggleBtn" type="button" aria-label="Typ wechseln">
+              <span id="appTypeToggleLabel">Desktop (Scan Vorschläge)</span>
+            </button>
+            <select class="select hidden" id="appType">
+              <option value="web" data-i18n="modal_type_web">Web (https://...)</option>
+              <option value="scan" selected data-i18n="modal_type_scan">Desktop (Scan Vorschläge)</option>
+            </select>
+          </div>
         </div>
 
         <div class="field">
           <div class="label" data-i18n="modal_category_label">Kategorie</div>
-          <select class="select" id="appCategory"></select>
+          <div class="category-select-wrap">
+            <button class="category-select-button" id="appCategoryButton" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span class="category-select-label" id="appCategoryLabel">Sonstiges</span>
+            </button>
+            <div class="category-select-menu hidden" id="appCategoryMenu" role="listbox"></div>
+            <select class="select select-category hidden" id="appCategory"></select>
+          </div>
         </div>
       </div>
 
@@ -59,11 +61,14 @@
       <div class="field hidden" id="scanField">
         <div class="label" data-i18n="modal_found_apps">Gefundene Apps</div>
         <div class="scan-row">
-          <select class="select" id="scanSelect"></select>
+          <div class="category-select-wrap scan-select-wrap">
+            <button class="category-select-button" id="scanSelectButton" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span class="category-select-label" id="scanSelectLabel"></span>
+            </button>
+            <div class="category-select-menu hidden" id="scanSelectMenu" role="listbox"></div>
+            <select class="select hidden" id="scanSelect"></select>
+          </div>
           <button class="icon-btn scan-refresh" id="scanRefresh" type="button" title="Scan aktualisieren" aria-label="Scan aktualisieren" data-i18n-title="modal_scan_refresh" data-i18n-aria-label="modal_scan_refresh">&#8635;</button>
-        </div>
-        <div class="help-text">
-          <span data-i18n="modal_scan_help">Wähle eine App aus dem Windows-Scan.</span>
         </div>
         <div class="scan-loading hidden" id="scanLoading">
           <span class="dot"></span><span class="dot"></span><span class="dot"></span>
@@ -71,8 +76,12 @@
       </div>
 
       <div class="field">
-        <div class="label" data-i18n="modal_description_label">Beschreibung</div>
-        <input class="input" id="appDesc" placeholder="Optional" data-i18n-placeholder="modal_description_placeholder" />
+        <div class="label" data-i18n="modal_app_hotkey_label">App Hotkey</div>
+        <div class="modal-hotkey-row">
+          <input class="input" id="appHotkey" placeholder="Drücke 'Aufnehmen'..." data-i18n-placeholder="modal_app_hotkey_placeholder" readonly />
+          <button class="btn-ghost modal-hotkey-capture" id="appHotkeyCapture" type="button" data-i18n="settings_capture">Aufnehmen</button>
+          <button class="icon-btn modal-hotkey-clear" id="appHotkeyClear" type="button" aria-label="Hotkey entfernen" data-tip="Hotkey entfernen" data-i18n-aria-label="modal_app_hotkey_clear">×</button>
+        </div>
       </div>
     </div>
 
@@ -119,7 +128,6 @@
           <input class="input" id="catManageInput" placeholder="z.B. Lernen, Finanzen..." data-i18n-placeholder="cat_new_placeholder" />
           <button class="btn-primary" id="catManageAdd" type="button" data-i18n="add">Hinzufügen</button>
         </div>
-        <div class="help-text" id="catManageHelp" data-i18n="cat_manage_help">Löschen verschiebt Apps automatisch nach "Sonstiges".</div>
       </div>
       <div class="field">
         <div class="label" data-i18n="cat_existing_label">Vorhandene Kategorien</div>
@@ -171,49 +179,60 @@
           <input class="input" id="hotkeyInput" placeholder="Drücke 'Aufnehmen'…" data-i18n-placeholder="settings_hotkey_placeholder" readonly />
           <button class="btn-primary" id="hotkeyCapture" type="button" data-i18n="settings_capture">Aufnehmen</button>
         </div>
-        <div class="help-text">
-          <span data-i18n="settings_hotkey_help">Klicke auf „Aufnehmen“ und drücke die gewünschte Kombination.</span>
-        </div>
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_clipboard_label">Clipboard Verlauf</div>
-        <select class="select" id="clipboardRetentionMode">
-          <option value="count" data-i18n="settings_clip_count">Nach Anzahl löschen</option>
-          <option value="time" data-i18n="settings_clip_time">Nach Zeit löschen</option>
-        </select>
+        <div class="clipboard-mode-toggle" id="clipboardModeToggle" role="group" aria-label="Clipboard Modus">
+          <button class="clipboard-mode-btn" id="clipboardModeCountBtn" type="button" data-mode="count" aria-label="Nach Anzahl löschen">🔢</button>
+          <button class="clipboard-mode-btn" id="clipboardModeTimeBtn" type="button" data-mode="time" aria-label="Nach Zeit löschen">🕒</button>
+        </div>
+        <input type="hidden" id="clipboardRetentionMode" value="count" />
         <div class="clipboard-setting-extra hidden" id="clipboardTimeWrap">
           <div class="label" data-i18n="settings_clip_time_window">Zeitfenster</div>
-          <select class="select" id="clipboardTimeCycle">
-            <option value="4" data-i18n="settings_hours_4">4 Stunden</option>
-            <option value="8" data-i18n="settings_hours_8">8 Stunden</option>
-            <option value="24" data-i18n="settings_hours_24">24 Stunden</option>
-            <option value="48" data-i18n="settings_hours_48">48 Stunden</option>
-          </select>
+          <div class="clipboard-option-row" id="clipboardTimeButtons" role="group" aria-label="Zeitfenster">
+            <button class="clipboard-option-btn" type="button" data-value="4">4</button>
+            <button class="clipboard-option-btn" type="button" data-value="8">8</button>
+            <button class="clipboard-option-btn" type="button" data-value="24">24</button>
+            <button class="clipboard-option-btn" type="button" data-value="48">48</button>
+          </div>
+          <input type="hidden" id="clipboardTimeCycle" value="24" />
         </div>
         <div class="clipboard-setting-extra hidden" id="clipboardCountWrap">
           <div class="label" data-i18n="settings_clip_max">Max. Einträge</div>
-          <select class="select" id="clipboardMaxItems">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-          </select>
+          <div class="clipboard-option-row" id="clipboardCountButtons" role="group" aria-label="Max. Einträge">
+            <button class="clipboard-option-btn" type="button" data-value="5">5</button>
+            <button class="clipboard-option-btn" type="button" data-value="10">10</button>
+            <button class="clipboard-option-btn" type="button" data-value="25">25</button>
+            <button class="clipboard-option-btn" type="button" data-value="50">50</button>
+          </div>
+          <input type="hidden" id="clipboardMaxItems" value="25" />
         </div>
-        <div class="help-text" data-i18n="settings_clip_help">Der Verlauf bleibt lokal auf diesem Gerät und kann jederzeit mit "Leeren" gelöscht werden.</div>
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_accent">Akzentfarbe</div>
         <div class="accent-row" id="accentRow">
-          <button class="accent-btn" data-accent="purple" title="Lila"></button>
-          <button class="accent-btn" data-accent="blue" title="Blau"></button>
-          <button class="accent-btn" data-accent="green" title="Grün"></button>
-          <button class="accent-btn" data-accent="yellow" title="Gelb"></button>
-          <button class="accent-btn" data-accent="pink" title="Pink"></button>
-          <button class="accent-btn" data-accent="teal" title="Türkis"></button>
-          <button class="accent-btn" data-accent="orange" title="Orange"></button>
-          <button class="accent-btn" data-accent="red" title="Rot"></button>
-          <button class="accent-btn" data-accent="cyan" title="Cyan"></button>
-          <button class="accent-btn" data-accent="gray" title="Grau"></button>
+          <button class="accent-btn" data-accent="purple"></button>
+          <button class="accent-btn" data-accent="blue"></button>
+          <button class="accent-btn" data-accent="green"></button>
+          <button class="accent-btn" data-accent="pink"></button>
+          <button class="accent-btn" data-accent="red"></button>
+          <button class="accent-custom-trigger" id="accentCustomTrigger" type="button" aria-label="Individuelle Farbe">🎨</button>
+        </div>
+        <div class="accent-custom-overlay hidden" id="accentCustomOverlay" aria-hidden="true">
+          <div class="accent-custom accent-custom-popup" id="accentCustom">
+            <div class="accent-custom-head">
+              <div class="label" data-i18n="settings_accent_custom">Individuelle Farbe</div>
+              <button class="icon-btn accent-custom-close" id="accentCustomClose" type="button" aria-label="Schließen">&times;</button>
+            </div>
+            <div class="accent-wheel-wrap" id="accentWheelWrap">
+              <canvas id="accentWheel" width="220" height="220" aria-label="Akzent Farbrad"></canvas>
+              <span class="accent-wheel-thumb" id="accentWheelThumb"></span>
+            </div>
+            <div class="accent-brightness-row">
+              <div class="label" data-i18n="settings_accent_brightness">Helligkeit</div>
+              <input type="range" id="accentBrightness" min="40" max="140" step="1" value="100" />
+            </div>
+          </div>
         </div>
       </div>
       <div class="field">
@@ -256,7 +275,6 @@
           <button class="btn-primary" id="bgUploadBtn" type="button" data-i18n="settings_upload_image">Bild hochladen</button>
           <input id="bgUpload" type="file" accept="image/png,image/jpeg,image/jpg,image/webp" hidden />
         </div>
-        <div class="help-text" data-i18n="settings_allowed_sizes">Erlaubte Groesse: 1920x1080, 2560x1440, 3840x2160, 5184x3456</div>
         <div class="error-box hidden" id="bgError" data-i18n="settings_bg_error">Bild hat falsches Format. Bitte 1920x1080, 2560x1440, 3840x2160 oder 5184x3456 verwenden.</div>
       </div>
     </div>
@@ -277,46 +295,26 @@
       <div class="field">
         <div class="label" data-i18n="settings_voice_activation">Sprachaktivierung</div>
         <div class="theme-row">
-          <span class="theme-label" id="voiceActivationState">Aktiviert</span>
-          <label class="switch">
-            <input type="checkbox" id="voiceActivationToggle" />
-            <span class="slider"></span>
-          </label>
+          <div class="voice-activation-choice" role="group" aria-label="Sprachaktivierung Zustand">
+            <button class="voice-activation-btn is-off" id="voiceActivationOff" type="button" data-i18n="settings_voice_status_off">Deaktiviert</button>
+            <button class="voice-activation-btn is-on" id="voiceActivationOn" type="button" data-i18n="settings_voice_status_on">Aktiviert</button>
+          </div>
+          <input type="checkbox" id="voiceActivationToggle" hidden />
         </div>
-        <div class="help-text hidden" id="voiceCommandHint" data-i18n="settings_voice_command_hint">Sage z.B.: "Kontrollzentrum starte CS2" oder "Control Center open Steam".</div>
-      </div>
-      <div class="field">
-        <div class="label" data-i18n="settings_voice_wake_mode_label">Ansprache</div>
-        <select class="select" id="voiceWakeModeSelect">
-          <option value="standard" data-i18n="settings_voice_wake_mode_standard">Standard (Kontrollzentrum / Control Center)</option>
-          <option value="custom" data-i18n="settings_voice_wake_mode_custom">Custom</option>
-        </select>
-      </div>
-      <div class="field hidden" id="voiceWakeCustomWrap">
-        <div class="label" data-i18n="settings_voice_wake_label">Ansprech-String</div>
-        <input class="input" id="voiceWakeInput" data-i18n-placeholder="settings_voice_wake_placeholder" placeholder="z.B. Kontrollzentrum, Control Center" />
-        <div class="help-text" data-i18n="settings_voice_wake_help">Ein oder mehrere Wake-Words, mit Komma getrennt.</div>
       </div>
       <div class="field hidden" id="voiceMicWrap">
         <div class="label" data-i18n="settings_voice_mic">Mikrofon</div>
         <select class="select" id="voiceMicSelect"></select>
-        <div class="help-text" data-i18n="settings_voice_mic_help">Falls die Erkennung nicht reagiert, bitte dieses Mikrofon in Windows als Standard-Aufnahmegeraet setzen.</div>
+      </div>
+      <div class="field" id="voiceWakeCustomWrap">
+        <div class="label" data-i18n="settings_voice_wake_label">Ansprech-String</div>
+        <input class="input" id="voiceWakeInput" data-i18n-placeholder="settings_voice_wake_placeholder" placeholder="z.B. Kontrollzentrum, Control Center" />
       </div>
       <div class="field">
         <div class="label" data-i18n="settings_voice_voice">Stimme</div>
-        <select class="select" id="voiceSelect"></select>
-        <div class="help-text" data-i18n="settings_voice_voice_help">Wähle eine der verfügbaren Systemstimmen aus.</div>
-      </div>
-      <div class="field">
-        <div class="label" data-i18n="settings_voice_tone">Aktivierungston</div>
-        <select class="select" id="voiceToneSelect">
-          <option value="soft_low" data-i18n="settings_voice_tone_soft_low">Soft Low</option>
-          <option value="deep_click" data-i18n="settings_voice_tone_deep_click">Deep Click</option>
-          <option value="duo_console" data-i18n="settings_voice_tone_duo_console">Duo Console</option>
-          <option value="warm_ping" data-i18n="settings_voice_tone_warm_ping">Warm Ping</option>
-          <option value="short_thud" data-i18n="settings_voice_tone_short_thud">Short Thud</option>
-        </select>
-        <div class="help-text" data-i18n="settings_voice_tone_help">Wähle den Sound beim Aktivieren von Sprachbefehlen.</div>
+        <button class="voice-mode-btn" id="voiceModeBtn" type="button" aria-label="Stimme auswählen">
+          <span class="voice-mode-icon" id="voiceModeIcon" aria-hidden="true">🎵</span>
+        </button>
       </div>
     </div>
     <div class="modal-foot">
