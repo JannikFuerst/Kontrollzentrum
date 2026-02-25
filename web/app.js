@@ -1567,6 +1567,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (notesToggle) notesToggle.setAttribute("aria-expanded", "true");
     ensureRailCollapsedForSidePanel();
     syncSidePanelsLayout();
+    // Guard against oversized inline textarea heights from previous resize interactions.
+    if (notesText) notesText.style.removeProperty("height");
     setTimeout(() => notesText?.focus(), 0);
   }
 

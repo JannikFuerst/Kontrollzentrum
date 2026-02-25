@@ -9,6 +9,9 @@ use tauri_plugin_shell::ShellExt;
 use walkdir::WalkDir;
 use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShortcutExt, ShortcutState as HotkeyState};
 
+const APP_SHORTCUT_COOLDOWN_MS: u64 = 900;
+const GLOBAL_SHORTCUT_COOLDOWN_MS: u64 = 600;
+
 #[derive(serde::Serialize)]
 struct ScannedApp {
   name: String,
@@ -16,7 +19,10 @@ struct ScannedApp {
   icon: Option<String>,
 }
 
-struct ShortcutState(Mutex<Option<String>>);
+struct ShortcutState {
+  registered: Mutex<Option<String>>,
+  last_fired: Arc<Mutex<Option<Instant>>>,
+}
 struct AppShortcutState {
   registered: Mutex<Vec<String>>,
   last_fired: Arc<Mutex<HashMap<String, Instant>>>,
@@ -544,7 +550,10 @@ pub fn run() {
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_shell::init())
     .plugin(GlobalShortcutBuilder::new().build())
-    .manage(ShortcutState(Mutex::new(None)))
+    .manage(ShortcutState {
+      registered: Mutex::new(None),
+      last_fired: Arc::new(Mutex::new(None)),
+    })
     .manage(AppShortcutState {
       registered: Mutex::new(Vec::new()),
       last_fired: Arc::new(Mutex::new(HashMap::new())),
@@ -579,8 +588,9 @@ pub fn run() {
 #[tauri::command]
 fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>, shortcut: String) -> Result<(), String> {
   let shortcut = shortcut.trim().to_string();
+  let toggle_state = state.last_fired.clone();
 
-  let mut guard = state.0.lock().map_err(|_| "lock failed")?;
+  let mut guard = state.registered.lock().map_err(|_| "lock failed")?;
   let prev = guard.clone();
 
   if let Some(prev_sc) = prev {
@@ -589,6 +599,9 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
 
   if shortcut.is_empty() {
     *guard = None;
+    if let Ok(mut last) = toggle_state.lock() {
+      *last = None;
+    }
     return Ok(());
   }
 
@@ -598,23 +611,32 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
       if event.state != HotkeyState::Pressed {
         return;
       }
+      let now = Instant::now();
+      let mut last_fired = match toggle_state.lock() {
+        Ok(guard) => guard,
+        Err(_) => return,
+      };
+      if let Some(prev_fire) = *last_fired {
+        if now.saturating_duration_since(prev_fire) < Duration::from_millis(GLOBAL_SHORTCUT_COOLDOWN_MS) {
+          return;
+        }
+      }
+      *last_fired = Some(now);
+      drop(last_fired);
+
       if let Some(w) = app.get_webview_window("main") {
-        let _ = w.is_minimized().map(|min| {
-          if min {
-            let _ = w.unminimize();
-            let _ = w.show();
-            let _ = w.set_focus();
-            return;
-          }
-          let _ = w.is_visible().map(|visible| {
-            if visible {
-              let _ = w.hide();
-            } else {
-              let _ = w.show();
-              let _ = w.set_focus();
-            }
-          });
-        });
+        if w.is_minimized().unwrap_or(false) {
+          let _ = w.unminimize();
+          let _ = w.show();
+          let _ = w.set_focus();
+          return;
+        }
+        if w.is_visible().unwrap_or(true) {
+          let _ = w.hide();
+          return;
+        }
+        let _ = w.show();
+        let _ = w.set_focus();
       }
     })
     .map_err(|e| e.to_string())?;
@@ -662,15 +684,19 @@ fn set_app_shortcuts(
           return;
         }
         // Guard against hotkey spam: ignore rapid repeats per shortcut.
-        if let Ok(mut fired) = fired_state_local.lock() {
-          let now = Instant::now();
-          if let Some(prev) = fired.get(&shortcut_key) {
-            if now.duration_since(*prev) < Duration::from_millis(450) {
-              return;
-            }
+        // If the lock is poisoned/unavailable, skip launching instead of bypassing this guard.
+        let now = Instant::now();
+        let mut fired = match fired_state_local.lock() {
+          Ok(guard) => guard,
+          Err(_) => return,
+        };
+        if let Some(prev) = fired.get(&shortcut_key) {
+          if now.saturating_duration_since(*prev) < Duration::from_millis(APP_SHORTCUT_COOLDOWN_MS) {
+            return;
           }
-          fired.insert(shortcut_key.clone(), now);
         }
+        fired.insert(shortcut_key.clone(), now);
+        drop(fired);
         let _ = app.shell().open(launch_value.clone(), None);
       })
       .map_err(|e| e.to_string())?;
