@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="de">
 <head>
   <meta charset="utf-8" />
@@ -13,11 +13,11 @@
       <div class="notes-dock">
         <div class="side-toggles">
           <button class="notes-toggle" id="notesToggle" type="button" aria-expanded="false" aria-controls="notesPanel">
-            <span class="notes-emoji-icon" aria-hidden="true">📒</span>
+            <span class="notes-emoji-icon" aria-hidden="true">??</span>
             <span data-i18n="notes_toggle">Notizen</span>
           </button>
           <button class="notes-toggle" id="clipboardToggle" type="button" aria-expanded="false" aria-controls="clipboardPanel">
-            <span class="notes-emoji-icon" aria-hidden="true">✂️</span>
+            <span class="notes-emoji-icon" aria-hidden="true">??</span>
             <span data-i18n="clipboard_toggle">Clipboard</span>
           </button>
         </div>
@@ -29,11 +29,11 @@
         </div>
         <textarea id="notesText" class="notes-text" placeholder="Deine Notizen..." data-i18n-placeholder="notes_placeholder" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
         <div class="notes-actions">
-          <button class="notes-delete" id="notesDelete" type="button" data-i18n="notes_delete_page">Seite löschen</button>
+          <button class="notes-delete" id="notesDelete" type="button" data-i18n="notes_delete_page">Seite l�schen</button>
           <button class="notes-clear" id="notesClear" type="button" data-i18n="notes_clear_page">Seite leeren</button>
           <button class="notes-lock" id="notesLock" type="button" aria-pressed="false" aria-label="Bearbeitung entsperrt">
-            <span class="lock-open" aria-hidden="true">🔓</span>
-            <span class="lock-closed" aria-hidden="true">🔒</span>
+            <span class="lock-open" aria-hidden="true">??</span>
+            <span class="lock-closed" aria-hidden="true">??</span>
           </button>
           <div class="notes-status" id="notesStatus">Gespeichert</div>
         </div>
@@ -44,7 +44,7 @@
           <div class="clipboard-mode" id="clipboardModeBadge" data-i18n="clipboard_mode_unlimited">Unbegrenzt</div>
           <button class="notes-delete" id="clipboardClearAll" type="button" data-i18n="clipboard_clear">Leeren</button>
         </div>
-        <div class="clipboard-empty" id="clipboardEmpty" data-i18n="clipboard_empty">Noch keine Einträge.</div>
+        <div class="clipboard-empty" id="clipboardEmpty" data-i18n="clipboard_empty">Noch keine Eintr�ge.</div>
         <div class="clipboard-list" id="clipboardList"></div>
       </div>
       </div>
@@ -70,10 +70,10 @@
       <div class="top-actions">
         <div class="lang-switch" id="langSwitch">
           <button class="gear-btn lang-btn" id="languageBtn" type="button" aria-label="Sprache" title="Sprache" aria-haspopup="true" aria-expanded="false">
-            <span class="gear-emoji-icon" aria-hidden="true">🌍</span>
+            <span class="gear-emoji-icon" aria-hidden="true">??</span>
           </button>
           <button class="gear-btn" id="voiceSettingsBtn" type="button" aria-label="Spracheingabe" title="Spracheingabe" data-i18n-aria-label="voice_settings_aria" data-i18n-title="voice_settings_title_btn">
-            <span class="gear-emoji-icon" aria-hidden="true">🎙️</span>
+            <span class="gear-emoji-icon" aria-hidden="true">???</span>
           </button>
           <div class="lang-menu" id="languageMenu" role="menu" aria-hidden="true">
             <button type="button" class="lang-item" data-lang="en" role="menuitem">English</button>
@@ -85,19 +85,19 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
             </svg>
-            <span data-i18n="add_app">App hinzufügen</span>
+            <span data-i18n="add_app">App hinzuf�gen</span>
           </button>
           <button class="gear-btn" id="settingsBtn" type="button" aria-label="Einstellungen" title="Einstellungen" data-i18n-aria-label="settings_aria" data-i18n-title="settings_title_btn">
-            <span class="gear-emoji-icon" aria-hidden="true">⚙️</span>
+            <span class="gear-emoji-icon" aria-hidden="true">??</span>
           </button>
         </div>
       </div>
     </div>
 
     <div class="tabs-wrap">
-      <div class="over-tabs" id="overTabs" role="tablist" aria-label="Überkategorien">
+      <div class="over-tabs" id="overTabs" role="tablist" aria-label="�berkategorien">
         <div class="tab active over-tab-static" data-tab="super:all" data-super="__all__" role="tab" aria-selected="true">
-          <span class="over-icon" aria-hidden="true">🔗</span>
+          <span class="over-icon" aria-hidden="true">??</span>
           <span data-i18n="tab_all">Alle</span>
         </div>
       </div>
@@ -112,16 +112,16 @@
         </div>
         <div class="tabs" role="tablist" aria-label="Filter">
           <div class="tab" data-tab="all" role="tab" aria-selected="true">
-            <span aria-hidden="true">🔗</span>
+            <span aria-hidden="true">??</span>
             <span data-i18n="tab_all">Alle</span> <span class="badge" id="badgeAll">0</span>
           </div>
 
           <div class="tab" data-tab="fav" role="tab" aria-selected="false">
-            <span aria-hidden="true">⭐</span>
+            <span aria-hidden="true">?</span>
             <span data-i18n="tab_favorites">Favoriten</span> <span class="badge" id="badgeFav">0</span>
           </div>
           <div class="tab" data-tab="hotkeys" role="tab" aria-selected="false">
-            <span aria-hidden="true">⛓️‍💥</span>
+            <span aria-hidden="true">?????</span>
             <span data-i18n="tab_hotkeys">Hotkeys</span> <span class="badge" id="badgeHotkeys">0</span>
           </div>
 
@@ -129,7 +129,7 @@
         </div>
         <div class="tabs-actions">
           <button class="tab tab-add-btn" id="catAddToggle" type="button" aria-label="Kategorien verwalten" data-i18n-aria-label="manage_categories_aria">+</button>
-          <button class="tab tab-collapse-btn" id="catCollapseToggle" type="button" aria-label="Kategorien einklappen" title="Kategorien einklappen">⮞</button>
+          <button class="tab tab-collapse-btn" id="catCollapseToggle" type="button" aria-label="Kategorien einklappen" title="Kategorien einklappen">?</button>
         </div>
       </div>
     </div>
@@ -151,12 +151,12 @@
           </svg>
         </div>
         <h2 data-i18n="empty_title">Noch keine Apps</h2>
-        <p data-i18n="empty_subtitle">Füge deine erste App hinzu</p>
+        <p data-i18n="empty_subtitle">F�ge deine erste App hinzu</p>
         <button class="btn secondary" type="button" id="addBtn2">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.8" stroke-linecap="round"/>
           </svg>
-          <span data-i18n="add_app">App hinzufügen</span>
+          <span data-i18n="add_app">App hinzuf�gen</span>
         </button>
       </section>
 
@@ -166,8 +166,8 @@
   </div>
 
   <div class="corner-meta">
-    <div id="versionTag">v2.0.1</div>
-    <div class="credit">made by Jannik Fürst</div>
+    <div id="versionTag">v2.0.3</div>
+    <div class="credit">made by Jannik F�rst</div>
   </div>
 
   <div id="modalRoot"></div>
@@ -175,3 +175,4 @@
   <script src="./app.js"></script>
 </body>
 </html>
+

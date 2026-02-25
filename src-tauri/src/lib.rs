@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use base64::Engine;
 use tauri::Manager;
 use tauri_plugin_shell::ShellExt;
@@ -16,10 +17,13 @@ struct ScannedApp {
 }
 
 struct ShortcutState(Mutex<Option<String>>);
-struct AppShortcutState(Mutex<Vec<String>>);
+struct AppShortcutState {
+  registered: Mutex<Vec<String>>,
+  last_fired: Arc<Mutex<HashMap<String, Instant>>>,
+}
 
 #[derive(serde::Deserialize)]
-struct AppShortcutBinding {
+struct AppShortcutEntry {
   shortcut: String,
   launch: String,
 }
@@ -541,7 +545,10 @@ pub fn run() {
     .plugin(tauri_plugin_shell::init())
     .plugin(GlobalShortcutBuilder::new().build())
     .manage(ShortcutState(Mutex::new(None)))
-    .manage(AppShortcutState(Mutex::new(Vec::new())))
+    .manage(AppShortcutState {
+      registered: Mutex::new(Vec::new()),
+      last_fired: Arc::new(Mutex::new(HashMap::new())),
+    })
     .setup(|_app| {
       if cfg!(debug_assertions) {
         // Logging in dev disabled to keep terminal clean.
@@ -620,42 +627,57 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
 fn set_app_shortcuts(
   app: tauri::AppHandle,
   state: tauri::State<AppShortcutState>,
-  bindings: Vec<AppShortcutBinding>,
+  shortcuts: Vec<AppShortcutEntry>
 ) -> Result<(), String> {
-  let mut guard = state.0.lock().map_err(|_| "lock failed")?;
-  let prev = guard.clone();
+  let mut guard = state.registered.lock().map_err(|_| "lock failed")?;
+  let fired_state = state.last_fired.clone();
 
-  for prev_sc in prev {
-    let _ = app.global_shortcut().unregister(prev_sc.as_str());
+  for prev in guard.iter() {
+    let _ = app.global_shortcut().unregister(prev.as_str());
+  }
+  guard.clear();
+  if let Ok(mut fired) = fired_state.lock() {
+    fired.clear();
   }
 
-  let mut registered = Vec::new();
-  let mut seen = HashSet::new();
-  for binding in bindings {
-    let shortcut = binding.shortcut.trim().to_string();
-    let launch = binding.launch.trim().to_string();
+  let mut seen = HashSet::<String>::new();
+  for item in shortcuts {
+    let shortcut = item.shortcut.trim().to_string();
+    let launch = item.launch.trim().to_string();
     if shortcut.is_empty() || launch.is_empty() {
       continue;
     }
-    let dedupe_key = shortcut.to_lowercase();
-    if !seen.insert(dedupe_key) {
+    let key = shortcut.to_lowercase();
+    if !seen.insert(key) {
       continue;
     }
 
+    let launch_value = launch.clone();
+    let fired_state_local = fired_state.clone();
+    let shortcut_key = shortcut.to_lowercase();
     app
       .global_shortcut()
       .on_shortcut(shortcut.as_str(), move |app, _sc, event| {
         if event.state != HotkeyState::Pressed {
           return;
         }
-        let _ = app.shell().open(launch.clone(), None);
+        // Guard against hotkey spam: ignore rapid repeats per shortcut.
+        if let Ok(mut fired) = fired_state_local.lock() {
+          let now = Instant::now();
+          if let Some(prev) = fired.get(&shortcut_key) {
+            if now.duration_since(*prev) < Duration::from_millis(450) {
+              return;
+            }
+          }
+          fired.insert(shortcut_key.clone(), now);
+        }
+        let _ = app.shell().open(launch_value.clone(), None);
       })
       .map_err(|e| e.to_string())?;
 
-    registered.push(shortcut);
+    guard.push(shortcut);
   }
 
-  *guard = registered;
   Ok(())
 }
     fn scan_start_apps() -> Vec<ScannedApp> {

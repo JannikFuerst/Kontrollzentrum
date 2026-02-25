@@ -1,124 +1,52 @@
-﻿# Kontrollzentrum 2.0.0
+# Kontrollzentrum
 
-**Der schnellste Weg von Idee zu Aktion auf deinem Windows-Desktop.**  
-Kontrollzentrum 2.0.0 ist dein persönlicher Command-Hub für Web-Apps, Desktop-Apps und Spiele. Statt zwischen Browser, Startmenü, Desktop und zig Fenstern zu springen, steuerst du alles aus einer eleganten Oberfläche mit Suche, Hotkeys und Sprachbefehlen.
+Kontrollzentrum ist ein moderner App-Hub f�r Windows: schnell, klar und auf produktives Arbeiten ausgelegt.  
+Webseiten, Desktop-Programme, Kategorien, Sprachsteuerung, Notizen und Clipboard-Verlauf in einer Oberfl�che.
 
-## Warum Kontrollzentrum?
+## Version 2.0.3
 
-Weil du keine Zeit für Klick-Marathons hast.
+`v2.0.3` ist das gro�e UI- und Workflow-Update mit Fokus auf:
 
-- **Ein zentraler Startpunkt** für Web- und Desktop-Apps
-- **Sofortzugriff** per Suche, App-Hotkey oder Sprachbefehl
-- **Saubere Organisation** mit Favoriten, Kategorien und Überkategorien
-- **Produktiv-Extras** wie Notizen und Clipboard-Verlauf direkt integriert
-- **Volle Kontrolle über Look & Feel** mit Theme-, Farb- und Hintergrund-Anpassung
+- konsistenteres Design und bessere Lesbarkeit
+- sauberere Interaktionen im eingeklappten/ausgeklappten Modus
+- �berarbeitete Add-App- und Settings-Flows
+- bessere Hotkey-Nutzung f�r einzelne Apps
 
-## Neu in 2.0.0
+## Kernfunktionen
 
-Version **2.0.0** bringt Kontrollzentrum auf ein neues Level:
+- Apps zentral verwalten (Web + Desktop)
+- Apps �ber Suche, Kategorien oder Favoriten starten
+- Desktop-Scan f�r installierte Programme
+- Sprachsteuerung mit Aktivierungswort
+- Notizen mit Seitenverwaltung
+- Clipboard-Verlauf mit L�schmodus (Anzahl oder Zeit)
+- Individuelle Akzentfarbe inkl. eigener Farbauswahl
+- Globaler Hotkey zum Anzeigen/Verstecken des Fensters
 
-- Überarbeitete Oberfläche mit klarerem Flow und schnellerem Handling
-- Überkategorien inkl. Icon-System und flexibler Sortierung
-- Deutlich ausgebautes Drag-and-Drop für Apps und Kategorien
-- Stärkere Sprachsteuerung mit besserem Matching für App-Namen und Launch-URIs
-- Erweiterte Clipboard-Funktionen (Text + Bilder) inklusive Retention-Optionen
-- Verbesserter Scan für Windows-Apps und Steam-Games (inkl. Cover/Icon-Fallbacks)
-- Update-Check beim Start mit GitHub-Release-Anbindung
+## Highlights in v2.0.3
 
-## Alle Funktionen im Überblick
+- Deutlich �berarbeitete Oberfl�che in mehreren Bereichen (Karten, Popups, Dropdowns, Controls)
+- Neue/verbesserte Interaktionen f�r Kategorien und Unterkategorien
+- Verbesserte App-Bearbeitung mit stabilerem Verhalten im Modal
+- Hotkey-Flow pro App ausgebaut (inkl. eigener Hotkey-Kategorie)
+- Bessere Bedienung bei vielen Eintr�gen und kompakteren Layouts
+- Versionierung und Release-Flow f�r `v2.0.3` vereinheitlicht
 
-### 1. App-Hub für alles
+## Download
 
-- Web-Apps (`https://...`) und Desktop-Apps (URI wie `discord://`, `steam://`, `ms-settings:` oder `file:///...`) in einer einheitlichen Grid-Ansicht
-- Apps hinzufügen, bearbeiten, löschen und kategorisieren
-- Automatische Favicons für Web-Apps + optional eigenes Icon (Upload)
-- Schneller Launch direkt aus der Karte
+Die aktuelle Version findest du unter:
 
-### 2. Scannen statt eintippen
+- https://github.com/JannikFuerst/Kontrollzentrum/releases
 
-- Windows-App-Scan über Startmenü/App-Quellen
-- Steam-Game-Scan inkl. `steam://run/<appid>` Launchlinks
-- Icon-Erkennung lokal, inklusive Fallbacks
-- Scan-Ergebnisse als Vorschläge direkt beim Hinzufügen nutzbar
+## Technologie
 
-### 3. Favoriten, Pins und Reihenfolge
-
-- Apps als Favoriten markieren
-- Eigener angepinnter Bereich für deine wichtigsten Tools
-- Drag-and-Drop Sortierung für:
-  - Favoriten-Reihenfolge
-  - App-Reihenfolge innerhalb von Kategorien
-  - Kategorie-Reihenfolge
-
-### 4. Kategorien und Überkategorien
-
-- Eigene Kategorien erstellen und verwalten
-- Überkategorien für größere Strukturen (z. B. „Arbeit“, „Gaming“, „Privat“)
-- Kategorien per Kontextmenü zwischen Überkategorien verschieben
-- Icon-Auswahl für Kategorien/Überkategorien (inkl. Upload)
-- Kategorien ein-/ausklappen und per Suche filtern
-
-### 5. Suche und Hotkeys
-
-- Hauptsuche über alle Apps (`STRG+F`)
-- Kategorie-/Tab-Suche (`STRG+G`)
-- **Globaler Hotkey** zum Ein-/Ausblenden des gesamten Kontrollzentrums
-- **Pro-App Hotkeys** für direkten Start einzelner Apps
-
-### 6. Sprachsteuerung (DE + EN)
-
-- Wake-Word-Modus mit Standard-Ansprache („Kontrollzentrum / Control Center“) oder Custom-Wake-Words
-- Befehle wie „starte/open/launch ...“
-- Mikrofon-Auswahl und Voice-/Sound-Feedback konfigurierbar
-- Stimmwahl (Systemstimmen, männlich/weiblich, optional nur Sound)
-- Mehrere Aktivierungstöne
-- Robustes Matching auch bei ähnlichen App-Namen
-
-### 7. Notizen direkt im Hub
-
-- Seitliche Notizleiste mit mehreren Seiten
-- Seiten anlegen, löschen, leeren
-- Seitenweise Sperren/Entsperren (Lock)
-- Auto-Save mit Statusanzeige
-
-### 8. Clipboard-Verlauf mit Mehrwert
-
-- Verlauf für **Text und Bilder**
-- Einträge mit einem Klick zurück in die Zwischenablage kopieren
-- „Alles leeren“-Funktion
-- Retention steuerbar nach:
-  - maximaler Anzahl
-  - Zeitfenster (z. B. 4/8/24/48 Stunden)
-
-### 9. Design & Personalisierung
-
-- Deutsch/Englisch Umschaltung
-- Light/Dark Theme
-- Akzentfarben + individuelle Farbe mit Helligkeitssteuerung
-- Hintergrundmodi: Standard, Mono, Duo, Custom-Bild
-
-### 10. Update-Ready
-
-- GitHub-Updater integriert
-- Beim Start wird auf Wunsch geprüft, ob eine neuere Version verfügbar ist
-- Build erzeugt Installer + Updater-Artefakte
-
-## Datenschutz
-
-Kontrollzentrum ist auf lokale Nutzung ausgelegt:
-
-- Deine App-Liste, Notizen, Kategorien, Hotkeys, Clipboard-Verlauf und UI-Einstellungen werden lokal auf deinem Gerät gespeichert.
-- Keine Cloud-Pflicht. Kein Konto-Zwang. Kein Abo-Modell im Weg.
-
-## Tech Stack
-
-- **Frontend:** Vanilla HTML, CSS, JavaScript (`web/`)
-- **Desktop Runtime:** Tauri v2 (`src-tauri/`)
-- **Backend:** Rust (Scan, Clipboard, Global Shortcut, externe Launches)
+- Frontend: Vanilla HTML, CSS, JavaScript (`web/`)
+- Desktop-App: Tauri v2 (`src-tauri/`)
+- Backend: Rust (`src-tauri/src/`)
 
 ## Voraussetzungen
 
-- Windows 10/11
+- Windows 10 oder Windows 11
 - Node.js + npm
 - Rust Toolchain + Cargo
 
@@ -129,34 +57,43 @@ npm install
 npm run dev
 ```
 
-Wenn PowerShell-Skripte blockieren:
+Falls PowerShell-Skripte blockiert sind:
 
 ```bash
 cmd /c npm run dev
 ```
 
-## Build (Release + Updater)
+## Build (Installer)
 
 ```bash
 npm run build
 ```
 
+Der Build erzeugt u. a.:
+
+- MSI-Installer
+- NSIS-Setup (`.exe`)
+- Updater-Artefakte (f�r GitHub Releases)
+
+## Release-Prozess
+
+1. Version hochziehen in:
+   - `package.json`
+   - `src-tauri/Cargo.toml`
+   - `src-tauri/tauri.conf.json`
+2. Commit erstellen
+3. Tag setzen: `vX.Y.Z`
+4. `main` + Tag pushen
+5. GitHub Action erstellt den Release-Build
+
 ## Projektstruktur
 
-- `web/` Frontend (UI, Styles, Modals, App-Logik)
-- `src-tauri/` Tauri-Konfiguration, Rust-Commands, Bundling/Updater
-
-## Download
-
-Aktuelle Releases:
-
-- https://github.com/JannikFuerst/Kontrollzentrum/releases
+- `web/` Frontend, UI-Komponenten, Modals, Styling
+- `src-tauri/` Tauri-Konfiguration und Rust-Backend
+- `.github/workflows/` CI/CD und Release-Automation
 
 ## Lizenz
 
 ISC
 
----
 
-**Kontrollzentrum 2.0.0** ist nicht einfach ein Launcher.  
-Es ist dein persönliches Kontrollpanel für Fokus, Tempo und einen Desktop, der endlich so arbeitet wie du.

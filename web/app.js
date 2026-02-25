@@ -124,6 +124,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       app_ctx_edit: "Bearbeiten",
       app_ctx_delete: "Löschen",
       alert_scan_choose: "Bitte eine App aus dem Scan wählen.",
+      alert_notice_title: "Hinweis",
+      alert_ok: "OK",
       alert_fill_required: "Bitte Name und URL/Pfad ausfüllen.",
       alert_web_invalid: "Web-Apps brauchen eine URL/Domain (z.B. discord.com/app oder https://discord.com/app).",
       alert_desktop_invalid: "Desktop braucht eine URI wie discord://, steam://..., ms-settings:... oder file:///C:/..."
@@ -336,6 +338,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       app_ctx_edit: "Edit",
       app_ctx_delete: "Delete",
       alert_scan_choose: "Please select an app from scan.",
+      alert_notice_title: "Notice",
+      alert_ok: "OK",
       alert_fill_required: "Please fill name and URL/path.",
       alert_web_invalid: "Web apps need a URL/domain (e.g. discord.com/app or https://discord.com/app).",
       alert_desktop_invalid: "Desktop apps need a URI like discord://, steam://..., ms-settings:... or file:///C:/...",
@@ -1400,7 +1404,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!scanSelect) return;
     const selected = scanSelect.value || "";
     const app = scanApps.find(a => (a.launch || a.path || "") === selected);
-    if (iconState?.type === "custom"){
+    if (iconManuallyUploaded){
       syncScanSelectUi();
       return;
     }
@@ -1413,7 +1417,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     syncScanSelectUi();
     if (app?.icon){
-      setIconCustom(app.icon);
+      setIconCustom(app.icon, "auto");
     } else {
       setIconNone();
     }
@@ -3040,26 +3044,30 @@ function openCatManage(){
     if (e.altKey) parts.push("Alt");
     if (e.shiftKey) parts.push("Shift");
     if (e.metaKey) parts.push("Super");
-    let key = e.key;
-    const code = String(e.code || "");
-    if (/^Numpad\d$/.test(code)){
-      key = code;
-    } else if (code === "NumpadAdd"){
-      key = "NumpadAdd";
-    } else if (code === "NumpadSubtract"){
-      key = "NumpadSubtract";
-    } else if (code === "NumpadMultiply"){
-      key = "NumpadMultiply";
-    } else if (code === "NumpadDivide"){
-      key = "NumpadDivide";
-    } else if (code === "NumpadDecimal"){
-      key = "NumpadDecimal";
-    } else if (code === "NumpadEnter"){
-      key = "NumpadEnter";
-    }
+
+    const numpadByCode = {
+      Numpad0: "Numpad0",
+      Numpad1: "Numpad1",
+      Numpad2: "Numpad2",
+      Numpad3: "Numpad3",
+      Numpad4: "Numpad4",
+      Numpad5: "Numpad5",
+      Numpad6: "Numpad6",
+      Numpad7: "Numpad7",
+      Numpad8: "Numpad8",
+      Numpad9: "Numpad9",
+      NumpadDecimal: "NumpadDecimal",
+      NumpadAdd: "NumpadAdd",
+      NumpadSubtract: "NumpadSubtract",
+      NumpadMultiply: "NumpadMultiply",
+      NumpadDivide: "NumpadDivide",
+      NumpadEnter: "NumpadEnter"
+    };
+
+    let key = numpadByCode[e.code] || e.key;
     if (key === " ") key = "Space";
     if (key.length === 1) key = key.toUpperCase();
-    if (["Control","Alt","Shift","Meta"].includes(key)) return "";
+    if (["Control", "Alt", "Shift", "Meta"].includes(key)) return "";
     parts.push(key);
     return parts.join("+");
   }
@@ -3433,11 +3441,12 @@ function openCatManage(){
       return;
     }
     if (app.icon.type === "custom"){
-      setIconCustom(app.icon.value || "");
+      setIconCustom(app.icon.value || "", "auto");
       return;
     }
     if (app.icon.type === "favicon"){
       iconState = { type:"favicon", value: app.icon.value || "" };
+      iconManuallyUploaded = false;
       if (iconPreviewImg){
         if (iconState.value){
           iconPreviewImg.src = iconState.value;
@@ -3487,6 +3496,7 @@ function openCatManage(){
   const iconPreviewImg = document.getElementById("iconPreviewImg");
 
   let iconState = { type: "favicon", value: "" }; // custom | none
+  let iconManuallyUploaded = false;
 
   function faviconUrl(url){
     try{
@@ -3500,6 +3510,7 @@ function openCatManage(){
 
   function setIconNone(){
     iconState = { type:"none", value:"" };
+    iconManuallyUploaded = false;
     iconPreviewImg?.removeAttribute("src");
     if (iconPreviewImg) iconPreviewImg.style.opacity = "0";
   }
@@ -3507,14 +3518,16 @@ function openCatManage(){
   function setIconFavicon(url){
     const fav = faviconUrl(url);
     iconState = { type:"favicon", value: fav };
+    iconManuallyUploaded = false;
     if (iconPreviewImg){
       iconPreviewImg.src = fav;
       iconPreviewImg.style.opacity = "1";
     }
   }
 
-  function setIconCustom(dataUrl){
+  function setIconCustom(dataUrl, source = "auto"){
     iconState = { type:"custom", value: dataUrl };
+    iconManuallyUploaded = source === "manual";
     if (iconPreviewImg){
       iconPreviewImg.src = dataUrl;
       iconPreviewImg.style.opacity = "1";
@@ -3522,7 +3535,7 @@ function openCatManage(){
   }
 
   function refreshIconFromUrl(){
-    if (iconState.type === "custom") return;
+    if (iconManuallyUploaded) return;
 
     const raw = appUrl?.value?.trim() || "";
     if (!raw) return setIconNone();
@@ -3548,12 +3561,13 @@ function openCatManage(){
     }
 
     const dataUrl = await fileToDataUrl(file);
-    setIconCustom(dataUrl);
+    setIconCustom(dataUrl, "manual");
     iconUpload.value = "";
   });
 
   iconRemove?.addEventListener("click", () => {
     iconState = { type:"favicon", value:"" };
+    iconManuallyUploaded = false;
     refreshIconFromUrl();
   });
 
@@ -3664,34 +3678,21 @@ function openCatManage(){
     }
   }
 
-  let appHotkeySyncTimer = null;
-  function queueGlobalAppHotkeysSync(list){
-    const snapshot = Array.isArray(list) ? list.slice() : [];
-    if (appHotkeySyncTimer) clearTimeout(appHotkeySyncTimer);
-    appHotkeySyncTimer = setTimeout(() => {
-      appHotkeySyncTimer = null;
-      syncGlobalAppHotkeys(snapshot);
-    }, 0);
-  }
-
-  async function syncGlobalAppHotkeys(list){
+  async function applyAppGlobalHotkeys(list){
     try{
       const tauriApi = window.__TAURI__;
       if (!tauriApi?.core?.invoke) return;
-
-      const bindings = [];
-      const seen = new Set();
-      (Array.isArray(list) ? list : []).forEach((item) => {
-        const shortcut = normalizeShortcutText(item?.hotkey);
-        const launch = String(item?.launch || "").trim();
-        if (!shortcut || !launch) return;
-        const dedupeKey = shortcut.toLowerCase();
-        if (seen.has(dedupeKey)) return;
-        seen.add(dedupeKey);
-        bindings.push({ shortcut, launch });
-      });
-
-      await tauriApi.core.invoke("set_app_shortcuts", { bindings });
+      const shortcuts = (Array.isArray(list) ? list : [])
+        .map((app) => {
+          const shortcut = String(app?.hotkey || "").trim();
+          const rawLaunch = String(app?.launch || "").trim();
+          if (!shortcut || !rawLaunch) return null;
+          const launch = app?.type === "web" ? normalizeWebUrl(rawLaunch) : rawLaunch;
+          if (!launch) return null;
+          return { shortcut, launch };
+        })
+        .filter(Boolean);
+      await tauriApi.core.invoke("set_app_shortcuts", { shortcuts });
     }catch(e){
       console.error("set_app_shortcuts failed:", e);
     }
@@ -3699,7 +3700,7 @@ function openCatManage(){
 
   function saveApps(list){
     localStorage.setItem("kc_apps", JSON.stringify(list));
-    queueGlobalAppHotkeysSync(list);
+    void applyAppGlobalHotkeys(list);
   }
 
   let apps = loadApps();
@@ -4596,6 +4597,7 @@ function openCatManage(){
   }
 
   document.addEventListener("keydown", (e) => {
+    if (window.__TAURI__?.core?.invoke) return;
     if (capturingHotkey || capturingAppHotkey) return;
     if (e.defaultPrevented || e.repeat) return;
     if (isTypingTarget(e.target)) return;
@@ -6889,7 +6891,14 @@ function openCatManage(){
     if (typeRaw === "scan"){
       const selected = scanSelect?.value || "";
       if (!selected){
-        alert(t("alert_scan_choose"));
+        openConfirm(
+          t("alert_scan_choose"),
+          null,
+          t("alert_ok"),
+          t("alert_notice_title"),
+          t("cancel"),
+          { singleButton: true }
+        );
         return;
       }
       launch = selected;
