@@ -16,6 +16,13 @@ struct ScannedApp {
 }
 
 struct ShortcutState(Mutex<Option<String>>);
+struct AppShortcutState(Mutex<Vec<String>>);
+
+#[derive(serde::Deserialize)]
+struct AppShortcutBinding {
+  shortcut: String,
+  launch: String,
+}
 
 #[derive(serde::Serialize)]
 struct ClipboardPayload {
@@ -534,6 +541,7 @@ pub fn run() {
     .plugin(tauri_plugin_shell::init())
     .plugin(GlobalShortcutBuilder::new().build())
     .manage(ShortcutState(Mutex::new(None)))
+    .manage(AppShortcutState(Mutex::new(Vec::new())))
     .setup(|_app| {
       if cfg!(debug_assertions) {
         // Logging in dev disabled to keep terminal clean.
@@ -551,6 +559,7 @@ pub fn run() {
       scan_desktop_apps,
       set_window_icon,
       set_global_shortcut,
+      set_app_shortcuts,
       get_clipboard_text,
       get_clipboard_payload,
       set_clipboard_text,
@@ -604,6 +613,49 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
     .map_err(|e| e.to_string())?;
 
   *guard = Some(shortcut);
+  Ok(())
+}
+
+#[tauri::command]
+fn set_app_shortcuts(
+  app: tauri::AppHandle,
+  state: tauri::State<AppShortcutState>,
+  bindings: Vec<AppShortcutBinding>,
+) -> Result<(), String> {
+  let mut guard = state.0.lock().map_err(|_| "lock failed")?;
+  let prev = guard.clone();
+
+  for prev_sc in prev {
+    let _ = app.global_shortcut().unregister(prev_sc.as_str());
+  }
+
+  let mut registered = Vec::new();
+  let mut seen = HashSet::new();
+  for binding in bindings {
+    let shortcut = binding.shortcut.trim().to_string();
+    let launch = binding.launch.trim().to_string();
+    if shortcut.is_empty() || launch.is_empty() {
+      continue;
+    }
+    let dedupe_key = shortcut.to_lowercase();
+    if !seen.insert(dedupe_key) {
+      continue;
+    }
+
+    app
+      .global_shortcut()
+      .on_shortcut(shortcut.as_str(), move |app, _sc, event| {
+        if event.state != HotkeyState::Pressed {
+          return;
+        }
+        let _ = app.shell().open(launch.clone(), None);
+      })
+      .map_err(|e| e.to_string())?;
+
+    registered.push(shortcut);
+  }
+
+  *guard = registered;
   Ok(())
 }
     fn scan_start_apps() -> Vec<ScannedApp> {

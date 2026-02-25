@@ -3041,6 +3041,22 @@ function openCatManage(){
     if (e.shiftKey) parts.push("Shift");
     if (e.metaKey) parts.push("Super");
     let key = e.key;
+    const code = String(e.code || "");
+    if (/^Numpad\d$/.test(code)){
+      key = code;
+    } else if (code === "NumpadAdd"){
+      key = "NumpadAdd";
+    } else if (code === "NumpadSubtract"){
+      key = "NumpadSubtract";
+    } else if (code === "NumpadMultiply"){
+      key = "NumpadMultiply";
+    } else if (code === "NumpadDivide"){
+      key = "NumpadDivide";
+    } else if (code === "NumpadDecimal"){
+      key = "NumpadDecimal";
+    } else if (code === "NumpadEnter"){
+      key = "NumpadEnter";
+    }
     if (key === " ") key = "Space";
     if (key.length === 1) key = key.toUpperCase();
     if (["Control","Alt","Shift","Meta"].includes(key)) return "";
@@ -3648,8 +3664,42 @@ function openCatManage(){
     }
   }
 
+  let appHotkeySyncTimer = null;
+  function queueGlobalAppHotkeysSync(list){
+    const snapshot = Array.isArray(list) ? list.slice() : [];
+    if (appHotkeySyncTimer) clearTimeout(appHotkeySyncTimer);
+    appHotkeySyncTimer = setTimeout(() => {
+      appHotkeySyncTimer = null;
+      syncGlobalAppHotkeys(snapshot);
+    }, 0);
+  }
+
+  async function syncGlobalAppHotkeys(list){
+    try{
+      const tauriApi = window.__TAURI__;
+      if (!tauriApi?.core?.invoke) return;
+
+      const bindings = [];
+      const seen = new Set();
+      (Array.isArray(list) ? list : []).forEach((item) => {
+        const shortcut = normalizeShortcutText(item?.hotkey);
+        const launch = String(item?.launch || "").trim();
+        if (!shortcut || !launch) return;
+        const dedupeKey = shortcut.toLowerCase();
+        if (seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+        bindings.push({ shortcut, launch });
+      });
+
+      await tauriApi.core.invoke("set_app_shortcuts", { bindings });
+    }catch(e){
+      console.error("set_app_shortcuts failed:", e);
+    }
+  }
+
   function saveApps(list){
     localStorage.setItem("kc_apps", JSON.stringify(list));
+    queueGlobalAppHotkeysSync(list);
   }
 
   let apps = loadApps();
