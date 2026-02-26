@@ -1131,7 +1131,11 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function applyScanCacheToUi(){
     const cache = loadScanCache();
-    scanApps = cache?.apps || [];
+    if (cache && Array.isArray(cache.apps)){
+      scanApps = cache.apps;
+    } else if (!Array.isArray(scanApps)){
+      scanApps = [];
+    }
     renderScanApps();
   }
 
