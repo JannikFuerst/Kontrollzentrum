@@ -1713,11 +1713,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       const currentPage = parseInt(activeNotesPage, 10) || 1;
       saveNotes(notesText?.value || "");
       localStorage.removeItem(notesKeyForPage(currentPage));
+      localStorage.removeItem(notesLockKeyForPage(currentPage));
       for (let i = currentPage; i < notesPageCount; i++){
         const nextVal = localStorage.getItem(notesKeyForPage(i + 1)) || "";
         localStorage.setItem(notesKeyForPage(i), nextVal);
+        const nextLock = localStorage.getItem(notesLockKeyForPage(i + 1));
+        if (nextLock === null){
+          localStorage.removeItem(notesLockKeyForPage(i));
+        } else {
+          localStorage.setItem(notesLockKeyForPage(i), nextLock);
+        }
       }
       localStorage.removeItem(notesKeyForPage(notesPageCount));
+      localStorage.removeItem(notesLockKeyForPage(notesPageCount));
       notesPageCount -= 1;
       if (notesPageCount < 1) notesPageCount = 1;
       saveNotesPageCount();
@@ -3671,13 +3679,137 @@ function openCatManage(){
     return value;
   }
 
-  function loadApps(){
+  const PROFILE_APPS_KEY = "kc_apps";
+  const PROFILE_PINNED_ORDER_KEY = "kc_pinned_order";
+  const PROFILE_CATEGORY_ORDER_KEY = "kc_cat_order";
+  const PROFILE_CATEGORIES_KEY = "kc_categories";
+  const PROFILE_CATEGORY_TABS_KEY = "kc_cat_tabs";
+  const PROFILE_SUPER_CATEGORIES_KEY = "kc_super_categories";
+  const PROFILE_SUPER_TAB_ORDER_KEY = "kc_super_tab_order";
+  const PROFILE_SUPER_ICON_MAP_KEY = "kc_super_icon_map";
+  const PROFILE_CATEGORY_ICON_MAP_KEY = "kc_category_icon_map";
+  const PROFILE_KEYS = [
+    PROFILE_APPS_KEY,
+    PROFILE_PINNED_ORDER_KEY,
+    PROFILE_CATEGORY_ORDER_KEY,
+    PROFILE_CATEGORIES_KEY,
+    PROFILE_CATEGORY_TABS_KEY,
+    PROFILE_SUPER_CATEGORIES_KEY,
+    PROFILE_SUPER_TAB_ORDER_KEY,
+    PROFILE_SUPER_ICON_MAP_KEY,
+    PROFILE_CATEGORY_ICON_MAP_KEY
+  ];
+  const PROFILE_DEFAULTS = {
+    [PROFILE_APPS_KEY]: [],
+    [PROFILE_PINNED_ORDER_KEY]: [],
+    [PROFILE_CATEGORY_ORDER_KEY]: {},
+    [PROFILE_CATEGORIES_KEY]: [],
+    [PROFILE_CATEGORY_TABS_KEY]: [],
+    [PROFILE_SUPER_CATEGORIES_KEY]: [],
+    [PROFILE_SUPER_TAB_ORDER_KEY]: [],
+    [PROFILE_SUPER_ICON_MAP_KEY]: {},
+    [PROFILE_CATEGORY_ICON_MAP_KEY]: {}
+  };
+  let profileState = { ...PROFILE_DEFAULTS };
+  let profileSaveTimer = null;
+  let profilePersistEnabled = false;
+
+  function cloneProfileValue(value, fallback){
+    if (value === undefined) return fallback;
     try{
-      const raw = JSON.parse(localStorage.getItem("kc_apps") || "[]");
-      return Array.isArray(raw) ? raw.map((item) => repairMojibakeValue(item)) : [];
+      return JSON.parse(JSON.stringify(value));
     }catch{
-      return [];
+      return fallback;
     }
+  }
+
+  function normalizeProfileState(raw){
+    const src = raw && typeof raw === "object" ? raw : {};
+    return {
+      [PROFILE_APPS_KEY]: Array.isArray(src[PROFILE_APPS_KEY]) ? src[PROFILE_APPS_KEY] : [],
+      [PROFILE_PINNED_ORDER_KEY]: Array.isArray(src[PROFILE_PINNED_ORDER_KEY]) ? src[PROFILE_PINNED_ORDER_KEY] : [],
+      [PROFILE_CATEGORY_ORDER_KEY]: src[PROFILE_CATEGORY_ORDER_KEY] && typeof src[PROFILE_CATEGORY_ORDER_KEY] === "object" ? src[PROFILE_CATEGORY_ORDER_KEY] : {},
+      [PROFILE_CATEGORIES_KEY]: Array.isArray(src[PROFILE_CATEGORIES_KEY]) ? src[PROFILE_CATEGORIES_KEY] : [],
+      [PROFILE_CATEGORY_TABS_KEY]: Array.isArray(src[PROFILE_CATEGORY_TABS_KEY]) ? src[PROFILE_CATEGORY_TABS_KEY] : [],
+      [PROFILE_SUPER_CATEGORIES_KEY]: Array.isArray(src[PROFILE_SUPER_CATEGORIES_KEY]) ? src[PROFILE_SUPER_CATEGORIES_KEY] : [],
+      [PROFILE_SUPER_TAB_ORDER_KEY]: Array.isArray(src[PROFILE_SUPER_TAB_ORDER_KEY]) ? src[PROFILE_SUPER_TAB_ORDER_KEY] : [],
+      [PROFILE_SUPER_ICON_MAP_KEY]: src[PROFILE_SUPER_ICON_MAP_KEY] && typeof src[PROFILE_SUPER_ICON_MAP_KEY] === "object" ? src[PROFILE_SUPER_ICON_MAP_KEY] : {},
+      [PROFILE_CATEGORY_ICON_MAP_KEY]: src[PROFILE_CATEGORY_ICON_MAP_KEY] && typeof src[PROFILE_CATEGORY_ICON_MAP_KEY] === "object" ? src[PROFILE_CATEGORY_ICON_MAP_KEY] : {}
+    };
+  }
+
+  function readLegacyProfileState(){
+    const out = {};
+    PROFILE_KEYS.forEach((key) => {
+      try{
+        out[key] = JSON.parse(localStorage.getItem(key) || JSON.stringify(PROFILE_DEFAULTS[key]));
+      }catch{
+        out[key] = PROFILE_DEFAULTS[key];
+      }
+    });
+    return normalizeProfileState(out);
+  }
+
+  async function persistProfileStateNow(){
+    if (!profilePersistEnabled) return;
+    const tauriApi = window.__TAURI__;
+    if (tauriApi?.core?.invoke){
+      try{
+        await tauriApi.core.invoke("save_profile_state", { state: profileState });
+      }catch(e){
+        console.error("save_profile_state failed:", e);
+      }
+      return;
+    }
+    PROFILE_KEYS.forEach((key) => {
+      localStorage.setItem(key, JSON.stringify(profileState[key]));
+    });
+  }
+
+  function scheduleProfilePersist(){
+    if (!profilePersistEnabled) return;
+    if (profileSaveTimer) clearTimeout(profileSaveTimer);
+    profileSaveTimer = setTimeout(() => {
+      profileSaveTimer = null;
+      void persistProfileStateNow();
+    }, 160);
+  }
+
+  function getProfileValue(key){
+    return cloneProfileValue(profileState[key], PROFILE_DEFAULTS[key]);
+  }
+
+  function setProfileValue(key, value){
+    profileState[key] = cloneProfileValue(value, PROFILE_DEFAULTS[key]);
+    scheduleProfilePersist();
+  }
+
+  async function initializeProfileState(){
+    const legacy = readLegacyProfileState();
+    const tauriApi = window.__TAURI__;
+    if (tauriApi?.core?.invoke){
+      try{
+        const loaded = await tauriApi.core.invoke("load_profile_state");
+        const source = typeof loaded?.__profile_source === "string" ? loaded.__profile_source : "";
+        const normalized = normalizeProfileState(loaded);
+        profileState = source === "default" ? legacy : normalized;
+        profilePersistEnabled = true;
+        await persistProfileStateNow();
+        return;
+      }catch(e){
+        console.error("load_profile_state failed:", e);
+      }
+    }
+    profileState = legacy;
+    profilePersistEnabled = true;
+    await persistProfileStateNow();
+  }
+
+  await initializeProfileState();
+
+  function loadApps(){
+    const raw = getProfileValue(PROFILE_APPS_KEY);
+    return Array.isArray(raw) ? raw.map((item) => repairMojibakeValue(item)) : [];
   }
 
   async function applyAppGlobalHotkeys(list){
@@ -3701,7 +3833,7 @@ function openCatManage(){
   }
 
   function saveApps(list){
-    localStorage.setItem("kc_apps", JSON.stringify(list));
+    setProfileValue(PROFILE_APPS_KEY, list);
     void applyAppGlobalHotkeys(list);
   }
 
@@ -3709,29 +3841,21 @@ function openCatManage(){
   saveApps(apps);
 
   function loadPinnedOrder(){
-    try{
-      const raw = JSON.parse(localStorage.getItem("kc_pinned_order") || "[]");
-      return Array.isArray(raw) ? raw : [];
-    }catch{
-      return [];
-    }
+    const raw = getProfileValue(PROFILE_PINNED_ORDER_KEY);
+    return Array.isArray(raw) ? raw : [];
   }
 
   function savePinnedOrder(list){
-    localStorage.setItem("kc_pinned_order", JSON.stringify(list));
+    setProfileValue(PROFILE_PINNED_ORDER_KEY, list);
   }
 
   function loadCategoryOrders(){
-    try{
-      const raw = JSON.parse(localStorage.getItem("kc_cat_order") || "{}");
-      return raw && typeof raw === "object" ? raw : {};
-    }catch{
-      return {};
-    }
+    const raw = getProfileValue(PROFILE_CATEGORY_ORDER_KEY);
+    return raw && typeof raw === "object" ? raw : {};
   }
 
   function saveCategoryOrders(map){
-    localStorage.setItem("kc_cat_order", JSON.stringify(map));
+    setProfileValue(PROFILE_CATEGORY_ORDER_KEY, map);
   }
 
   let pinnedOrder = loadPinnedOrder();
@@ -3741,10 +3865,10 @@ function openCatManage(){
   const SUPER_ALL = "__all__";
   const SUPER_GENERAL = "General";
   const MAX_SUPER_CATEGORIES = 11;
-  const SUPER_CATEGORIES_KEY = "kc_super_categories";
-  const SUPER_ICON_MAP_KEY = "kc_super_icon_map";
-  const CATEGORY_ICON_MAP_KEY = "kc_category_icon_map";
-  const SUPER_TAB_ORDER_KEY = "kc_super_tab_order";
+  const SUPER_CATEGORIES_KEY = PROFILE_SUPER_CATEGORIES_KEY;
+  const SUPER_ICON_MAP_KEY = PROFILE_SUPER_ICON_MAP_KEY;
+  const CATEGORY_ICON_MAP_KEY = PROFILE_CATEGORY_ICON_MAP_KEY;
+  const SUPER_TAB_ORDER_KEY = PROFILE_SUPER_TAB_ORDER_KEY;
   const SUPER_ICON_PRESETS = [
     { emoji: "🎮", tags: ["game", "gaming", "spiele"] }, { emoji: "🕹️", tags: ["arcade", "game", "retro"] },
     { emoji: "👾", tags: ["pixel", "game", "space"] }, { emoji: "🎯", tags: ["target", "goal", "focus"] },
@@ -3963,106 +4087,90 @@ function openCatManage(){
   }
 
   function loadSuperCategories(){
-    try{
-      const raw = JSON.parse(localStorage.getItem(SUPER_CATEGORIES_KEY) || "[]");
-      if (!Array.isArray(raw)) return [];
-      const seen = new Set();
-      return raw
-        .map((name) => normalizeCategory(name))
-        .filter((name) => {
-          if (!name) return false;
-          const lower = normalizeSuperName(name);
-          if (lower === normalizeSuperName(SUPER_ALL) || lower === normalizeSuperName(SUPER_GENERAL)) return false;
-          if (seen.has(lower)) return false;
-          seen.add(lower);
-          return true;
-        });
-    }catch{
-      return [];
-    }
+    const raw = getProfileValue(SUPER_CATEGORIES_KEY);
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set();
+    return raw
+      .map((name) => normalizeCategory(name))
+      .filter((name) => {
+        if (!name) return false;
+        const lower = normalizeSuperName(name);
+        if (lower === normalizeSuperName(SUPER_ALL) || lower === normalizeSuperName(SUPER_GENERAL)) return false;
+        if (seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      });
   }
 
   function saveSuperCategories(list){
-    localStorage.setItem(SUPER_CATEGORIES_KEY, JSON.stringify(list));
+    setProfileValue(SUPER_CATEGORIES_KEY, list);
   }
 
   function loadSuperTabOrder(){
-    try{
-      const raw = JSON.parse(localStorage.getItem(SUPER_TAB_ORDER_KEY) || "[]");
-      if (!Array.isArray(raw)) return [];
-      const seen = new Set();
-      return raw
-        .map((name) => normalizeSuperName(name))
-        .filter((name) => {
-          if (!name) return false;
-          if (name === normalizeSuperName(SUPER_ALL) || name === normalizeSuperName(SUPER_GENERAL)) return false;
-          if (seen.has(name)) return false;
-          seen.add(name);
-          return true;
-        });
-    }catch{
-      return [];
-    }
+    const raw = getProfileValue(SUPER_TAB_ORDER_KEY);
+    if (!Array.isArray(raw)) return [];
+    const seen = new Set();
+    return raw
+      .map((name) => normalizeSuperName(name))
+      .filter((name) => {
+        if (!name) return false;
+        if (name === normalizeSuperName(SUPER_ALL) || name === normalizeSuperName(SUPER_GENERAL)) return false;
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
   }
 
   function saveSuperTabOrder(list){
-    localStorage.setItem(SUPER_TAB_ORDER_KEY, JSON.stringify(Array.isArray(list) ? list : []));
+    setProfileValue(SUPER_TAB_ORDER_KEY, Array.isArray(list) ? list : []);
   }
 
   function loadSuperIconMap(){
-    try{
-      const raw = JSON.parse(localStorage.getItem(SUPER_ICON_MAP_KEY) || "{}");
-      if (!raw || typeof raw !== "object") return {};
-      const clean = {};
-      Object.keys(raw).forEach((key) => {
-        const lower = normalizeSuperName(key);
-        if (!lower) return;
-        const entry = repairMojibakeValue(raw[key]);
-        if (!entry || typeof entry !== "object") return;
-        if (entry.type === "emoji" && typeof entry.value === "string" && entry.value.trim()){
-          clean[lower] = { type: "emoji", value: repairMojibakeString(entry.value).trim() };
-          return;
-        }
-        if (entry.type === "image" && typeof entry.value === "string" && /^data:image\//i.test(entry.value)){
-          clean[lower] = { type: "image", value: entry.value };
-        }
-      });
-      return clean;
-    }catch{
-      return {};
-    }
+    const raw = getProfileValue(SUPER_ICON_MAP_KEY);
+    if (!raw || typeof raw !== "object") return {};
+    const clean = {};
+    Object.keys(raw).forEach((key) => {
+      const lower = normalizeSuperName(key);
+      if (!lower) return;
+      const entry = repairMojibakeValue(raw[key]);
+      if (!entry || typeof entry !== "object") return;
+      if (entry.type === "emoji" && typeof entry.value === "string" && entry.value.trim()){
+        clean[lower] = { type: "emoji", value: repairMojibakeString(entry.value).trim() };
+        return;
+      }
+      if (entry.type === "image" && typeof entry.value === "string" && /^data:image\//i.test(entry.value)){
+        clean[lower] = { type: "image", value: entry.value };
+      }
+    });
+    return clean;
   }
 
   function saveSuperIconMap(map){
-    localStorage.setItem(SUPER_ICON_MAP_KEY, JSON.stringify(map || {}));
+    setProfileValue(SUPER_ICON_MAP_KEY, map || {});
   }
 
   function loadCategoryIconMap(){
-    try{
-      const raw = JSON.parse(localStorage.getItem(CATEGORY_ICON_MAP_KEY) || "{}");
-      if (!raw || typeof raw !== "object") return {};
-      const clean = {};
-      Object.keys(raw).forEach((key) => {
-        const lower = normalizeSuperName(key);
-        if (!lower) return;
-        const entry = repairMojibakeValue(raw[key]);
-        if (!entry || typeof entry !== "object") return;
-        if (entry.type === "emoji" && typeof entry.value === "string" && entry.value.trim()){
-          clean[lower] = { type: "emoji", value: repairMojibakeString(entry.value).trim() };
-          return;
-        }
-        if (entry.type === "image" && typeof entry.value === "string" && /^data:image\//i.test(entry.value)){
-          clean[lower] = { type: "image", value: entry.value };
-        }
-      });
-      return clean;
-    }catch{
-      return {};
-    }
+    const raw = getProfileValue(CATEGORY_ICON_MAP_KEY);
+    if (!raw || typeof raw !== "object") return {};
+    const clean = {};
+    Object.keys(raw).forEach((key) => {
+      const lower = normalizeSuperName(key);
+      if (!lower) return;
+      const entry = repairMojibakeValue(raw[key]);
+      if (!entry || typeof entry !== "object") return;
+      if (entry.type === "emoji" && typeof entry.value === "string" && entry.value.trim()){
+        clean[lower] = { type: "emoji", value: repairMojibakeString(entry.value).trim() };
+        return;
+      }
+      if (entry.type === "image" && typeof entry.value === "string" && /^data:image\//i.test(entry.value)){
+        clean[lower] = { type: "image", value: entry.value };
+      }
+    });
+    return clean;
   }
 
   function saveCategoryIconMap(map){
-    localStorage.setItem(CATEGORY_ICON_MAP_KEY, JSON.stringify(map || {}));
+    setProfileValue(CATEGORY_ICON_MAP_KEY, map || {});
   }
 
   function getOrderedUserCategories(){
@@ -4109,12 +4217,8 @@ function openCatManage(){
 
   function loadCategories(){
     let list = [];
-    try{
-      const raw = JSON.parse(localStorage.getItem("kc_categories") || "[]");
-      if (Array.isArray(raw)) list = raw.map(normalizeCategory).filter(Boolean);
-    }catch{
-      list = [];
-    }
+    const raw = getProfileValue(PROFILE_CATEGORIES_KEY);
+    if (Array.isArray(raw)) list = raw.map(normalizeCategory).filter(Boolean);
     if (!list.length) list = [...defaultCategories];
     if (!list.some(c => c.toLowerCase() === "sonstiges")) list.unshift("Sonstiges");
     const seen = new Set();
@@ -4128,19 +4232,15 @@ function openCatManage(){
   }
 
   function saveCategories(list){
-    localStorage.setItem("kc_categories", JSON.stringify(list));
+    setProfileValue(PROFILE_CATEGORIES_KEY, list);
   }
 
   function loadCategoryTabOrder(){
-    try{
-      const raw = JSON.parse(localStorage.getItem("kc_cat_tabs") || "[]");
-      return Array.isArray(raw) ? raw : [];
-    }catch{
-      return [];
-    }
+    const raw = getProfileValue(PROFILE_CATEGORY_TABS_KEY);
+    return Array.isArray(raw) ? raw : [];
   }
   function saveCategoryTabOrder(list){
-    localStorage.setItem("kc_cat_tabs", JSON.stringify(list));
+    setProfileValue(PROFILE_CATEGORY_TABS_KEY, list);
   }
 
   let categories = loadCategories();

@@ -11,6 +11,43 @@ use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShort
 
 const APP_SHORTCUT_COOLDOWN_MS: u64 = 900;
 const GLOBAL_SHORTCUT_COOLDOWN_MS: u64 = 600;
+const PROFILE_FILE_NAME: &str = "profile.json";
+const SHARED_PROFILE_FILE_NAME: &str = "profile.shared.json";
+const PROFILE_SOURCE_META_KEY: &str = "__profile_source";
+
+fn default_profile_state() -> serde_json::Value {
+  serde_json::json!({
+    "kc_apps": [],
+    "kc_pinned_order": [],
+    "kc_cat_order": {},
+    "kc_categories": [],
+    "kc_cat_tabs": [],
+    "kc_super_categories": [],
+    "kc_super_tab_order": [],
+    "kc_super_icon_map": {},
+    "kc_category_icon_map": {}
+  })
+}
+
+fn profile_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+  let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+  std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+  Ok(dir.join(PROFILE_FILE_NAME))
+}
+
+fn shared_profile_file_path() -> PathBuf {
+  PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SHARED_PROFILE_FILE_NAME)
+}
+
+fn with_profile_source(mut state: serde_json::Value, source: &str) -> serde_json::Value {
+  if let Some(obj) = state.as_object_mut() {
+    obj.insert(
+      PROFILE_SOURCE_META_KEY.to_string(),
+      serde_json::Value::String(source.to_string()),
+    );
+  }
+  state
+}
 
 #[derive(serde::Serialize)]
 struct ScannedApp {
@@ -67,6 +104,60 @@ fn set_window_icon(app: tauri::AppHandle, data_url: String) -> Result<(), String
   let icon = tauri::image::Image::new_owned(rgba.into_raw(), width, height);
   if let Some(w) = app.get_webview_window("main") {
     w.set_icon(icon).map_err(|e| e.to_string())?;
+  }
+  Ok(())
+}
+
+#[tauri::command]
+fn load_profile_state(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+  let path = profile_file_path(&app)?;
+  let shared_path = shared_profile_file_path();
+  let defaults = default_profile_state();
+  let (text, source) = if path.exists() {
+    (
+      std::fs::read_to_string(&path).map_err(|e| e.to_string())?,
+      "appdata",
+    )
+  } else if shared_path.exists() {
+    (
+      std::fs::read_to_string(&shared_path).map_err(|e| e.to_string())?,
+      "shared",
+    )
+  } else {
+    return Ok(with_profile_source(defaults, "default"));
+  };
+  let parsed: serde_json::Value = serde_json::from_str(&text).map_err(|e| e.to_string())?;
+  let mut out = defaults;
+  if let (Some(dst), Some(src)) = (out.as_object_mut(), parsed.as_object()) {
+    for (k, v) in src {
+      if dst.contains_key(k) {
+        dst.insert(k.clone(), v.clone());
+      }
+    }
+  }
+  Ok(with_profile_source(out, source))
+}
+
+#[tauri::command]
+fn save_profile_state(app: tauri::AppHandle, state: serde_json::Value) -> Result<(), String> {
+  let path = profile_file_path(&app)?;
+  let mut out = default_profile_state();
+  if let (Some(dst), Some(src)) = (out.as_object_mut(), state.as_object()) {
+    for (k, v) in src {
+      if dst.contains_key(k) {
+        dst.insert(k.clone(), v.clone());
+      }
+    }
+  }
+  let json = serde_json::to_string_pretty(&out).map_err(|e| e.to_string())?;
+  std::fs::write(path, &json).map_err(|e| e.to_string())?;
+  // Avoid a rebuild loop in `tauri dev`: the dev watcher tracks `src-tauri/**`.
+  // Writing `profile.shared.json` there on every state change restarts the app repeatedly.
+  if !cfg!(debug_assertions) {
+    let shared_path = shared_profile_file_path();
+    if let Err(e) = std::fs::write(shared_path, json) {
+      eprintln!("save shared profile failed: {}", e);
+    }
   }
   Ok(())
 }
@@ -574,6 +665,8 @@ pub fn run() {
       open_external,
       scan_desktop_apps,
       set_window_icon,
+      load_profile_state,
+      save_profile_state,
       set_global_shortcut,
       set_app_shortcuts,
       get_clipboard_text,

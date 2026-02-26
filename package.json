@@ -1,12 +1,13 @@
 {
   "name": "kontrollzentrum",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "",
   "main": "app.js",
   "scripts": {
     "tauri": "tauri",
     "dev": "set CARGO_TARGET_DIR=%LOCALAPPDATA%\\Kontrollzentrum\\cargo-target&& tauri dev",
-    "build": "set CARGO_TARGET_DIR=%LOCALAPPDATA%\\Kontrollzentrum\\cargo-target&& tauri build"
+    "build": "set CARGO_TARGET_DIR=%LOCALAPPDATA%\\Kontrollzentrum\\cargo-target&& tauri build",
+    "profile:export": "powershell -NoProfile -ExecutionPolicy Bypass -File .\\scripts\\export-shared-profile.ps1"
   },
   "keywords": [],
   "author": "",
