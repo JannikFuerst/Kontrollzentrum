@@ -11,6 +11,7 @@ Das ist kein "noch ein Launcher". Kontrollzentrum ist ein Arbeits- und Lebensbes
 
 - Zentrale App-Übersicht mit Karten-Grid statt chaotischer Bookmark-Sammlungen
 - Klare Navigation über Tabs: `Alle`, `Favoriten`, `Hotkeys`
+- Pro-App-Hotkeys mit eigener `Hotkeys`-Ansicht für schnellen Trigger-Zugriff
 - Blitzschnelle Suche und Filterlogik über Kategorien und Tabs
 - Add-App-Modal mit strukturierten Eingaben und Icon-Workflow
 - Persistenz vollständig lokal über `localStorage` (`kc_apps`)
@@ -24,6 +25,7 @@ Das ist kein "noch ein Launcher". Kontrollzentrum ist ein Arbeits- und Lebensbes
 | Zu viele Tools, zu viele Tabs, zu viel Reibung | Einheitliche Startfläche mit Karten-Grid | Schnellere Starts, weniger Kontextwechsel |
 | Wichtige Links gehen unter | Favoriten und Kategorien machen Prioritäten sichtbar | Kritische Apps sind immer 1 Klick entfernt |
 | Zeitverlust durch Suchen | Kombination aus Tab-Filter + Suche | Sofortiges Finden statt Rumklicken |
+| Ständige Wiederholaktionen am Tag | Pro-App-Hotkeys + Hotkeys-Tab als Software-Deck | Aktionen starten, ohne zu klicken |
 | Unklare Tool-Landschaft im Team/Privat | Strukturierte App-Pflege über Modal | Konsistenz und bessere Routinen |
 
 Kurz gesagt: Kontrollzentrum reduziert Mikro-Entscheidungen und Klickwege. Das summiert sich jeden Tag zu mehr Fokuszeit.
@@ -40,24 +42,31 @@ Kurz gesagt: Kontrollzentrum reduziert Mikro-Entscheidungen und Klickwege. Das s
 
 - `Alle` zeigt den kompletten Bestand deiner hinterlegten Apps.
 - `Favoriten` zeigt nur priorisierte Apps für schnellen Daily-Zugriff.
-- `Hotkeys` bündelt Einträge, welche einen festen Hotkeys zugeschrieben bekommen haben.
+- `Hotkeys` zeigt gezielt Apps mit hinterlegtem Tastenkürzel.
 - Die Tab-Filter greifen direkt auf denselben Datenbestand zu, ohne Duplikate oder getrennte Listen.
 
-### 3) Suche
+### 3) Hotkeys: der Streamdeck-Ersatz in Software
+
+- Jede App kann ein eigenes Tastenkürzel bekommen (`App Hotkey` im Modal).
+- Diese Hotkeys sind nicht nur Deko, sondern ein zentraler Bedienmodus für Power-User.
+- Mit dem `Hotkeys`-Tab bekommst du eine fokussierte Übersicht aller triggerbaren Apps.
+- In der Praxis ersetzt das für viele Workflows ein physisches Streamdeck: schneller Zugriff, weniger Mauswege, mehr Flow.
+
+### 4) Suche
 
 - Die Suche filtert in Echtzeit und reduziert den sichtbaren App-Bestand sofort.
 - In Kombination mit Tabs entsteht ein präziser Workflow: erst Bereich eingrenzen, dann gezielt suchen.
 - Ergebnis: Auch bei wachsender App-Sammlung bleibt die Bedienung schnell und kontrollierbar.
 
-### 4) Add-App-Modal (`add-app.modal.html` + `add-app.modal.js`)
+### 5) Add-App-Modal (`add-app.modal.html` + `add-app.modal.js`)
 
 Beim Anlegen einer neuen App werden strukturierte Metadaten gepflegt:
 
 - `Name`
-- `URL`
+- `Typ` (Web oder Desktop-Scan)
+- `URL/Pfad`
 - `Kategorie`
-- `Farbe`
-- `Beschreibung`
+- `App Hotkey` (optional)
 
 Icon-Optionen im Modal:
 
@@ -66,7 +75,7 @@ Icon-Optionen im Modal:
 
 Das Modal reduziert Eingabefehler, hält Einträge konsistent und sorgt für eine saubere, langfristig wartbare App-Sammlung.
 
-### 5) Kartenaktionen
+### 6) Kartenaktionen
 
 - Klick auf Karte: öffnet Ziel-URL im neuen Tab
 - Favoriten-Stern: aktiv = gelb, inaktiv = neutral
@@ -74,10 +83,10 @@ Das Modal reduziert Eingabefehler, hält Einträge konsistent und sorgt für ein
 
 Damit bleibt die Oberfläche schnell bedienbar, ohne Risiko für versehentliche Datenverluste.
 
-### 6) Persistenz und Datenlogik
+### 7) Persistenz und Datenlogik
 
 - Alle App-Daten werden lokal unter dem Key `kc_apps` gespeichert.
-- Favoriten-Status, Filterrelevanz und Kartenbestand stammen aus diesem lokalen Zustand.
+- Favoriten-Status, Hotkey-Zuweisungen, Filterrelevanz und Kartenbestand stammen aus diesem lokalen Zustand.
 - Löschen entfernt den Eintrag direkt aus `kc_apps` und damit dauerhaft aus der Oberfläche.
 
 ## Projektstruktur (relevanter Kern)
@@ -132,12 +141,13 @@ npm run dev
 ### Erste Schritte (Step-by-Step)
 
 1. App hinzufügen über `App hinzufügen`
-2. Im Modal `Name`, `URL`, `Kategorie`, `Farbe`, `Beschreibung` setzen
-3. Icon wählen: automatisch per Favicon oder eigenes Icon hochladen
-4. Speichern und prüfen, ob die Karte im Grid erscheint
-5. Mit Stern als Favorit markieren (gelb = aktiv)
-6. Über Tabs und Suche den Bestand filtern
-7. Nicht mehr benötigte Einträge über `🗑` löschen und Confirm bestätigen
+2. Im Modal `Name`, `Typ`, `URL/Pfad`, `Kategorie` setzen
+3. Optional pro App einen `Hotkey` aufnehmen
+4. Icon wählen: automatisch per Favicon oder eigenes Icon hochladen
+5. Speichern und prüfen, ob die Karte im Grid erscheint
+6. Mit Stern als Favorit markieren (gelb = aktiv)
+7. Über Tabs (`Alle`, `Favoriten`, `Hotkeys`) und Suche den Bestand filtern
+8. Nicht mehr benötigte Einträge über `🗑` löschen und Confirm bestätigen
 
 ### Power-Workflows
 
@@ -146,6 +156,7 @@ npm run dev
 | Setup in 5 Minuten | Top-Apps erfassen, Kategorien setzen, Favoriten markieren | Sofort produktiv ohne langes Onboarding |
 | Daily Use | Start über `Favoriten`, danach Suche für Long-Tail-Apps | Konstanter Fokus im Tagesgeschäft |
 | Focus Mode | Nur Favoriten pflegen, Rest bewusst in `Alle` belassen | Weniger visuelle Ablenkung, schnellere Entscheidungen |
+| Streamdeck-Style | Kritische Apps mit Hotkeys belegen und über `Hotkeys` fahren | Maximal schneller App-Start ohne Klick-Overhead |
 
 ## Datenhaltung & Datenschutz
 
@@ -194,7 +205,8 @@ Typische Erweiterungen:
 
 ### App ist "verschwunden"
 
-- Prüfe aktiven Tab (`Alle`, `Favoriten`, `Sonstiges`).
+- Prüfe aktiven Tab (`Alle`, `Favoriten`, `Hotkeys`).
+- Im Tab `Hotkeys` werden nur Apps mit vergebenem Hotkey angezeigt.
 - Prüfe Suchfeld auf aktiven Filtertext.
 - Prüfe, ob die App versehentlich gelöscht wurde.
 
@@ -245,4 +257,4 @@ Hinweis: In `package.json` ist aktuell `ISC` als Lizenzfeld gesetzt.
 
 Wenn du täglich mit vielen Tools arbeitest und schneller, klarer und fokussierter durch deinen digitalen Tag gehen willst, starte jetzt mit Kontrollzentrum.
 
-Klonen, öffnen, 5 Minuten Setup machen, jeden Tag profitieren.
+Klonen, öffnen, Hotkeys setzen, und dein Software-Streamdeck in Minuten live haben.
