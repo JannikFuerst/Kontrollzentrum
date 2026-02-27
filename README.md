@@ -10,15 +10,12 @@ Das ist kein "noch ein Launcher". Kontrollzentrum ist ein Arbeits- und Lebensbes
 ## Feature-Highlights
 
 - Zentrale App-Übersicht mit Karten-Grid statt chaotischer Bookmark-Sammlungen
-- Klare Navigation über Tabs: `Alle`, `Favoriten`, `Sonstiges`
+- Klare Navigation über Tabs: `Alle`, `Favoriten`, `Hotkeys`
 - Blitzschnelle Suche und Filterlogik über Kategorien und Tabs
 - Add-App-Modal mit strukturierten Eingaben und Icon-Workflow
 - Persistenz vollständig lokal über `localStorage` (`kc_apps`)
 - Favoriten-Stern (gelb aktiv), Ein-Klick-Start in neuem Tab, Löschen mit Confirm
 
-## Screenshots (Platzhalter)
-
-Aktuell sind hier Platzhalter vorgesehen. Sobald Screenshots vorhanden sind, einfach die Dateipfade austauschen.
 
 Empfohlene Struktur:
 
