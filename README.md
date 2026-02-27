@@ -36,11 +36,11 @@ Kurz gesagt: Kontrollzentrum reduziert Mikro-Entscheidungen und Klickwege. Das s
 - Ein Klick auf die Karte öffnet die hinterlegte URL in einem neuen Tab.
 - So ersetzt du "Bookmark-Ordner + Suchleiste + Tab-Chaos" durch einen klaren, schnellen Zugriffspunkt.
 
-### 2) Tabs und Filterlogik (`Alle` / `Favoriten` / `Sonstiges`)
+### 2) Tabs und Filterlogik (`Alle` / `Favoriten` / `Hotkeys`)
 
 - `Alle` zeigt den kompletten Bestand deiner hinterlegten Apps.
 - `Favoriten` zeigt nur priorisierte Apps für schnellen Daily-Zugriff.
-- `Sonstiges` bündelt Einträge, die (noch) nicht in einer eigenen Kategorie geführt werden.
+- `Hotkeys` bündelt Einträge, welche einen festen Hotkeys zugeschrieben bekommen haben.
 - Die Tab-Filter greifen direkt auf denselben Datenbestand zu, ohne Duplikate oder getrennte Listen.
 
 ### 3) Suche
