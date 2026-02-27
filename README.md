@@ -17,24 +17,6 @@ Das ist kein "noch ein Launcher". Kontrollzentrum ist ein Arbeits- und Lebensbes
 - Favoriten-Stern (gelb aktiv), Ein-Klick-Start in neuem Tab, Löschen mit Confirm
 
 
-Empfohlene Struktur:
-
-```text
-docs/
-  screenshots/
-    01-dashboard.png
-    02-add-app-modal.png
-    03-favorites-and-search.png
-```
-
-Beispiel-Einbindung:
-
-```md
-![Dashboard](docs/screenshots/01-dashboard.png)
-![Add App Modal](docs/screenshots/02-add-app-modal.png)
-![Favoriten und Suche](docs/screenshots/03-favorites-and-search.png)
-```
-
 ## Warum Kontrollzentrum?
 
 | Problem | Lösung mit Kontrollzentrum | Ergebnis im Alltag |
