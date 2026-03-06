@@ -199,7 +199,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         <div class="quick-launcher-icon"></div>
         <div class="quick-launcher-content">
           <div class="quick-launcher-name">${escapeHtml(app?.name || "Unbekannt")}</div>
-          <div class="quick-launcher-meta">${escapeHtml(app?.launch || "")}</div>
         </div>
       `;
       fillIcon(row.querySelector(".quick-launcher-icon"), app);

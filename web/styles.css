@@ -4581,6 +4581,18 @@ body[data-theme="light"] .rail-hover-tooltip{
   display: grid;
   place-items: center;
   flex: 0 0 auto;
+  overflow: hidden;
+}
+.quick-launcher-icon img{
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.quick-launcher-icon img.steam-art{
+  object-fit: contain;
+  padding: 2px;
+  box-sizing: border-box;
 }
 .quick-launcher-icon .icon-fallback{
   font-size: 11px;
