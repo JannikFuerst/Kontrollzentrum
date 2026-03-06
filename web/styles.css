@@ -4507,3 +4507,141 @@ body[data-theme="light"] .rail-hover-tooltip{
   box-shadow: 0 10px 24px rgba(0,0,0,0.16);
 }
 
+.quick-launcher-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(6,8,13,0.55);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(34px, 8vh, 96px) 16px 18px;
+  z-index: 2200;
+}
+.quick-launcher-overlay.show{
+  display: flex;
+}
+.quick-launcher-panel{
+  width: min(700px, 100%);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: linear-gradient(180deg, rgba(20,23,32,0.98), rgba(11,13,20,0.97));
+  box-shadow: 0 24px 60px rgba(0,0,0,0.56);
+  overflow: hidden;
+}
+.quick-launcher-title{
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.62);
+  padding: 12px 16px 6px;
+}
+.quick-launcher-input{
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.96);
+  font-size: 20px;
+  font-weight: 650;
+  padding: 8px 16px 12px;
+}
+.quick-launcher-input::placeholder{
+  color: rgba(255,255,255,0.42);
+}
+.quick-launcher-list{
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.quick-launcher-item{
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.92);
+  padding: 10px 12px;
+  cursor: pointer;
+}
+.quick-launcher-item + .quick-launcher-item{
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.quick-launcher-item:hover,
+.quick-launcher-item.active{
+  background: rgba(var(--accent-rgb),0.18);
+}
+.quick-launcher-icon{
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.04);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.quick-launcher-icon .icon-fallback{
+  font-size: 11px;
+}
+.quick-launcher-icon.has-img .icon-fallback{
+  display: none;
+}
+.quick-launcher-content{
+  min-width: 0;
+}
+.quick-launcher-name{
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.quick-launcher-meta{
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quick-launcher-empty{
+  color: rgba(255,255,255,0.66);
+  font-size: 13px;
+  padding: 16px;
+}
+body[data-theme="light"] .quick-launcher-overlay{
+  background: rgba(194,205,220,0.44);
+}
+body[data-theme="light"] .quick-launcher-panel{
+  border-color: rgba(0,0,0,0.16);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,248,252,0.96));
+  box-shadow: 0 20px 44px rgba(0,0,0,0.20);
+}
+body[data-theme="light"] .quick-launcher-title{
+  color: rgba(10,12,18,0.6);
+}
+body[data-theme="light"] .quick-launcher-input{
+  color: rgba(10,12,18,0.92);
+}
+body[data-theme="light"] .quick-launcher-input::placeholder{
+  color: rgba(10,12,18,0.45);
+}
+body[data-theme="light"] .quick-launcher-list{
+  border-top-color: rgba(0,0,0,0.08);
+}
+body[data-theme="light"] .quick-launcher-item{
+  color: rgba(10,12,18,0.92);
+}
+body[data-theme="light"] .quick-launcher-item + .quick-launcher-item{
+  border-top-color: rgba(0,0,0,0.05);
+}
+body[data-theme="light"] .quick-launcher-icon{
+  border-color: rgba(0,0,0,0.12);
+  background: rgba(0,0,0,0.03);
+}
+body[data-theme="light"] .quick-launcher-meta{
+  color: rgba(10,12,18,0.58);
+}
+body[data-theme="light"] .quick-launcher-empty{
+  color: rgba(10,12,18,0.64);
+}

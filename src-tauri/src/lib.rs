@@ -4,13 +4,18 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use base64::Engine;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
 use walkdir::WalkDir;
 use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShortcutExt, ShortcutState as HotkeyState};
 
 const APP_SHORTCUT_COOLDOWN_MS: u64 = 900;
 const GLOBAL_SHORTCUT_COOLDOWN_MS: u64 = 600;
+const QUICK_LAUNCH_SHORTCUT_COOLDOWN_MS: u64 = 350;
+#[cfg(target_os = "macos")]
+const QUICK_LAUNCH_SHORTCUT: &str = "Super+Space";
+#[cfg(not(target_os = "macos"))]
+const QUICK_LAUNCH_SHORTCUT: &str = "Ctrl+Space";
 const PROFILE_FILE_NAME: &str = "profile.json";
 const SHARED_PROFILE_FILE_NAME: &str = "profile.shared.json";
 const PROFILE_SOURCE_META_KEY: &str = "__profile_source";
@@ -63,6 +68,9 @@ struct ShortcutState {
 struct AppShortcutState {
   registered: Mutex<Vec<String>>,
   last_fired: Arc<Mutex<HashMap<String, Instant>>>,
+}
+struct QuickLauncherShortcutState {
+  last_fired: Arc<Mutex<Option<Instant>>>,
 }
 
 #[derive(serde::Deserialize)]
@@ -649,7 +657,10 @@ pub fn run() {
       registered: Mutex::new(Vec::new()),
       last_fired: Arc::new(Mutex::new(HashMap::new())),
     })
-    .setup(|_app| {
+    .manage(QuickLauncherShortcutState {
+      last_fired: Arc::new(Mutex::new(None)),
+    })
+    .setup(|app| {
       if cfg!(debug_assertions) {
         // Logging in dev disabled to keep terminal clean.
         // Uncomment to re-enable:
@@ -659,6 +670,39 @@ pub fn run() {
         //     .build(),
         // )?;
       }
+      let quick_launcher_fired = app
+        .state::<QuickLauncherShortcutState>()
+        .last_fired
+        .clone();
+      let register_result = app
+        .handle()
+        .global_shortcut()
+        .on_shortcut(QUICK_LAUNCH_SHORTCUT, move |app, _sc, event| {
+          if event.state != HotkeyState::Pressed {
+            return;
+          }
+          let now = Instant::now();
+          let mut last_fired = match quick_launcher_fired.lock() {
+            Ok(guard) => guard,
+            Err(_) => return,
+          };
+          if let Some(prev_fire) = *last_fired {
+            if now.saturating_duration_since(prev_fire)
+              < Duration::from_millis(QUICK_LAUNCH_SHORTCUT_COOLDOWN_MS)
+            {
+              return;
+            }
+          }
+          *last_fired = Some(now);
+          drop(last_fired);
+
+          reveal_main_window(app);
+          let _ = app.emit_to("main", "kc://quick-launcher-open", ());
+        });
+      if let Err(err) = register_result {
+        eprintln!("quick launcher shortcut registration failed: {}", err);
+      }
+      apply_default_main_window_icon(app.handle());
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
@@ -676,6 +720,30 @@ pub fn run() {
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
+}
+
+fn reveal_main_window(app: &tauri::AppHandle) {
+  apply_default_main_window_icon(app);
+  if let Some(window) = app.get_webview_window("main") {
+    let _ = window.unminimize();
+    let _ = window.show();
+    let _ = window.set_focus();
+    let _ = app.emit_to("main", "kc://window-shown-by-shortcut", ());
+  }
+}
+
+fn apply_default_main_window_icon(app: &tauri::AppHandle) {
+  let bytes = include_bytes!("../icons/icon.png");
+  let img = match image::load_from_memory(bytes) {
+    Ok(img) => img.to_rgba8(),
+    Err(_) => return,
+  };
+  let width = img.width();
+  let height = img.height();
+  let icon = tauri::image::Image::new_owned(img.into_raw(), width, height);
+  if let Some(window) = app.get_webview_window("main") {
+    let _ = window.set_icon(icon);
+  }
 }
 
 #[tauri::command]
@@ -718,19 +786,14 @@ fn set_global_shortcut(app: tauri::AppHandle, state: tauri::State<ShortcutState>
       drop(last_fired);
 
       if let Some(w) = app.get_webview_window("main") {
-        if w.is_minimized().unwrap_or(false) {
-          let _ = w.unminimize();
-          let _ = w.show();
-          let _ = w.set_focus();
-          return;
-        }
-        if w.is_visible().unwrap_or(true) {
+        let minimized = w.is_minimized().unwrap_or(false);
+        if w.is_visible().unwrap_or(true) && !minimized {
           let _ = w.hide();
           return;
         }
-        let _ = w.show();
-        let _ = w.set_focus();
       }
+
+      reveal_main_window(app);
     })
     .map_err(|e| e.to_string())?;
 

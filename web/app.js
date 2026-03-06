@@ -4,6 +4,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // Tabs + State
   let activeTab = "all";
+  let apps = [];
   let searchTerm = "";
   let categorySearchTerm = "";
 
@@ -34,8 +35,223 @@ document.addEventListener("DOMContentLoaded", async () => {
   const voiceSettingsBtn = document.getElementById("voiceSettingsBtn");
   const languageBtn = document.getElementById("languageBtn");
   const languageMenu = document.getElementById("languageMenu");
+  const quickLauncherOverlay = document.getElementById("quickLauncherOverlay");
+  const quickLauncherInput = document.getElementById("quickLauncherInput");
+  const quickLauncherList = document.getElementById("quickLauncherList");
   const CAT_RAIL_COLLAPSED_KEY = "kc_cat_rail_collapsed";
   let catRailCollapsed = localStorage.getItem(CAT_RAIL_COLLAPSED_KEY) === "1";
+  const IS_MAC_PLATFORM = /\bMac/i.test(navigator.userAgentData?.platform || navigator.platform || "");
+  const WINDOW_SHOWN_EVENT = "kc://window-shown-by-shortcut";
+  const QUICK_LAUNCHER_OPEN_EVENT = "kc://quick-launcher-open";
+  const QUICK_LAUNCHER_SHORTCUT_TEXT = IS_MAC_PLATFORM ? "Super+Space" : "Ctrl+Space";
+  let unlistenWindowShownByShortcut = null;
+  let unlistenQuickLauncherOpen = null;
+
+  function getMainSearchInputElement(){
+    return (
+      document.getElementById("searchInput") ||
+      search ||
+      document.querySelector("#search, .search input, input[type='search']")
+    );
+  }
+
+  function focusMainSearchInput(selectText = true){
+    const input = getMainSearchInputElement();
+    if (!input) return false;
+    input.focus();
+    if (selectText && typeof input.select === "function") {
+      input.select();
+    }
+    return true;
+  }
+
+  let quickLauncherOpen = false;
+  let quickLauncherResults = [];
+  let quickLauncherActiveIndex = 0;
+
+  function quickLauncherSubsequenceScore(needle, haystack){
+    const n = String(needle || "");
+    const h = String(haystack || "");
+    if (!n || !h) return 0;
+    let lastIdx = -1;
+    let gapSum = 0;
+    for (const ch of n){
+      const idx = h.indexOf(ch, lastIdx + 1);
+      if (idx === -1) return 0;
+      if (lastIdx >= 0) gapSum += idx - lastIdx - 1;
+      lastIdx = idx;
+    }
+    const lenRatio = n.length / Math.max(h.length, 1);
+    let score = 0.5 + lenRatio * 0.35 - gapSum * 0.012;
+    if (h.startsWith(n[0])) score += 0.06;
+    return Math.max(0, Math.min(1, score));
+  }
+
+  function quickLauncherScoreApp(queryRaw, app){
+    if (!app) return 0;
+    const query = normalizeSpeechText(queryRaw);
+    if (!query) return app.fav ? 10 : 8;
+
+    const queryCompact = query.replace(/\s+/g, "");
+    const queryPhonetic = phoneticSpeechText(queryRaw);
+    const queryTokens = tokenizeSpeech(queryRaw);
+    const queryTokenSet = new Set(queryTokens);
+
+    const name = normalizeSpeechText(app.name || "");
+    const launch = normalizeSpeechText(app.launch || "");
+    if (!name && !launch) return 0;
+    const nameCompact = compactSpeechText(app.name || "");
+    const launchCompact = compactSpeechText(app.launch || "");
+    const namePhonetic = phoneticSpeechText(app.name || "");
+    const launchPhonetic = phoneticSpeechText(app.launch || "");
+
+    let score = 0;
+    if (name === query) score = 210;
+    else if (name.startsWith(query)) score = 185;
+    else if (name.includes(query)) score = 165;
+    else if (launch.includes(query)) score = 120;
+
+    if (queryCompact && nameCompact){
+      if (nameCompact === queryCompact) score = Math.max(score, 205);
+      else if (nameCompact.startsWith(queryCompact)) score = Math.max(score, 180);
+      else if (nameCompact.includes(queryCompact)) score = Math.max(score, 162);
+      else if (launchCompact.includes(queryCompact)) score = Math.max(score, 118);
+    }
+
+    if (queryPhonetic && namePhonetic){
+      if (namePhonetic === queryPhonetic) score = Math.max(score, 172);
+      else if (namePhonetic.includes(queryPhonetic)) score = Math.max(score, 146);
+      else if (launchPhonetic.includes(queryPhonetic)) score = Math.max(score, 108);
+    }
+
+    const similarityName = scoreStringSimilarity(queryCompact, nameCompact);
+    const similarityLaunch = scoreStringSimilarity(queryCompact, launchCompact);
+    const similarityNamePhonetic = scoreStringSimilarity(queryPhonetic, namePhonetic);
+    const similarityLaunchPhonetic = scoreStringSimilarity(queryPhonetic, launchPhonetic);
+    if (similarityName >= 0.5) score = Math.max(score, Math.round(60 + similarityName * 95));
+    if (similarityLaunch >= 0.62) score = Math.max(score, Math.round(48 + similarityLaunch * 70));
+    if (similarityNamePhonetic >= 0.56) score = Math.max(score, Math.round(56 + similarityNamePhonetic * 85));
+    if (similarityLaunchPhonetic >= 0.64) score = Math.max(score, Math.round(44 + similarityLaunchPhonetic * 68));
+
+    const subseqName = quickLauncherSubsequenceScore(queryCompact, nameCompact);
+    const subseqLaunch = quickLauncherSubsequenceScore(queryCompact, launchCompact);
+    if (subseqName > 0) score = Math.max(score, Math.round(52 + subseqName * 86));
+    if (subseqLaunch > 0.55) score = Math.max(score, Math.round(42 + subseqLaunch * 62));
+
+    const appTokens = new Set([...tokenizeSpeech(app.name || ""), ...tokenizeSpeech(app.launch || "")]);
+    if (queryTokenSet.size && appTokens.size){
+      let overlap = 0;
+      queryTokenSet.forEach((token) => {
+        if (appTokens.has(token)) overlap += 1;
+      });
+      if (overlap > 0){
+        const ratio = overlap / queryTokenSet.size;
+        score = Math.max(score, Math.round(52 + ratio * 84));
+      }
+    }
+
+    if (app.fav && score > 0) score += 3;
+    return score;
+  }
+
+  function getQuickLauncherMatches(query){
+    const normalizedQuery = normalizeSpeechText(query);
+    if (!Array.isArray(apps) || !apps.length) return [];
+    if (!normalizedQuery){
+      const ordered = apps
+        .slice()
+        .sort((a, b) => {
+          if (Boolean(a.fav) !== Boolean(b.fav)) return a.fav ? -1 : 1;
+          return String(a.name || "").localeCompare(String(b.name || ""), "de", { sensitivity: "base" });
+        });
+      return ordered.slice(0, 10).map((app) => ({ app, score: app.fav ? 10 : 8 }));
+    }
+    return apps
+      .map((app) => ({ app, score: quickLauncherScoreApp(normalizedQuery, app) }))
+      .filter((entry) => entry.score >= 56)
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (Boolean(a.app.fav) !== Boolean(b.app.fav)) return a.app.fav ? -1 : 1;
+        return String(a.app.name || "").localeCompare(String(b.app.name || ""), "de", { sensitivity: "base" });
+      })
+      .slice(0, 10);
+  }
+
+  function renderQuickLauncher(){
+    if (!quickLauncherList) return;
+    quickLauncherList.innerHTML = "";
+    if (!quickLauncherResults.length){
+      const emptyEl = document.createElement("div");
+      emptyEl.className = "quick-launcher-empty";
+      emptyEl.textContent = "Keine App gefunden";
+      quickLauncherList.appendChild(emptyEl);
+      return;
+    }
+
+    quickLauncherResults.forEach((entry, idx) => {
+      const app = entry.app;
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = `quick-launcher-item${idx === quickLauncherActiveIndex ? " active" : ""}`;
+      row.dataset.idx = String(idx);
+      row.setAttribute("aria-selected", idx === quickLauncherActiveIndex ? "true" : "false");
+      row.innerHTML = `
+        <div class="quick-launcher-icon"></div>
+        <div class="quick-launcher-content">
+          <div class="quick-launcher-name">${escapeHtml(app?.name || "Unbekannt")}</div>
+          <div class="quick-launcher-meta">${escapeHtml(app?.launch || "")}</div>
+        </div>
+      `;
+      fillIcon(row.querySelector(".quick-launcher-icon"), app);
+      row.addEventListener("click", async () => {
+        closeQuickLauncher();
+        await openLaunch(app);
+      });
+      quickLauncherList.appendChild(row);
+    });
+  }
+
+  function refreshQuickLauncherResults(){
+    if (!quickLauncherInput) return;
+    quickLauncherResults = getQuickLauncherMatches(quickLauncherInput.value || "");
+    if (quickLauncherActiveIndex >= quickLauncherResults.length){
+      quickLauncherActiveIndex = Math.max(0, quickLauncherResults.length - 1);
+    }
+    renderQuickLauncher();
+  }
+
+  function openQuickLauncher(prefill = ""){
+    if (!quickLauncherOverlay || !quickLauncherInput) return;
+    quickLauncherOpen = true;
+    quickLauncherOverlay.classList.add("show");
+    quickLauncherOverlay.setAttribute("aria-hidden", "false");
+    if (typeof prefill === "string" && prefill.trim()){
+      quickLauncherInput.value = prefill.trim();
+    } else {
+      quickLauncherInput.value = "";
+    }
+    quickLauncherActiveIndex = 0;
+    refreshQuickLauncherResults();
+    setTimeout(() => {
+      quickLauncherInput.focus();
+      quickLauncherInput.select();
+    }, 0);
+  }
+
+  function closeQuickLauncher(){
+    if (!quickLauncherOverlay) return;
+    quickLauncherOpen = false;
+    quickLauncherOverlay.classList.remove("show");
+    quickLauncherOverlay.setAttribute("aria-hidden", "true");
+  }
+
+  async function launchQuickLauncherActive(){
+    if (!quickLauncherOpen || !quickLauncherResults.length) return;
+    const hit = quickLauncherResults[quickLauncherActiveIndex];
+    if (!hit?.app) return;
+    closeQuickLauncher();
+    await openLaunch(hit.app);
+  }
 
   const LANG_KEY = "kc_lang";
   const i18n = {
@@ -801,21 +1017,64 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   applyI18nToDom();
 
-  // Ctrl+F / Cmd+F focuses app search, Ctrl+G / Cmd+G focuses category search.
+  // Ctrl+F / Cmd+F focuses app search, Ctrl+G / Cmd+G focuses category search,
+  // Ctrl+Space / Cmd+Space opens quick launcher.
   document.addEventListener("keydown", (e) => {
     const withMod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
     const isAppFind = withMod && key === "f";
     const isCategoryFind = withMod && key === "g";
-    if (!isAppFind && !isCategoryFind) return;
+    const isQuickLauncher =
+      withMod &&
+      !e.shiftKey &&
+      !e.altKey &&
+      (e.code === "Space" || key === " ");
+    if (!isAppFind && !isCategoryFind && !isQuickLauncher) return;
     e.preventDefault();
-    if (isAppFind && search){
-      search.focus();
-      search.select();
+    if (isQuickLauncher){
+      openQuickLauncher();
+      return;
+    }
+    if (isAppFind){
+      focusMainSearchInput(true);
       return;
     }
     if (isCategoryFind && categorySearch){
       setCategoryRailCollapsed(false, { focusSearch: true });
+    }
+  });
+  quickLauncherOverlay?.addEventListener("click", (e) => {
+    if (e.target === quickLauncherOverlay) closeQuickLauncher();
+  });
+  quickLauncherInput?.addEventListener("input", () => {
+    quickLauncherActiveIndex = 0;
+    refreshQuickLauncherResults();
+  });
+  quickLauncherInput?.addEventListener("keydown", async (e) => {
+    if (!quickLauncherOpen) return;
+    if (e.key === "Escape"){
+      e.preventDefault();
+      closeQuickLauncher();
+      return;
+    }
+    if (e.key === "ArrowDown"){
+      e.preventDefault();
+      if (!quickLauncherResults.length) return;
+      quickLauncherActiveIndex = (quickLauncherActiveIndex + 1) % quickLauncherResults.length;
+      renderQuickLauncher();
+      return;
+    }
+    if (e.key === "ArrowUp"){
+      e.preventDefault();
+      if (!quickLauncherResults.length) return;
+      quickLauncherActiveIndex =
+        (quickLauncherActiveIndex - 1 + quickLauncherResults.length) % quickLauncherResults.length;
+      renderQuickLauncher();
+      return;
+    }
+    if (e.key === "Enter"){
+      e.preventDefault();
+      await launchQuickLauncherActive();
     }
   });
 
@@ -2419,18 +2678,46 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyBackground(savedBgMode);
   syncBackgroundUI(savedBgMode);
 
-  // Apply saved hotkey on boot (Tauri)
+  // Register window events and apply saved toggle hotkey on boot (Tauri)
   try{
-    const savedHotkey = localStorage.getItem("kc_hotkey") || "";
-    if (savedHotkey){
-      const tauriApi = window.__TAURI__;
-      if (tauriApi?.core?.invoke){
+    const tauriApi = window.__TAURI__;
+    if (tauriApi?.event?.listen){
+      unlistenWindowShownByShortcut = await tauriApi.event.listen(WINDOW_SHOWN_EVENT, () => {
+        requestAnimationFrame(() => {
+          focusMainSearchInput(true);
+        });
+      });
+      unlistenQuickLauncherOpen = await tauriApi.event.listen(QUICK_LAUNCHER_OPEN_EVENT, () => {
+        requestAnimationFrame(() => {
+          openQuickLauncher();
+        });
+      });
+    }
+
+    if (tauriApi?.core?.invoke){
+      let savedHotkey = localStorage.getItem("kc_hotkey") || "";
+      if (isQuickLauncherShortcut(savedHotkey)){
+        savedHotkey = "";
+        localStorage.removeItem("kc_hotkey");
+      }
+      if (savedHotkey){
         await tauriApi.core.invoke("set_global_shortcut", { shortcut: savedHotkey });
       }
     }
-  }catch{
-    // ignore
+  }catch(e){
+    console.error("tauri startup shortcut/events init failed:", e);
   }
+
+  window.addEventListener("beforeunload", () => {
+    if (typeof unlistenWindowShownByShortcut === "function") {
+      unlistenWindowShownByShortcut();
+      unlistenWindowShownByShortcut = null;
+    }
+    if (typeof unlistenQuickLauncherOpen === "function") {
+      unlistenQuickLauncherOpen();
+      unlistenQuickLauncherOpen = null;
+    }
+  });
 
   const VOICE_ENABLED_KEY = "kc_voice_enabled";
   const VOICE_MIC_KEY = "kc_voice_mic";
@@ -2978,6 +3265,10 @@ function openCatManage(){
   });
 
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && quickLauncherOpen) {
+      closeQuickLauncher();
+      return;
+    }
     if (e.key === "Escape" && confirmOverlay?.classList.contains("show")) {
       closeConfirm();
       return;
@@ -3025,6 +3316,10 @@ function openCatManage(){
 
   async function applyHotkey(value){
     const shortcut = String(value || "").trim();
+    if (isQuickLauncherShortcut(shortcut)){
+      console.warn("shortcut reserved for quick launcher:", QUICK_LAUNCHER_SHORTCUT_TEXT);
+      return;
+    }
     const current = localStorage.getItem("kc_hotkey") || "";
     if (shortcut === current) return;
     localStorage.setItem("kc_hotkey", shortcut);
@@ -3088,6 +3383,10 @@ function openCatManage(){
 
   function normalizeShortcutText(value){
     return String(value || "").replace(/\s+/g, "").toLowerCase();
+  }
+
+  function isQuickLauncherShortcut(value){
+    return normalizeShortcutText(value) === normalizeShortcutText(QUICK_LAUNCHER_SHORTCUT_TEXT);
   }
 
   function isTypingTarget(target){
@@ -3841,7 +4140,7 @@ function openCatManage(){
     void applyAppGlobalHotkeys(list);
   }
 
-  let apps = loadApps();
+  apps = loadApps();
   saveApps(apps);
 
   function loadPinnedOrder(){
@@ -4707,6 +5006,7 @@ function openCatManage(){
     if (capturingHotkey || capturingAppHotkey) return;
     if (e.defaultPrevented || e.repeat) return;
     if (isTypingTarget(e.target)) return;
+    if (quickLauncherOpen) return;
     if (overlay?.classList.contains("show")) return;
     if (settingsOverlay?.classList.contains("show")) return;
     if (voiceSettingsOverlay?.classList.contains("show")) return;
@@ -7108,7 +7408,3 @@ function openCatManage(){
   setTimeout(bootstrapVoiceControl, 900);
   document.addEventListener("pointerdown", bootstrapVoiceControl, { once: true });
 });
-
-
-
-

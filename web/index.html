@@ -166,8 +166,16 @@
   </div>
 
   <div class="corner-meta">
-    <div id="versionTag">v2.0.7</div>
+    <div id="versionTag">v3.0.0</div>
     <div class="credit">made by Jannik F&uuml;rst</div>
+  </div>
+
+  <div class="quick-launcher-overlay" id="quickLauncherOverlay" aria-hidden="true">
+    <div class="quick-launcher-panel" role="dialog" aria-modal="true" aria-labelledby="quickLauncherTitle">
+      <div class="quick-launcher-title" id="quickLauncherTitle">Quick Start</div>
+      <input id="quickLauncherInput" class="quick-launcher-input" type="text" autocomplete="off" spellcheck="false" placeholder="Start app..." />
+      <div class="quick-launcher-list" id="quickLauncherList"></div>
+    </div>
   </div>
 
   <div id="modalRoot"></div>
@@ -175,5 +183,3 @@
   <script src="./app.js"></script>
 </body>
 </html>
-
-

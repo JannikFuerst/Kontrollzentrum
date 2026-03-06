@@ -1,260 +1,268 @@
 ﻿# Kontrollzentrum
 
-**Version 2.0.7**  
-**Status: vorerst finale Version (Wartungsmodus)**
+Moderne Tauri-Desktop-App (Tauri 2 + Vanilla JS) fuer den schnellen Zugriff auf Web- und Desktop-Apps in einer zentralen Oberflaeche.
 
-Kontrollzentrum ist dein persönliches Operations-Dashboard für den digitalen Alltag: alle wichtigen Web-Apps an einem Ort, sofort startklar, ohne Reibung. Statt Tabs, Bookmarks, Zettel und mentalem Chaos bekommst du eine klare Startfläche, die täglich Zeit spart und Fokus zurückbringt.
+**Version:** `3.0.0`
 
-Das ist kein "noch ein Launcher". Kontrollzentrum ist ein Arbeits- und Lebensbeschleuniger: schneller Zugriff, weniger Kontextwechsel, weniger Sucherei, mehr Output.
+## Inhalt
 
-## Feature-Highlights
+1. [Produktidee](#produktidee)
+2. [Feature-Set](#feature-set)
+3. [Quick Start und Shortcuts](#quick-start-und-shortcuts)
+4. [UI-Bereiche](#ui-bereiche)
+5. [Technischer Aufbau](#technischer-aufbau)
+6. [Installation und Development](#installation-und-development)
+7. [Build und Release](#build-und-release)
+8. [Datenmodell und Persistenz](#datenmodell-und-persistenz)
+9. [Tauri Commands (Rust Backend)](#tauri-commands-rust-backend)
+10. [Projektstruktur](#projektstruktur)
+11. [Troubleshooting](#troubleshooting)
+12. [Lizenz](#lizenz)
 
-- Zentrale App-Übersicht mit Karten-Grid statt chaotischer Bookmark-Sammlungen
-- Klare Navigation über Tabs: `Alle`, `Favoriten`, `Hotkeys`
-- Pro-App-Hotkeys mit eigener `Hotkeys`-Ansicht für schnellen Trigger-Zugriff
-- Blitzschnelle Suche und Filterlogik über Kategorien und Tabs
-- Add-App-Modal mit strukturierten Eingaben und Icon-Workflow
-- Persistenz vollständig lokal über `localStorage` (`kc_apps`)
-- Favoriten-Stern (gelb aktiv), Ein-Klick-Start in neuem Tab, Löschen mit Confirm
+## Produktidee
 
+Kontrollzentrum reduziert Kontextwechsel: statt Browser-Bookmarks, Startmenue-Suche und verstreuten Launchern hast du einen zentralen, schnellen Einstiegspunkt fuer alles.
 
-## Warum Kontrollzentrum?
+Ziel: Apps finden, starten, organisieren und automatisieren in Sekunden.
 
-| Problem | Lösung mit Kontrollzentrum | Ergebnis im Alltag |
-|---|---|---|
-| Zu viele Tools, zu viele Tabs, zu viel Reibung | Einheitliche Startfläche mit Karten-Grid | Schnellere Starts, weniger Kontextwechsel |
-| Wichtige Links gehen unter | Favoriten und Kategorien machen Prioritäten sichtbar | Kritische Apps sind immer 1 Klick entfernt |
-| Zeitverlust durch Suchen | Kombination aus Tab-Filter + Suche | Sofortiges Finden statt Rumklicken |
-| Ständige Wiederholaktionen am Tag | Pro-App-Hotkeys + Hotkeys-Tab als Software-Deck | Aktionen starten, ohne zu klicken |
-| Unklare Tool-Landschaft im Team/Privat | Strukturierte App-Pflege über Modal | Konsistenz und bessere Routinen |
+## Feature-Set
 
-Kurz gesagt: Kontrollzentrum reduziert Mikro-Entscheidungen und Klickwege. Das summiert sich jeden Tag zu mehr Fokuszeit.
+- App-Hub mit Kartenansicht fuer Web- und Desktop-Apps
+- Favoriten, angepinnte Apps und Hotkey-Ansicht
+- Schnellfilter ueber Hauptsuche + Kategorie-Suche
+- Kategorien + Ueberkategorien (inkl. Icon-Mapping)
+- Drag-and-drop fuer Karten, Kategorien und Ueberkategorien
+- Kontextmenues fuer App- und Kategorie-Aktionen
+- Quick Launcher Overlay mit fuzzy / phonetic Matching
+- Fester Quick-Shortcut: `Ctrl+Space` (Windows/Linux) / `Super+Space` (macOS)
+- User-konfigurierbarer globaler Toggle-Hotkey (Fenster ein/ausblenden)
+- Pro-App-Hotkeys (globale Registrierung ueber Tauri)
+- Add/Edit-Modal mit Icon-Upload, Favicon, Scan-Auswahl und Hotkey-Capture
+- Desktop-App-Scan unter Windows (Start Apps, Startmenue, Desktop, Steam)
+- Notizen-Seitenleiste mit mehreren Seiten, Lock und Persistenz
+- Clipboard-Historie (Text/Bild), inklusive Retention-Regeln
+- Sprachsteuerung mit Wake Phrase + Befehlserkennung
+- DE/EN Sprachumschaltung (i18n)
+- Theming: Accent, Background Modes (theme/mono/duo/custom image)
+- Update-Hinweis gegen GitHub Releases (`latest.json`)
+- Profilspeicherung via Tauri (AppData), mit Shared-Profile-Export
 
-## Kernfeatures im Detail
+## Quick Start und Shortcuts
 
-### 1) App-Hub mit Karten-Grid
+### Shortcut-Ebenen
 
-- Jede App erscheint als Karte im Grid und bleibt visuell eindeutig identifizierbar.
-- Ein Klick auf die Karte öffnet die hinterlegte URL in einem neuen Tab.
-- So ersetzt du "Bookmark-Ordner + Suchleiste + Tab-Chaos" durch einen klaren, schnellen Zugriffspunkt.
+Im Projekt gibt es bewusst drei Shortcut-Typen:
 
-### 2) Tabs und Filterlogik (`Alle` / `Favoriten` / `Hotkeys`)
+1. **Quick Launcher (fix):**
+   - Windows/Linux: `Ctrl+Space`
+   - macOS: `Super+Space`
+   - Oeffnet den Quick Launcher immer direkt mit Fokus im Eingabefeld
 
-- `Alle` zeigt den kompletten Bestand deiner hinterlegten Apps.
-- `Favoriten` zeigt nur priorisierte Apps für schnellen Daily-Zugriff.
-- `Hotkeys` zeigt gezielt Apps mit hinterlegtem Tastenkürzel.
-- Die Tab-Filter greifen direkt auf denselben Datenbestand zu, ohne Duplikate oder getrennte Listen.
+2. **Global Toggle Hotkey (einstellbar):**
+   - In den Einstellungen aufnehmbar
+   - Blendet das Hauptfenster ein/aus
 
-### 3) Hotkeys: der Streamdeck-Ersatz in Software
+3. **App Hotkeys (pro App):**
+   - Im Add/Edit-Modal je App hinterlegbar
+   - Startet die jeweilige App direkt
 
-- Jede App kann ein eigenes Tastenkürzel bekommen (`App Hotkey` im Modal).
-- Diese Hotkeys sind nicht nur Deko, sondern ein zentraler Bedienmodus für Power-User.
-- Mit dem `Hotkeys`-Tab bekommst du eine fokussierte Übersicht aller triggerbaren Apps.
-- In der Praxis ersetzt das für viele Workflows ein physisches Streamdeck: schneller Zugriff, weniger Mauswege, mehr Flow.
+### Weitere Tastatur-Shortcuts in der UI
 
-### 4) Suche
+- `Ctrl/Cmd + F`: Fokus auf App-Suche
+- `Ctrl/Cmd + G`: Fokus auf Kategorie-Suche
+- Quick Launcher Navigation: `ArrowUp`, `ArrowDown`, `Enter`, `Escape`
+- Hotkey-Capture abbrechen: `Escape`
+- App-Hotkey im Modal loeschen waehrend Capture: `Backspace` oder `Delete`
 
-- Die Suche filtert in Echtzeit und reduziert den sichtbaren App-Bestand sofort.
-- In Kombination mit Tabs entsteht ein präziser Workflow: erst Bereich eingrenzen, dann gezielt suchen.
-- Ergebnis: Auch bei wachsender App-Sammlung bleibt die Bedienung schnell und kontrollierbar.
+## UI-Bereiche
 
-### 5) Add-App-Modal (`add-app.modal.html` + `add-app.modal.js`)
+- **Topbar:** Suche, Sprache, Voice Settings, Add-App, Settings
+- **Tab-Bereich:** Alle, Favoriten, Hotkeys, dynamische Kategorien
+- **Ueberkategorien:** frei anlegbar, reorderbar, Icon-unterstuetzt
+- **Pinned Row:** schnelle Favoriten-Zeile oben
+- **App Grid:** Karten mit Icon, Titel, Launch, Hotkey, Aktionen
+- **Quick Launcher Overlay:** ultraschneller fuzzy Start
+- **Notes Panel:** Seitenverwaltung, Lock-State, Persistenz
+- **Clipboard Panel:** Verlauf mit zeit-/mengenbasierter Bereinigung
+- **Modals:** Add/Edit App, Kategorieverwaltung, Icon Picker, Settings, Voice
 
-Beim Anlegen einer neuen App werden strukturierte Metadaten gepflegt:
+## Technischer Aufbau
 
-- `Name`
-- `Typ` (Web oder Desktop-Scan)
-- `URL/Pfad`
-- `Kategorie`
-- `App Hotkey` (optional)
+### Frontend
 
-Icon-Optionen im Modal:
+- Vanilla JS (`web/app.js`)
+- Statisches HTML (`web/index.html`)
+- Styles in `web/styles.css`
+- Modals als HTML-Partial + JS-Helfer (`web/modals/*`)
 
-- Automatisch per Favicon (Google s2-Service)
-- Oder Upload eines eigenen Icons
+### Desktop Shell
 
-Das Modal reduziert Eingabefehler, hält Einträge konsistent und sorgt für eine saubere, langfristig wartbare App-Sammlung.
+- Tauri 2 (`src-tauri`)
+- Rust Commands fuer:
+  - Global Shortcuts
+  - App Shortcuts
+  - Desktop-App Scan (Windows)
+  - Clipboard IO (Text/Bild)
+  - Externes Oeffnen
+  - Profil laden/speichern
 
-### 6) Kartenaktionen
+### Wichtige Plugins
 
-- Klick auf Karte: öffnet Ziel-URL im neuen Tab
-- Favoriten-Stern: aktiv = gelb, inaktiv = neutral
-- Löschen (`🗑`): immer mit Confirm-Dialog zur Absicherung
+- `tauri-plugin-global-shortcut`
+- `tauri-plugin-shell`
+- `tauri-plugin-updater`
 
-Damit bleibt die Oberfläche schnell bedienbar, ohne Risiko für versehentliche Datenverluste.
+## Installation und Development
 
-### 7) Persistenz und Datenlogik
+### Voraussetzungen
 
-- Alle App-Daten werden lokal unter dem Key `kc_apps` gespeichert.
-- Favoriten-Status, Hotkey-Zuweisungen, Filterrelevanz und Kartenbestand stammen aus diesem lokalen Zustand.
-- Löschen entfernt den Eintrag direkt aus `kc_apps` und damit dauerhaft aus der Oberfläche.
+- Node.js 20+
+- Rust Toolchain (stable)
+- Tauri Prerequisites fuer dein OS
+- Windows: WebView2 Runtime (bei aktuellen Systemen meist bereits installiert)
 
-## Projektstruktur (relevanter Kern)
-
-```text
-web/
-  index.html
-  styles.css
-  app.js
-  modals/
-    add-app.modal.html
-    add-app.modal.js
-```
-
-Dateiverantwortung:
-
-- `web/index.html`: Grundlayout, Topbar, Tabs, Suchfelder, Grid-Container, Modal-Root
-- `web/styles.css`: komplettes Styling für Layout, Karten, Tabs, Modal, Zustände
-- `web/app.js`: App-State, Rendering, Filterlogik, Kartenaktionen, LocalStorage-Handling
-- `web/modals/add-app.modal.html`: Struktur des Add-App-Modals
-- `web/modals/add-app.modal.js`: Modal-Interaktionen und Submit-Logik
-
-## Installation / Setup
-
-### Option A: Schnellstart im Browser
-
-```bash
-# Repository klonen
-git clone <REPO_URL>
-cd Kontrollzentrum
-```
-
-Dann `web/index.html` direkt im Browser öffnen.
-
-### Option B: Empfohlen für lokale Entwicklung (Live Server)
-
-1. Projekt in VS Code öffnen
-2. Extension `Live Server` installieren
-3. `web/index.html` mit "Open with Live Server" starten
-
-Vorteil: zuverlässigeres Verhalten bei lokalen Assets und saubereres Testing als bei reinem `file://`.
-
-### Option C: Optional über Tauri-Dev-Umgebung
+### Projekt starten
 
 ```bash
 npm install
-npm run dev
+npm run tauri dev
 ```
 
-## Nutzung
+Das Projekt nutzt in Dev ein statisches Frontend unter `http://127.0.0.1:1420`.
 
-### Erste Schritte (Step-by-Step)
+### Nuetzliche NPM-Skripte
 
-1. App hinzufügen über `App hinzufügen`
-2. Im Modal `Name`, `Typ`, `URL/Pfad`, `Kategorie` setzen
-3. Optional pro App einen `Hotkey` aufnehmen
-4. Icon wählen: automatisch per Favicon oder eigenes Icon hochladen
-5. Speichern und prüfen, ob die Karte im Grid erscheint
-6. Mit Stern als Favorit markieren (gelb = aktiv)
-7. Über Tabs (`Alle`, `Favoriten`, `Hotkeys`) und Suche den Bestand filtern
-8. Nicht mehr benötigte Einträge über `🗑` löschen und Confirm bestätigen
+- `npm run tauri dev` -> Desktop App im Dev-Modus
+- `npm run tauri build` -> Installer/Bundles bauen
+- `npm run profile:export` -> `%APPDATA%\\com.jannik.kontrollzentrum\\profile.json` nach `src-tauri/profile.shared.json` kopieren
 
-### Power-Workflows
+## Build und Release
 
-| Workflow | Ablauf | Nutzen |
-|---|---|---|
-| Setup in 5 Minuten | Top-Apps erfassen, Kategorien setzen, Favoriten markieren | Sofort produktiv ohne langes Onboarding |
-| Daily Use | Start über `Favoriten`, danach Suche für Long-Tail-Apps | Konstanter Fokus im Tagesgeschäft |
-| Focus Mode | Nur Favoriten pflegen, Rest bewusst in `Alle` belassen | Weniger visuelle Ablenkung, schnellere Entscheidungen |
-| Streamdeck-Style | Kritische Apps mit Hotkeys belegen und über `Hotkeys` fahren | Maximal schneller App-Start ohne Klick-Overhead |
+### Lokaler Release Build
 
-## Datenhaltung & Datenschutz
+```bash
+npm run tauri build
+```
 
-Kontrollzentrum speichert lokal im Browser (LocalStorage), insbesondere unter:
+Typische Bundle-Ausgaben liegen unter:
+
+- `src-tauri/target/release/bundle/`
+
+### GitHub Release per Tag
+
+Im Repo ist ein Workflow vorhanden: `.github/workflows/release.yml`.
+
+Trigger:
+
+- Push eines Tags nach Muster `v*.*.*` (z. B. `v3.0.0`)
+
+Ablauf:
+
+- GitHub Action baut die Windows-Artefakte via `tauri-apps/tauri-action`
+- Release + Artefakte werden am Tag erstellt/aktualisiert
+
+### Versionierung (dieses Release)
+
+`3.0.0` ist in diesen Dateien gepflegt:
+
+- `package.json`
+- `package-lock.json`
+- `src-tauri/Cargo.toml`
+- `src-tauri/Cargo.lock`
+- `src-tauri/tauri.conf.json`
+- `web/index.html` (`#versionTag`)
+
+## Datenmodell und Persistenz
+
+### Profil (Tauri AppData)
+
+Das Profil wird als JSON gespeichert und beim Start geladen.
+
+Default Keys:
 
 - `kc_apps`
+- `kc_pinned_order`
+- `kc_cat_order`
+- `kc_categories`
+- `kc_cat_tabs`
+- `kc_super_categories`
+- `kc_super_tab_order`
+- `kc_super_icon_map`
+- `kc_category_icon_map`
 
-Wichtige Punkte:
+### LocalStorage (UI/Runtime Settings)
 
-- Keine Cloud-Pflicht
-- Keine externe Datenbank
-- Keine Account-Abhängigkeit
-- Offline-freundlich für die lokale Oberfläche und gespeicherte Konfiguration
+Zusatzdaten werden lokal gehalten, z. B.:
 
-Hinweis: Für automatische Favicons wird ein externer Favicon-Dienst genutzt (Google s2), sofern diese Option verwendet wird.
+- Sprache, Theme, Accent, Background-Optionen
+- Notes/Clipboard States
+- Hotkey- und Voice-Settings
+- Rail/UI-Status
 
-## Konfiguration & Erweiterbarkeit
+## Tauri Commands (Rust Backend)
 
-| Ziel | Datei | Was du dort anpasst |
-|---|---|---|
-| Look and Feel | `web/styles.css` | Farben, Abstände, Kartenoptik, UI-States |
-| Logik/State | `web/app.js` | Filter, Tab-Verhalten, Kartenaktionen, Storage-Flows |
-| Modal-Felder/Struktur | `web/modals/add-app.modal.html` | Eingabefelder, Feldreihenfolge, Labels |
-| Modal-Verhalten | `web/modals/add-app.modal.js` | Validierung, Icon-Handling, Submit-Payload |
-| Grundlayout | `web/index.html` | Header, Tab-Bereiche, Suchfelder, Grid-Container |
+Folgende Commands sind im Frontend per `window.__TAURI__.core.invoke` nutzbar:
 
-Typische Erweiterungen:
+- `open_external`
+- `scan_desktop_apps`
+- `set_window_icon`
+- `load_profile_state`
+- `save_profile_state`
+- `set_global_shortcut`
+- `set_app_shortcuts`
+- `get_clipboard_text`
+- `get_clipboard_payload`
+- `set_clipboard_text`
+- `set_clipboard_image`
 
-- Neue Kategorien oder andere Standard-Kategorisierung
-- Angepasste Kartenstile pro Kategorie/Farbe
-- Eigene Validierungsregeln im Add-App-Flow
+## Projektstruktur
 
-## Troubleshooting / FAQ
-
-### Favicon wird nicht angezeigt
-
-- Prüfe, ob die URL korrekt und erreichbar ist.
-- Manche Seiten liefern kein verwertbares Favicon.
-- Lösung: eigenes Icon im Modal hochladen.
-
-### Karte öffnet nichts
-
-- URL auf korrektes Format prüfen (`https://...`).
-- Bei lokalem `file://` kann Browser-Sicherheitsverhalten einschränken.
-- Teste den Flow über Live Server.
-
-### App ist "verschwunden"
-
-- Prüfe aktiven Tab (`Alle`, `Favoriten`, `Hotkeys`).
-- Im Tab `Hotkeys` werden nur Apps mit vergebenem Hotkey angezeigt.
-- Prüfe Suchfeld auf aktiven Filtertext.
-- Prüfe, ob die App versehentlich gelöscht wurde.
-
-### LocalStorage zurücksetzen
-
-Nur App-Daten entfernen:
-
-```js
-localStorage.removeItem("kc_apps");
-location.reload();
+```text
+.
+|- web/
+|  |- index.html
+|  |- styles.css
+|  |- app.js
+|  |- assets/
+|  `- modals/
+|     |- add-app.modal.html
+|     `- add-app.modal.js
+|- src-tauri/
+|  |- src/lib.rs
+|  |- Cargo.toml
+|  |- tauri.conf.json
+|  `- icons/
+|- scripts/
+|  `- export-shared-profile.ps1
+`- .github/workflows/release.yml
 ```
 
-Alle Kontrollzentrum-Keys entfernen:
+## Troubleshooting
 
-```js
-Object.keys(localStorage)
-  .filter((k) => k.startsWith("kc_"))
-  .forEach((k) => localStorage.removeItem(k));
-location.reload();
-```
+### `Ctrl+Space` oeffnet nichts
 
-## Roadmap / Status
+- Pruefen, ob die App als Tauri Desktop App laeuft (nicht nur im Browser)
+- Pruefen, ob ein anderes Tool den Shortcut global blockiert
+- Dev-Konsole/Terminal auf Shortcut-Registerfehler pruefen
 
-`2.0.7` ist voraussichtlich die letzte Version auf absehbare Zeit.
+### App-Icon wirkt unscharf
 
-Das Projekt ist im Wartungsmodus:
+- Nur hochaufgeloeste Basisdatei als Quelle nutzen (`app-icon-base.png`)
+- Danach `npm run tauri icon <pfad-zur-datei>` ausfuehren
+- Build neu starten
 
-- Fokus auf Stabilität
-- Fehlerbehebungen bei Bedarf
-- Keine aktiv geplanten großen Feature-Offensiven
+### Scan liefert keine Desktop-Apps
 
-Der bestehende Funktionsumfang ist bewusst auf Effizienz, Robustheit und klare Bedienung ausgerichtet.
+- Feature ist fuer Windows implementiert
+- Auf anderen Plattformen liefert `scan_desktop_apps` leer zurueck
 
-## Contributing
+### Update-Hinweis kommt nicht
 
-Auch im Wartungsmodus sind Beiträge möglich.
-
-- Bugs und Verbesserungsvorschläge gern als Issue einreichen
-- PRs für konkrete Fixes und nachvollziehbare Verbesserungen sind willkommen
-- Für größere Änderungen zuerst kurz abstimmen, damit Scope und Richtung klar sind
+- Internetzugriff auf GitHub Releases erforderlich
+- `latest.json` muss im letzten Release vorhanden sein
 
 ## Lizenz
 
-**TBD** (separate `LICENSE`-Datei derzeit nicht vorhanden).  
-Hinweis: In `package.json` ist aktuell `ISC` als Lizenzfeld gesetzt.
+`package.json` enthaelt aktuell `ISC`.
 
-## Start now
-
-Wenn du täglich mit vielen Tools arbeitest und schneller, klarer und fokussierter durch deinen digitalen Tag gehen willst, starte jetzt mit Kontrollzentrum.
-
-Klonen, öffnen, Hotkeys setzen, und dein Software-Streamdeck in Minuten live haben.
+Wenn du eine eigene Lizenzdatei nutzen willst, lege zusaetzlich eine `LICENSE` im Repo-Root an.
