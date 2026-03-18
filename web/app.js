@@ -1,4 +1,4 @@
-﻿console.log("app.js loaded ✅");
+﻿console.log("app.js loaded âœ…");
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -21,6 +21,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const notesPanel = document.getElementById("notesPanel");
   const clipboardToggle = document.getElementById("clipboardToggle");
   const clipboardPanel = document.getElementById("clipboardPanel");
+  const macroSettingsBtn = document.getElementById("macroSettingsBtn");
   const notesText = document.getElementById("notesText");
   const notesClear = document.getElementById("notesClear");
   const notesDelete = document.getElementById("notesDelete");
@@ -35,17 +36,37 @@ document.addEventListener("DOMContentLoaded", async () => {
   const voiceSettingsBtn = document.getElementById("voiceSettingsBtn");
   const languageBtn = document.getElementById("languageBtn");
   const languageMenu = document.getElementById("languageMenu");
+  const macroLanguageBtn = document.getElementById("macroLanguageBtn");
+  const macroLanguageMenu = document.getElementById("macroLanguageMenu");
   const quickLauncherOverlay = document.getElementById("quickLauncherOverlay");
   const quickLauncherInput = document.getElementById("quickLauncherInput");
   const quickLauncherList = document.getElementById("quickLauncherList");
+  const macroSurface = document.getElementById("macroSurface");
+  const surfaceMenuToggle = document.getElementById("surfaceMenuToggle");
+  const surfaceMenu = document.getElementById("surfaceMenu");
+  const surfaceMenuItems = Array.from(document.querySelectorAll(".surface-menu-item[data-surface]"));
+  const SURFACE_STORAGE_KEY = "kc_surface_mode_v1";
+  const SURFACE_APPSTART = "appstart";
+  const SURFACE_MACRO = "macro";
+  const QUICK_LAUNCHER_HOTKEY_KEY = "kc_quick_launcher_hotkey";
+  let activeSurface =
+    localStorage.getItem(SURFACE_STORAGE_KEY) === SURFACE_MACRO ? SURFACE_MACRO : SURFACE_APPSTART;
   const CAT_RAIL_COLLAPSED_KEY = "kc_cat_rail_collapsed";
   let catRailCollapsed = localStorage.getItem(CAT_RAIL_COLLAPSED_KEY) === "1";
   const IS_MAC_PLATFORM = /\bMac/i.test(navigator.userAgentData?.platform || navigator.platform || "");
+  const DEFAULT_QUICK_LAUNCHER_SHORTCUT = IS_MAC_PLATFORM ? "Super+Space" : "Ctrl+Space";
   const WINDOW_SHOWN_EVENT = "kc://window-shown-by-shortcut";
   const QUICK_LAUNCHER_OPEN_EVENT = "kc://quick-launcher-open";
-  const QUICK_LAUNCHER_SHORTCUT_TEXT = IS_MAC_PLATFORM ? "Super+Space" : "Ctrl+Space";
   let unlistenWindowShownByShortcut = null;
   let unlistenQuickLauncherOpen = null;
+  let quickLauncherShortcut = localStorage.getItem(QUICK_LAUNCHER_HOTKEY_KEY) || DEFAULT_QUICK_LAUNCHER_SHORTCUT;
+  const surfaceSwitchToast = document.createElement("div");
+  surfaceSwitchToast.className = "surface-switch-toast";
+  surfaceSwitchToast.setAttribute("role", "status");
+  surfaceSwitchToast.setAttribute("aria-live", "polite");
+  surfaceSwitchToast.hidden = true;
+  document.body.appendChild(surfaceSwitchToast);
+  let surfaceSwitchToastTimer = null;
 
   function getMainSearchInputElement(){
     return (
@@ -277,6 +298,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboard_clear: "Leeren",
       clipboard_empty: "Noch keine Einträge.",
       app_title: "Kontrollzentrum",
+      surface_switch_aria: "Bereich wechseln",
+      surface_appstart: "Steuerung",
+      surface_macro: "Automatisierung",
+
       search_placeholder: "Apps durchsuchen (STRG+F)...",
       category_search_placeholder: "Durchsuchen (STRG+G)...",
       add_app: "App hinzufügen",
@@ -391,6 +416,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       category_icon_btn: "Icon",
       settings_title: "Einstellungen",
       settings_hotkey_label: "Hotkey (App ein/ausblenden)",
+      settings_quick_start_hotkey_label: "Hotkey (Quick Start öffnen)",
       settings_hotkey_placeholder: "Drücke 'Aufnehmen'...",
       settings_capture: "Aufnehmen",
       settings_capture_listen: "Drücke Tasten...",
@@ -491,6 +517,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboard_clear: "Clear",
       clipboard_empty: "No entries yet.",
       app_title: "Control Center",
+      surface_switch_aria: "Switch workspace",
+      surface_appstart: "Control",
+      surface_macro: "Automation",
+
       search_placeholder: "Search apps (CTRL+F)...",
       category_search_placeholder: "Search (CTRL+G)...",
       add_app: "Add app",
@@ -604,6 +634,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       category_icon_btn: "Icon",
       settings_title: "Settings",
       settings_hotkey_label: "Hotkey (toggle app)",
+      settings_quick_start_hotkey_label: "Hotkey (open Quick Start)",
       settings_hotkey_placeholder: "Press 'Capture'...",
       settings_capture: "Capture",
       settings_capture_listen: "Press keys...",
@@ -693,6 +724,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     return raw.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
   }
 
+  const automationUi = window.AutomationSurface?.create({
+    root: macroSurface,
+    getLang: () => currentLang,
+    escapeHtml
+  });
+
   function applyI18nToDom(){
     document.documentElement.lang = currentLang;
     document.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -720,6 +757,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       languageBtn.dataset.tip = t("language");
       languageBtn.removeAttribute("title");
     }
+    if (macroLanguageBtn){
+      macroLanguageBtn.setAttribute("aria-label", t("language"));
+      macroLanguageBtn.dataset.tip = t("language");
+      macroLanguageBtn.removeAttribute("title");
+    }
     const settingsTopBtn = document.getElementById("settingsBtn");
     if (settingsTopBtn){
       settingsTopBtn.dataset.tip = t("settings_title_btn");
@@ -735,13 +777,100 @@ document.addEventListener("DOMContentLoaded", async () => {
       clipboardToggle.setAttribute("aria-label", t("clipboard_toggle"));
       clipboardToggle.removeAttribute("title");
     }
-    if (languageMenu){
-      languageMenu.querySelectorAll(".lang-item").forEach((item) => {
+    if (macroSettingsBtn){
+      macroSettingsBtn.dataset.tip = t("settings_title_btn");
+      macroSettingsBtn.setAttribute("aria-label", t("settings_aria"));
+      macroSettingsBtn.removeAttribute("title");
+    }
+    const syncLanguageMenu = (menuEl) => {
+      if (!menuEl) return;
+      menuEl.querySelectorAll(".lang-item").forEach((item) => {
         const isActive = item.dataset.lang === currentLang;
         item.classList.toggle("active", isActive);
         item.setAttribute("aria-checked", isActive ? "true" : "false");
       });
+    };
+    syncLanguageMenu(languageMenu);
+    syncLanguageMenu(macroLanguageMenu);
+    if (!surfaceSwitchToast.hidden){
+      surfaceSwitchToast.textContent = activeSurface === SURFACE_MACRO ? t("surface_macro") : t("surface_appstart");
     }
+    updateSurfaceUi(false);
+  }
+
+  function normalizeSurfaceMode(value){
+    return value === SURFACE_MACRO ? SURFACE_MACRO : SURFACE_APPSTART;
+  }
+
+  function updateSurfaceUi(persist = true){
+    activeSurface = normalizeSurfaceMode(activeSurface);
+    document.body.setAttribute("data-surface", activeSurface);
+    if (persist){
+      localStorage.setItem(SURFACE_STORAGE_KEY, activeSurface);
+    }
+    surfaceMenuItems.forEach((item) => {
+      const selected = item.dataset.surface === activeSurface;
+      item.classList.toggle("active", selected);
+      item.setAttribute("aria-checked", selected ? "true" : "false");
+    });
+  }
+
+  function setActiveSurface(nextSurface, options = {}){
+    const normalized = normalizeSurfaceMode(nextSurface);
+    if (normalized === activeSurface && !options.force){
+      return;
+    }
+    activeSurface = normalized;
+    updateSurfaceUi(options.persist !== false);
+    showSurfaceSwitchToast(activeSurface);
+    if (activeSurface === SURFACE_MACRO){
+      closeNotes();
+      closeClipboard();
+    }
+  }
+
+  function showSurfaceSwitchToast(surface){
+    if (!surfaceSwitchToast) return;
+    surfaceSwitchToast.textContent = surface === SURFACE_MACRO ? t("surface_macro") : t("surface_appstart");
+    surfaceSwitchToast.hidden = false;
+    surfaceSwitchToast.classList.remove("show", "hide");
+    void surfaceSwitchToast.offsetWidth;
+    surfaceSwitchToast.classList.add("show");
+    if (surfaceSwitchToastTimer){
+      clearTimeout(surfaceSwitchToastTimer);
+      surfaceSwitchToastTimer = null;
+    }
+    surfaceSwitchToastTimer = setTimeout(() => {
+      surfaceSwitchToast.classList.remove("show");
+      surfaceSwitchToast.classList.add("hide");
+      setTimeout(() => {
+        surfaceSwitchToast.hidden = true;
+        surfaceSwitchToast.classList.remove("hide");
+      }, 170);
+    }, 750);
+  }
+
+  function toggleActiveSurface(){
+    const nextSurface = activeSurface === SURFACE_APPSTART ? SURFACE_MACRO : SURFACE_APPSTART;
+    setActiveSurface(nextSurface);
+  }
+
+  function closeSurfaceMenu(){
+    if (!surfaceMenu || !surfaceMenuToggle) return;
+    surfaceMenu.classList.remove("show");
+    surfaceMenu.setAttribute("aria-hidden", "true");
+    surfaceMenuToggle.setAttribute("aria-expanded", "false");
+  }
+
+  function toggleSurfaceMenu(){
+    if (!surfaceMenu || !surfaceMenuToggle) return;
+    const willOpen = !surfaceMenu.classList.contains("show");
+    if (willOpen){
+      closeLanguageMenu();
+    }
+    surfaceMenu.classList.toggle("show", willOpen);
+    surfaceMenu.setAttribute("aria-hidden", willOpen ? "false" : "true");
+    surfaceMenuToggle.setAttribute("aria-expanded", willOpen ? "true" : "false");
   }
 
   function closeLanguageMenu(){
@@ -751,12 +880,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     languageBtn.setAttribute("aria-expanded", "false");
   }
 
+  function closeMacroLanguageMenu(){
+    if (!macroLanguageMenu || !macroLanguageBtn) return;
+    macroLanguageMenu.classList.remove("show");
+    macroLanguageMenu.setAttribute("aria-hidden", "true");
+    macroLanguageBtn.setAttribute("aria-expanded", "false");
+  }
+
   function toggleLanguageMenu(){
     if (!languageMenu || !languageBtn) return;
     const willOpen = !languageMenu.classList.contains("show");
+    if (willOpen){
+      closeSurfaceMenu();
+      closeMacroLanguageMenu();
+    }
     languageMenu.classList.toggle("show", willOpen);
     languageMenu.setAttribute("aria-hidden", willOpen ? "false" : "true");
     languageBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
+  }
+
+  function toggleMacroLanguageMenu(){
+    if (!macroLanguageMenu || !macroLanguageBtn) return;
+    const willOpen = !macroLanguageMenu.classList.contains("show");
+    if (willOpen){
+      closeSurfaceMenu();
+      closeLanguageMenu();
+    }
+    macroLanguageMenu.classList.toggle("show", willOpen);
+    macroLanguageMenu.setAttribute("aria-hidden", willOpen ? "false" : "true");
+    macroLanguageBtn.setAttribute("aria-expanded", willOpen ? "true" : "false");
   }
 
   function setLanguage(lang){
@@ -773,6 +925,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     renderCategories();
     renderCategoryManager();
     render();
+    automationUi?.render();
   }
 
   // Tabs (delegation)
@@ -906,7 +1059,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const label = catRailCollapsed
         ? (currentLang === "de" ? "Kategorien ausklappen" : "Expand categories")
         : (currentLang === "de" ? "Kategorien einklappen" : "Collapse categories");
-      catCollapseToggle.textContent = catRailCollapsed ? "⮜" : "⮞";
+      catCollapseToggle.textContent = catRailCollapsed ? "▶" : "◀";
       catCollapseToggle.setAttribute("aria-label", label);
       catCollapseToggle.setAttribute("title", label);
     }
@@ -939,6 +1092,19 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const tabValue = t.dataset.tab || "all";
     setActiveTab(tabValue);
+  });
+
+  surfaceMenuToggle?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleActiveSurface();
+    closeSurfaceMenu();
+  });
+  surfaceMenu?.addEventListener("click", (e) => {
+    const item = e.target.closest(".surface-menu-item[data-surface]");
+    if (!item || !surfaceMenu.contains(item)) return;
+    e.preventDefault();
+    setActiveSurface(item.dataset.surface || SURFACE_APPSTART);
+    closeSurfaceMenu();
   });
 
   // Horizontal scroll with mouse wheel on category/tabs row
@@ -999,35 +1165,66 @@ document.addEventListener("DOMContentLoaded", async () => {
     e.stopPropagation();
     toggleLanguageMenu();
   });
+  macroLanguageBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMacroLanguageMenu();
+  });
   languageMenu?.addEventListener("click", (e) => {
     const item = e.target.closest(".lang-item");
     if (!item) return;
     setLanguage(item.dataset.lang || "de");
     closeLanguageMenu();
+    closeMacroLanguageMenu();
+  });
+  macroLanguageMenu?.addEventListener("click", (e) => {
+    const item = e.target.closest(".lang-item");
+    if (!item) return;
+    setLanguage(item.dataset.lang || "de");
+    closeLanguageMenu();
+    closeMacroLanguageMenu();
+  });
+  surfaceMenuToggle?.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowDown") return;
+    e.preventDefault();
+    if (!surfaceMenu?.classList.contains("show")){
+      toggleSurfaceMenu();
+    }
+    surfaceMenuItems[0]?.focus();
   });
   document.addEventListener("click", (e) => {
-    if (!languageMenu || !languageBtn) return;
-    const inMenu = languageMenu.contains(e.target);
-    const inBtn = languageBtn.contains(e.target);
-    if (!inMenu && !inBtn) closeLanguageMenu();
+    if (languageMenu && languageBtn){
+      const inMenu = languageMenu.contains(e.target);
+      const inBtn = languageBtn.contains(e.target);
+      if (!inMenu && !inBtn) closeLanguageMenu();
+    }
+    if (macroLanguageMenu && macroLanguageBtn){
+      const inMenu = macroLanguageMenu.contains(e.target);
+      const inBtn = macroLanguageBtn.contains(e.target);
+      if (!inMenu && !inBtn) closeMacroLanguageMenu();
+    }
+    if (surfaceMenu && surfaceMenuToggle){
+      const inMenu = surfaceMenu.contains(e.target);
+      const inBtn = surfaceMenuToggle.contains(e.target);
+      if (!inMenu && !inBtn) closeSurfaceMenu();
+    }
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closeLanguageMenu();
+    if (e.key === "Escape"){
+      closeLanguageMenu();
+      closeMacroLanguageMenu();
+      closeSurfaceMenu();
+    }
   });
   applyI18nToDom();
 
-  // Ctrl+F / Cmd+F focuses app search, Ctrl+G / Cmd+G focuses category search,
-  // Ctrl+Space / Cmd+Space opens quick launcher.
+  // Mod+F focuses app search, Mod+G focuses category search.
+  // Quick launcher uses the configured shortcut from settings.
   document.addEventListener("keydown", (e) => {
     const withMod = e.ctrlKey || e.metaKey;
     const key = e.key.toLowerCase();
     const isAppFind = withMod && key === "f";
     const isCategoryFind = withMod && key === "g";
-    const isQuickLauncher =
-      withMod &&
-      !e.shiftKey &&
-      !e.altKey &&
-      (e.code === "Space" || key === " ");
+    const isQuickLauncher = isQuickLauncherShortcut(normalizeKey(e));
     if (!isAppFind && !isCategoryFind && !isQuickLauncher) return;
     e.preventDefault();
     if (isQuickLauncher){
@@ -1035,10 +1232,12 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
     if (isAppFind){
+      if (activeSurface !== SURFACE_APPSTART) return;
       focusMainSearchInput(true);
       return;
     }
     if (isCategoryFind && categorySearch){
+      if (activeSurface !== SURFACE_APPSTART) return;
       setCategoryRailCollapsed(false, { focusSearch: true });
     }
   });
@@ -1106,6 +1305,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const voiceSettingsSave = document.getElementById("voiceSettingsSave");
   const hotkeyInput = document.getElementById("hotkeyInput");
   const hotkeyCapture = document.getElementById("hotkeyCapture");
+  const quickLauncherHotkeyInput = document.getElementById("quickLauncherHotkeyInput");
+  const quickLauncherHotkeyCapture = document.getElementById("quickLauncherHotkeyCapture");
   const hotkeySave = document.getElementById("hotkeySave");
   const hotkeyCancel = document.getElementById("hotkeyCancel");
   const themeToggle = document.getElementById("themeToggle");
@@ -1242,6 +1443,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#catManageAdd", "add");
     setText("#catManageCancel", "close");
     setText("#hotkeyCapture", "settings_capture");
+    setText("#quickLauncherHotkeyCapture", "settings_capture");
     setText("#confirmCancel", "cancel");
 
     setAttr("#modalClose", "aria-label", "close_aria");
@@ -1260,6 +1462,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     document.querySelector("#iconUploadBtn")?.removeAttribute("title");
 
     setText("#settingsOverlay [data-i18n='settings_hotkey_label']", "settings_hotkey_label");
+    setText("#settingsOverlay [data-i18n='settings_quick_start_hotkey_label']", "settings_quick_start_hotkey_label");
     setText("#settingsOverlay [data-i18n='settings_hotkey_help']", "settings_hotkey_help");
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_activation']", "settings_voice_activation");
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_wake_mode_label']", "settings_voice_wake_mode_label");
@@ -1302,6 +1505,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#settingsOverlay [data-i18n='settings_allowed_sizes']", "settings_allowed_sizes");
     setText("#settingsOverlay [data-i18n='settings_bg_error']", "settings_bg_error");
     setPh("#hotkeyInput", "settings_hotkey_placeholder");
+    setPh("#quickLauncherHotkeyInput", "settings_hotkey_placeholder");
     setPh("#bgUploadName", "settings_no_image");
     setText("#bgUploadBtn", "settings_upload_image");
 
@@ -1820,6 +2024,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function openNotes(){
+    if (activeSurface === SURFACE_MACRO) return;
     if (!notesPanel) return;
     sidePanelSwitching = true;
     closeClipboard();
@@ -2378,6 +2583,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function openClipboard(){
+    if (activeSurface === SURFACE_MACRO) return;
     if (!clipboardPanel) return;
     sidePanelSwitching = true;
     closeNotes();
@@ -2747,9 +2953,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getVoiceModeIconGlyph(value){
     const mode = normalizeVoiceMode(value);
-    if (mode === "__female__") return "🙍‍♀️";
-    if (mode === "__male__") return "🙍‍♂️";
-    return "🎵";
+    if (mode === "__female__") return "ðŸ™â€â™€ï¸";
+    if (mode === "__male__") return "ðŸ™â€â™‚ï¸";
+    return "ðŸŽµ";
   }
 
   function voiceModeLabelKey(value){
@@ -2909,6 +3115,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyModalI18n();
     const saved = localStorage.getItem("kc_hotkey") || "";
     if (hotkeyInput) hotkeyInput.value = saved;
+    if (quickLauncherHotkeyInput) quickLauncherHotkeyInput.value = getQuickLauncherShortcut();
     if (themeToggle) themeToggle.checked = false;
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
@@ -2940,6 +3147,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     settingsOverlay.setAttribute("aria-hidden", "true");
     closeAccentCustomPopup();
     stopHotkeyCapture();
+    stopQuickLauncherHotkeyCapture();
   }
 
   function closeVoiceSettings(){
@@ -3189,6 +3397,7 @@ function openCatManage(){
   addBtn?.addEventListener("click", openModal);
   addBtn2?.addEventListener("click", openModal);
   settingsBtn?.addEventListener("click", openSettings);
+  macroSettingsBtn?.addEventListener("click", openSettings);
   voiceSettingsBtn?.addEventListener("click", openVoiceSettings);
   catAddToggle?.addEventListener("click", openCatManage);
 
@@ -3316,7 +3525,7 @@ function openCatManage(){
   async function applyHotkey(value){
     const shortcut = String(value || "").trim();
     if (isQuickLauncherShortcut(shortcut)){
-      console.warn("shortcut reserved for quick launcher:", QUICK_LAUNCHER_SHORTCUT_TEXT);
+      console.warn("shortcut reserved for quick launcher:", getQuickLauncherShortcut());
       return;
     }
     const current = localStorage.getItem("kc_hotkey") || "";
@@ -3332,6 +3541,12 @@ function openCatManage(){
     }
   }
 
+  function applyQuickLauncherHotkey(value){
+    const shortcut = String(value || "").trim() || DEFAULT_QUICK_LAUNCHER_SHORTCUT;
+    quickLauncherShortcut = shortcut;
+    localStorage.setItem(QUICK_LAUNCHER_HOTKEY_KEY, shortcut);
+  }
+
   let capturingHotkey = false;
   function stopHotkeyCapture(){
     if (!capturingHotkey) return;
@@ -3341,6 +3556,8 @@ function openCatManage(){
   }
 
   function startHotkeyCapture(){
+    stopQuickLauncherHotkeyCapture();
+    stopAppHotkeyCapture();
     capturingHotkey = true;
     if (hotkeyCapture) hotkeyCapture.textContent = t("settings_capture_listen");
     document.addEventListener("keydown", onHotkeyKeydown, true);
@@ -3384,8 +3601,13 @@ function openCatManage(){
     return String(value || "").replace(/\s+/g, "").toLowerCase();
   }
 
+  function getQuickLauncherShortcut(){
+    const stored = String(quickLauncherShortcut || "").trim();
+    return stored || DEFAULT_QUICK_LAUNCHER_SHORTCUT;
+  }
+
   function isQuickLauncherShortcut(value){
-    return normalizeShortcutText(value) === normalizeShortcutText(QUICK_LAUNCHER_SHORTCUT_TEXT);
+    return normalizeShortcutText(value) === normalizeShortcutText(getQuickLauncherShortcut());
   }
 
   function isTypingTarget(target){
@@ -3415,6 +3637,42 @@ function openCatManage(){
     stopHotkeyCapture();
   }
 
+  let capturingQuickLauncherHotkey = false;
+  function stopQuickLauncherHotkeyCapture(){
+    if (!capturingQuickLauncherHotkey) return;
+    capturingQuickLauncherHotkey = false;
+    document.removeEventListener("keydown", onQuickLauncherHotkeyKeydown, true);
+    if (quickLauncherHotkeyCapture) quickLauncherHotkeyCapture.textContent = t("settings_capture");
+  }
+
+  function startQuickLauncherHotkeyCapture(){
+    stopHotkeyCapture();
+    stopAppHotkeyCapture();
+    capturingQuickLauncherHotkey = true;
+    if (quickLauncherHotkeyCapture) quickLauncherHotkeyCapture.textContent = t("settings_capture_listen");
+    document.addEventListener("keydown", onQuickLauncherHotkeyKeydown, true);
+  }
+
+  function onQuickLauncherHotkeyKeydown(e){
+    if (!capturingQuickLauncherHotkey) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    if (e.key === "Escape"){
+      stopQuickLauncherHotkeyCapture();
+      return;
+    }
+    if (e.key === "Backspace" || e.key === "Delete"){
+      if (quickLauncherHotkeyInput) quickLauncherHotkeyInput.value = DEFAULT_QUICK_LAUNCHER_SHORTCUT;
+      stopQuickLauncherHotkeyCapture();
+      return;
+    }
+    const combo = normalizeKey(e);
+    if (!combo) return;
+    if (quickLauncherHotkeyInput) quickLauncherHotkeyInput.value = combo;
+    stopQuickLauncherHotkeyCapture();
+  }
+
   let capturingAppHotkey = false;
   function stopAppHotkeyCapture(){
     if (!capturingAppHotkey) return;
@@ -3424,6 +3682,8 @@ function openCatManage(){
   }
 
   function startAppHotkeyCapture(){
+    stopHotkeyCapture();
+    stopQuickLauncherHotkeyCapture();
     capturingAppHotkey = true;
     if (appHotkeyCapture) appHotkeyCapture.textContent = t("settings_capture_listen");
     document.addEventListener("keydown", onAppHotkeyKeydown, true);
@@ -3454,6 +3714,13 @@ function openCatManage(){
       stopHotkeyCapture();
     } else {
       startHotkeyCapture();
+    }
+  });
+  quickLauncherHotkeyCapture?.addEventListener("click", () => {
+    if (capturingQuickLauncherHotkey) {
+      stopQuickLauncherHotkeyCapture();
+    } else {
+      startQuickLauncherHotkeyCapture();
     }
   });
   window.addEventListener("resize", () => {
@@ -3535,6 +3802,7 @@ function openCatManage(){
     try{
       const val = hotkeyInput?.value || "";
       await applyHotkey(val);
+      applyQuickLauncherHotkey(quickLauncherHotkeyInput?.value || "");
       saveClipboardRetentionSettings({
         mode: clipboardRetentionMode?.value || "count",
         hours: clipboardTimeCycle?.value || "24",
@@ -3958,11 +4226,11 @@ function openCatManage(){
   // Storage
   function repairMojibakeString(input){
     const value = String(input ?? "");
-    if (!/[ÃÂðâ]/.test(value)) return value;
+    if (!/[ÃƒÃ‚Ã°Ã¢]/.test(value)) return value;
     try{
       const bytes = new Uint8Array(Array.from(value).map((ch) => ch.charCodeAt(0) & 0xff));
       const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-      return /�/.test(decoded) ? value : decoded;
+      return /ï¿½/.test(decoded) ? value : decoded;
     }catch{
       return value;
     }
@@ -4172,170 +4440,170 @@ function openCatManage(){
   const CATEGORY_ICON_MAP_KEY = PROFILE_CATEGORY_ICON_MAP_KEY;
   const SUPER_TAB_ORDER_KEY = PROFILE_SUPER_TAB_ORDER_KEY;
   const SUPER_ICON_PRESETS = [
-    { emoji: "🎮", tags: ["game", "gaming", "spiele"] }, { emoji: "🕹️", tags: ["arcade", "game", "retro"] },
-    { emoji: "👾", tags: ["pixel", "game", "space"] }, { emoji: "🎯", tags: ["target", "goal", "focus"] },
-    { emoji: "🏆", tags: ["trophy", "winner", "cup"] }, { emoji: "⚽", tags: ["football", "soccer", "sport"] },
-    { emoji: "🏀", tags: ["basketball", "sport"] }, { emoji: "🏈", tags: ["football", "sport", "nfl"] },
-    { emoji: "⚾", tags: ["baseball", "sport"] }, { emoji: "🎾", tags: ["tennis", "sport"] },
-    { emoji: "🏐", tags: ["volleyball", "sport"] }, { emoji: "🏓", tags: ["pingpong", "sport"] },
-    { emoji: "🏸", tags: ["badminton", "sport"] }, { emoji: "🥊", tags: ["boxing", "fight", "sport"] },
-    { emoji: "🏎️", tags: ["race", "car", "motorsport"] }, { emoji: "🚴", tags: ["bike", "cycling", "sport"] },
-    { emoji: "🎵", tags: ["music", "audio", "song"] }, { emoji: "🎶", tags: ["music", "song"] },
-    { emoji: "🎧", tags: ["headphones", "audio", "sound"] }, { emoji: "🎤", tags: ["microphone", "voice", "podcast"] },
-    { emoji: "🎬", tags: ["movie", "film", "video"] }, { emoji: "📺", tags: ["tv", "stream", "video"] },
-    { emoji: "🎞️", tags: ["film", "movie", "media"] }, { emoji: "📸", tags: ["camera", "photo", "image"] },
-    { emoji: "📷", tags: ["photo", "camera"] }, { emoji: "🎨", tags: ["art", "design", "creative"] },
-    { emoji: "🖌️", tags: ["paint", "art", "brush"] }, { emoji: "🧠", tags: ["brain", "learning", "ai"] },
-    { emoji: "📚", tags: ["books", "lernen", "study"] }, { emoji: "📖", tags: ["book", "reading"] },
-    { emoji: "📝", tags: ["notes", "text", "write"] }, { emoji: "✏️", tags: ["edit", "pencil", "write"] },
-    { emoji: "📌", tags: ["pin", "important", "mark"] }, { emoji: "📎", tags: ["clip", "attach", "file"] },
-    { emoji: "📁", tags: ["folder", "files", "directory"] }, { emoji: "📂", tags: ["folder", "open", "files"] },
-    { emoji: "🗂️", tags: ["archive", "folders", "docs"] }, { emoji: "🗃️", tags: ["storage", "box", "archive"] },
-    { emoji: "💼", tags: ["work", "business", "office"] }, { emoji: "🧳", tags: ["travel", "trip", "luggage"] },
-    { emoji: "🛠️", tags: ["tools", "settings", "repair"] }, { emoji: "🔧", tags: ["wrench", "tool"] },
-    { emoji: "🪛", tags: ["screwdriver", "tool"] }, { emoji: "🧰", tags: ["toolbox", "tools"] },
-    { emoji: "⚙️", tags: ["settings", "config", "gear"] }, { emoji: "🔩", tags: ["bolt", "tool", "hardware"] },
-    { emoji: "💻", tags: ["laptop", "computer", "pc"] }, { emoji: "🖥️", tags: ["desktop", "monitor", "pc"] },
-    { emoji: "🖨️", tags: ["printer", "office"] }, { emoji: "⌨️", tags: ["keyboard", "input"] },
-    { emoji: "🖱️", tags: ["mouse", "input"] }, { emoji: "📱", tags: ["phone", "mobile", "smartphone"] },
-    { emoji: "📲", tags: ["mobile", "chat", "message"] }, { emoji: "🔋", tags: ["battery", "power"] },
-    { emoji: "🌐", tags: ["web", "internet", "browser"] }, { emoji: "🔒", tags: ["lock", "security", "safe"] },
-    { emoji: "🔓", tags: ["unlock", "open", "security"] }, { emoji: "🔑", tags: ["key", "security", "access"] },
-    { emoji: "🔐", tags: ["security", "password", "lock"] }, { emoji: "🔍", tags: ["search", "find", "zoom"] },
-    { emoji: "🔎", tags: ["search", "find"] }, { emoji: "🧪", tags: ["lab", "test", "experiment"] },
-    { emoji: "🧬", tags: ["science", "dna", "lab"] }, { emoji: "📊", tags: ["chart", "stats", "analytics"] },
-    { emoji: "📈", tags: ["growth", "chart", "business"] }, { emoji: "📉", tags: ["down", "chart"] },
-    { emoji: "🧮", tags: ["calc", "calculator", "math"] }, { emoji: "💰", tags: ["money", "finance", "cash"] },
-    { emoji: "💳", tags: ["card", "payment", "bank"] }, { emoji: "🏦", tags: ["bank", "finance"] },
-    { emoji: "🧾", tags: ["receipt", "invoice", "finance"] }, { emoji: "🛒", tags: ["shop", "cart", "store"] },
-    { emoji: "🛍️", tags: ["shopping", "store", "buy"] }, { emoji: "📦", tags: ["package", "shipping", "box"] },
-    { emoji: "🚚", tags: ["delivery", "shipping", "logistics"] }, { emoji: "📬", tags: ["mailbox", "mail"] },
-    { emoji: "✉️", tags: ["mail", "email", "message"] }, { emoji: "📧", tags: ["email", "mail"] },
-    { emoji: "📨", tags: ["incoming", "mail"] }, { emoji: "📩", tags: ["outgoing", "mail"] },
-    { emoji: "📰", tags: ["news", "paper", "press"] }, { emoji: "🗞️", tags: ["news", "newspaper"] },
-    { emoji: "🗓️", tags: ["calendar", "date", "plan"] }, { emoji: "📅", tags: ["calendar", "schedule"] },
-    { emoji: "⏰", tags: ["alarm", "time", "clock"] }, { emoji: "⏱️", tags: ["timer", "time"] },
-    { emoji: "🕒", tags: ["clock", "time"] }, { emoji: "✅", tags: ["check", "done", "ok"] },
-    { emoji: "☑️", tags: ["checkbox", "done"] }, { emoji: "⭐", tags: ["star", "favorite", "fav"] },
-    { emoji: "🌟", tags: ["star", "highlight"] }, { emoji: "🔥", tags: ["fire", "hot", "trend"] },
-    { emoji: "💡", tags: ["idea", "light", "brainstorm"] }, { emoji: "🚀", tags: ["rocket", "launch", "start"] },
-    { emoji: "🛰️", tags: ["satellite", "space"] }, { emoji: "🧭", tags: ["compass", "navigation"] },
-    { emoji: "🗺️", tags: ["map", "travel", "navigation"] }, { emoji: "☁️", tags: ["cloud", "storage", "sync"] },
-    { emoji: "🌙", tags: ["moon", "night", "dark"] }, { emoji: "☀️", tags: ["sun", "light", "day"] },
-    { emoji: "🌈", tags: ["rainbow", "color"] }, { emoji: "🌊", tags: ["water", "wave", "ocean"] },
-    { emoji: "🌳", tags: ["tree", "nature", "green"] }, { emoji: "🍀", tags: ["luck", "nature"] },
-    { emoji: "🍎", tags: ["apple", "food", "fruit"] }, { emoji: "🍕", tags: ["pizza", "food"] },
-    { emoji: "☕", tags: ["coffee", "drink"] }, { emoji: "🍺", tags: ["beer", "drink"] },
-    { emoji: "🏠", tags: ["home", "house"] }, { emoji: "🏢", tags: ["office", "building", "work"] },
-    { emoji: "🏬", tags: ["mall", "store", "building"] }, { emoji: "🚗", tags: ["car", "auto", "vehicle"] },
-    { emoji: "🚌", tags: ["bus", "transport"] }, { emoji: "🚆", tags: ["train", "transport"] },
-    { emoji: "✈️", tags: ["flight", "plane", "travel"] }, { emoji: "🚢", tags: ["ship", "travel"] },
-    { emoji: "🎁", tags: ["gift", "present"] }, { emoji: "🧸", tags: ["toy", "cute"] },
-    { emoji: "🐶", tags: ["dog", "pet", "animal"] }, { emoji: "🐱", tags: ["cat", "pet", "animal"] },
-    { emoji: "🐼", tags: ["panda", "animal"] }, { emoji: "🦊", tags: ["fox", "animal"] },
-    { emoji: "🐵", tags: ["monkey", "animal"] }, { emoji: "🐧", tags: ["penguin", "animal"] },
-    { emoji: "🐬", tags: ["dolphin", "animal"] }, { emoji: "🦄", tags: ["unicorn", "magic"] },
-    { emoji: "🤖", tags: ["robot", "ai", "bot"] }, { emoji: "🧩", tags: ["puzzle", "game", "logic"] },
-    { emoji: "🔮", tags: ["magic", "future"] }, { emoji: "🕶️", tags: ["glasses", "style"] },
-    { emoji: "🎩", tags: ["hat", "style", "magic"] }, { emoji: "💬", tags: ["chat", "message", "comment"] },
-    { emoji: "💭", tags: ["thought", "chat", "note"] }, { emoji: "📞", tags: ["phone", "call"] },
-    { emoji: "📡", tags: ["signal", "network", "antenna"] }, { emoji: "📶", tags: ["wifi", "network", "signal"] },
-    { emoji: "🧵", tags: ["thread", "textile"] }, { emoji: "🪄", tags: ["magic", "wand"] },
-    { emoji: "🪙", tags: ["coin", "money"] }, { emoji: "🪐", tags: ["planet", "space"] },
-    { emoji: "🧱", tags: ["brick", "build"] }, { emoji: "📋", tags: ["clipboard", "copy", "paste"] },
-    { emoji: "📄", tags: ["document", "file", "text"] }, { emoji: "🗒️", tags: ["notepad", "notes"] },
-    { emoji: "📒", tags: ["notebook", "notes"] }, { emoji: "📓", tags: ["notebook", "notes"] },
-    { emoji: "📔", tags: ["book", "notes"] }, { emoji: "📕", tags: ["book", "red"] },
-    { emoji: "📗", tags: ["book", "green"] }, { emoji: "📘", tags: ["book", "blue"] },
-    { emoji: "📙", tags: ["book", "orange"] }, { emoji: "🧷", tags: ["pin", "attach"] },
-    { emoji: "📍", tags: ["pin", "location", "map"] }, { emoji: "🧿", tags: ["eye", "symbol"] },
-    { emoji: "🔔", tags: ["notification", "bell", "alert"] }, { emoji: "📣", tags: ["announce", "megaphone"] },
-    { emoji: "📢", tags: ["announce", "speaker"] }, { emoji: "🔊", tags: ["volume", "sound", "audio"] },
-    { emoji: "🔇", tags: ["mute", "audio"] }, { emoji: "🧯", tags: ["safety", "fire"] },
-    { emoji: "🩺", tags: ["health", "medical"] }, { emoji: "💊", tags: ["health", "medical"] },
-    { emoji: "⚕️", tags: ["medical", "health"] }, { emoji: "🏥", tags: ["hospital", "health"] },
-    { emoji: "🎓", tags: ["education", "school", "study"] }, { emoji: "🏫", tags: ["school", "education"] },
-    { emoji: "🧑‍💻", tags: ["developer", "code", "programming"] }, { emoji: "👨‍💻", tags: ["developer", "code"] },
-    { emoji: "👩‍💻", tags: ["developer", "code"] }, { emoji: "🔗", tags: ["link", "chain", "connect"] },
-    { emoji: "📤", tags: ["upload", "export", "send"] }, { emoji: "📥", tags: ["download", "import", "receive"] },
-    { emoji: "🗑️", tags: ["delete", "trash", "remove"] }, { emoji: "🧹", tags: ["clean", "clear"] },
-    { emoji: "🧼", tags: ["clean", "wash"] }, { emoji: "⚡", tags: ["power", "energy", "fast"] },
-    { emoji: "🔌", tags: ["power", "plug"] }, { emoji: "🪫", tags: ["battery", "low"] },
-    { emoji: "🛡️", tags: ["shield", "security", "protection"] }, { emoji: "🧲", tags: ["magnet", "tool", "physics"] },
-    { emoji: "🪜", tags: ["ladder", "build", "work"] }, { emoji: "🪵", tags: ["wood", "material", "build"] },
-    { emoji: "🔬", tags: ["microscope", "science", "lab"] }, { emoji: "🔭", tags: ["telescope", "space", "science"] },
-    { emoji: "🧫", tags: ["petri", "lab", "biology"] }, { emoji: "🧹", tags: ["sweep", "clean", "maintenance"] },
-    { emoji: "🪣", tags: ["bucket", "clean", "tools"] }, { emoji: "🧨", tags: ["dynamite", "explosive", "fun"] },
-    { emoji: "🕯️", tags: ["candle", "light", "calm"] }, { emoji: "🪔", tags: ["lamp", "light", "diya"] },
-    { emoji: "🧭", tags: ["navigate", "compass", "travel"] }, { emoji: "🏁", tags: ["finish", "race", "flag"] },
-    { emoji: "🚦", tags: ["traffic", "lights", "road"] }, { emoji: "🛣️", tags: ["road", "travel", "route"] },
-    { emoji: "🧠", tags: ["focus", "mind", "smart"] }, { emoji: "🫶", tags: ["heart", "care", "support"] },
-    { emoji: "❤️", tags: ["love", "heart", "favorite"] }, { emoji: "💜", tags: ["heart", "purple"] },
-    { emoji: "💙", tags: ["heart", "blue"] }, { emoji: "💚", tags: ["heart", "green"] },
-    { emoji: "🖤", tags: ["heart", "black"] }, { emoji: "💯", tags: ["hundred", "score", "success"] },
-    { emoji: "❗", tags: ["warning", "important", "alert"] }, { emoji: "❓", tags: ["question", "help"] },
-    { emoji: "‼️", tags: ["important", "alert", "warning"] }, { emoji: "📛", tags: ["name", "label", "tag"] },
-    { emoji: "🏷️", tags: ["label", "tag", "marker"] }, { emoji: "🔖", tags: ["bookmark", "save", "mark"] },
-    { emoji: "🪪", tags: ["id", "identity", "card"] }, { emoji: "📇", tags: ["index", "contacts", "cards"] },
-    { emoji: "📑", tags: ["bookmark", "document", "tabs"] }, { emoji: "📜", tags: ["scroll", "document", "history"] },
-    { emoji: "🧾", tags: ["bill", "invoice", "receipt"] }, { emoji: "📐", tags: ["ruler", "measure", "design"] },
-    { emoji: "📏", tags: ["measure", "length", "ruler"] }, { emoji: "🧪", tags: ["experiment", "test", "research"] },
-    { emoji: "🧑‍🔬", tags: ["scientist", "research", "lab"] }, { emoji: "🧑‍🏫", tags: ["teacher", "education", "school"] },
-    { emoji: "🧑‍⚖️", tags: ["law", "justice", "legal"] }, { emoji: "⚖️", tags: ["legal", "balance", "law"] },
-    { emoji: "🧑‍🚒", tags: ["firefighter", "rescue", "safety"] }, { emoji: "🧑‍🔧", tags: ["mechanic", "repair", "tools"] },
-    { emoji: "🧑‍🍳", tags: ["cook", "kitchen", "food"] }, { emoji: "🍽️", tags: ["meal", "food", "dining"] },
-    { emoji: "🥗", tags: ["food", "salad", "healthy"] }, { emoji: "🍔", tags: ["burger", "food", "fastfood"] },
-    { emoji: "🌮", tags: ["taco", "food"] }, { emoji: "🍜", tags: ["ramen", "food", "noodles"] },
-    { emoji: "🍣", tags: ["sushi", "food"] }, { emoji: "🍰", tags: ["cake", "dessert", "sweet"] },
-    { emoji: "🍩", tags: ["donut", "dessert", "sweet"] }, { emoji: "🍼", tags: ["baby", "bottle", "care"] },
-    { emoji: "🧃", tags: ["juice", "drink"] }, { emoji: "🥤", tags: ["drink", "soda"] },
-    { emoji: "🫗", tags: ["pour", "drink", "liquid"] }, { emoji: "🏋️", tags: ["gym", "fitness", "sport"] },
-    { emoji: "🧘", tags: ["yoga", "health", "calm"] }, { emoji: "🏃", tags: ["run", "fitness", "sport"] },
-    { emoji: "🚶", tags: ["walk", "fitness", "movement"] }, { emoji: "🛌", tags: ["sleep", "rest", "bed"] },
-    { emoji: "🛏️", tags: ["bed", "sleep", "home"] }, { emoji: "🪑", tags: ["chair", "furniture", "home"] },
-    { emoji: "🚪", tags: ["door", "entry", "home"] }, { emoji: "🪟", tags: ["window", "home"] },
-    { emoji: "🧯", tags: ["extinguisher", "safety", "fire"] }, { emoji: "🪖", tags: ["helmet", "safety", "military"] },
-    { emoji: "📯", tags: ["horn", "announce", "audio"] }, { emoji: "🎺", tags: ["trumpet", "music", "instrument"] },
-    { emoji: "🎸", tags: ["guitar", "music", "instrument"] }, { emoji: "🎹", tags: ["piano", "music", "instrument"] },
-    { emoji: "🥁", tags: ["drums", "music", "instrument"] }, { emoji: "🎻", tags: ["violin", "music", "instrument"] },
-    { emoji: "📼", tags: ["video", "tape", "media"] }, { emoji: "💿", tags: ["disk", "media", "cd"] },
-    { emoji: "📀", tags: ["dvd", "media", "disk"] }, { emoji: "🧿", tags: ["symbol", "amulet", "eye"] },
-    { emoji: "📟", tags: ["pager", "device", "retro"] }, { emoji: "☎️", tags: ["phone", "call", "contact"] },
-    { emoji: "📠", tags: ["fax", "office", "communication"] }, { emoji: "📳", tags: ["vibrate", "phone", "mobile"] },
-    { emoji: "📴", tags: ["offline", "phone", "disable"] }, { emoji: "🛜", tags: ["wifi", "network", "internet"] },
-    { emoji: "🧑‍💼", tags: ["office", "business", "work"] }, { emoji: "👥", tags: ["team", "users", "group"] },
-    { emoji: "👤", tags: ["user", "profile", "account"] }, { emoji: "🫂", tags: ["community", "team", "social"] },
-    { emoji: "💻", tags: ["coding", "dev", "workspace"] }, { emoji: "🗄️", tags: ["cabinet", "archive", "storage"] },
-    { emoji: "🗑", tags: ["trash", "delete", "remove"] }, { emoji: "🗳️", tags: ["inbox", "collect", "archive"] },
-    { emoji: "🧺", tags: ["basket", "organize", "sort"] }, { emoji: "🧴", tags: ["tools", "utility", "clean"] },
-    { emoji: "🧠", tags: ["knowledge", "ideas", "thinking"] }, { emoji: "📔", tags: ["journal", "notes", "log"] },
-    { emoji: "📒", tags: ["planner", "notes", "organizer"] }, { emoji: "📃", tags: ["page", "doc", "document"] },
-    { emoji: "📜", tags: ["policy", "terms", "document"] }, { emoji: "📂", tags: ["project", "files", "folder"] },
-    { emoji: "🧾", tags: ["billing", "receipt", "finance"] }, { emoji: "📌", tags: ["bookmark", "pin", "save"] },
-    { emoji: "🔁", tags: ["sync", "repeat", "refresh"] }, { emoji: "🔄", tags: ["reload", "sync", "update"] },
-    { emoji: "↗️", tags: ["open", "external", "link"] }, { emoji: "↘️", tags: ["download", "direction", "arrow"] },
-    { emoji: "⛓️", tags: ["link", "chain", "connection"] }, { emoji: "🧷", tags: ["attach", "pin", "fasten"] },
-    { emoji: "🪪", tags: ["credentials", "id", "identity"] }, { emoji: "👮", tags: ["security", "privacy", "safe"] },
-    { emoji: "🔏", tags: ["signed", "security", "lock"] }, { emoji: "🛂", tags: ["access", "control", "security"] },
-    { emoji: "🧯", tags: ["emergency", "safety", "protection"] }, { emoji: "🚨", tags: ["alert", "emergency", "warning"] },
-    { emoji: "⚠️", tags: ["warning", "alert", "attention"] }, { emoji: "🆘", tags: ["help", "emergency", "support"] },
-    { emoji: "🗨️", tags: ["chat", "message", "comment"] }, { emoji: "🗯️", tags: ["talk", "speech", "chat"] },
-    { emoji: "💼", tags: ["portfolio", "business", "career"] }, { emoji: "📉", tags: ["report", "analytics", "stats"] },
-    { emoji: "🧭", tags: ["navigation", "guide", "direction"] }, { emoji: "🧪", tags: ["qa", "testing", "check"] },
-    { emoji: "🧱", tags: ["blocks", "builder", "construction"] }, { emoji: "🧬", tags: ["research", "science", "lab"] },
-    { emoji: "🧑‍⚕️", tags: ["medical", "doctor", "health"] }, { emoji: "🧑‍🚀", tags: ["space", "astro", "explore"] },
-    { emoji: "🛰", tags: ["satellite", "signal", "space"] }, { emoji: "🛸", tags: ["ufo", "space", "fun"] },
-    { emoji: "📍", tags: ["location", "pin", "place"] }, { emoji: "🗺", tags: ["maps", "route", "travel"] },
-    { emoji: "🧳", tags: ["trip", "travel", "tour"] }, { emoji: "🏝️", tags: ["island", "travel", "vacation"] },
-    { emoji: "🏞️", tags: ["landscape", "nature", "travel"] }, { emoji: "🏕️", tags: ["camp", "outdoor", "nature"] },
-    { emoji: "🧊", tags: ["cold", "ice", "cool"] }, { emoji: "🌋", tags: ["volcano", "hot", "nature"] },
-    { emoji: "🌪️", tags: ["storm", "weather", "wind"] }, { emoji: "⛈️", tags: ["rain", "storm", "weather"] },
-    { emoji: "🌤️", tags: ["weather", "sun", "cloud"] }, { emoji: "🌥️", tags: ["weather", "cloud"] },
-    { emoji: "📶", tags: ["signal", "network", "reception"] }, { emoji: "🧾", tags: ["expenses", "receipt", "accounting"] },
-    { emoji: "💹", tags: ["stocks", "market", "trading"] }, { emoji: "🏷", tags: ["label", "price", "tag"] },
-    { emoji: "🪪", tags: ["auth", "identity", "account"] }, { emoji: "🧿", tags: ["protect", "symbol", "amulet"] },
-    { emoji: "🔰", tags: ["beginner", "badge", "new"] }, { emoji: "🆕", tags: ["new", "fresh", "latest"] },
-    { emoji: "🆗", tags: ["ok", "confirm", "good"] }, { emoji: "🆒", tags: ["cool", "highlight", "special"] }
+    { emoji: "ðŸŽ®", tags: ["game", "gaming", "spiele"] }, { emoji: "ðŸ•¹ï¸", tags: ["arcade", "game", "retro"] },
+    { emoji: "ðŸ‘¾", tags: ["pixel", "game", "space"] }, { emoji: "ðŸŽ¯", tags: ["target", "goal", "focus"] },
+    { emoji: "ðŸ†", tags: ["trophy", "winner", "cup"] }, { emoji: "âš½", tags: ["football", "soccer", "sport"] },
+    { emoji: "ðŸ€", tags: ["basketball", "sport"] }, { emoji: "ðŸˆ", tags: ["football", "sport", "nfl"] },
+    { emoji: "âš¾", tags: ["baseball", "sport"] }, { emoji: "ðŸŽ¾", tags: ["tennis", "sport"] },
+    { emoji: "ðŸ", tags: ["volleyball", "sport"] }, { emoji: "ðŸ“", tags: ["pingpong", "sport"] },
+    { emoji: "ðŸ¸", tags: ["badminton", "sport"] }, { emoji: "ðŸ¥Š", tags: ["boxing", "fight", "sport"] },
+    { emoji: "ðŸŽï¸", tags: ["race", "car", "motorsport"] }, { emoji: "ðŸš´", tags: ["bike", "cycling", "sport"] },
+    { emoji: "ðŸŽµ", tags: ["music", "audio", "song"] }, { emoji: "ðŸŽ¶", tags: ["music", "song"] },
+    { emoji: "ðŸŽ§", tags: ["headphones", "audio", "sound"] }, { emoji: "ðŸŽ¤", tags: ["microphone", "voice", "podcast"] },
+    { emoji: "ðŸŽ¬", tags: ["movie", "film", "video"] }, { emoji: "ðŸ“º", tags: ["tv", "stream", "video"] },
+    { emoji: "ðŸŽžï¸", tags: ["film", "movie", "media"] }, { emoji: "ðŸ“¸", tags: ["camera", "photo", "image"] },
+    { emoji: "ðŸ“·", tags: ["photo", "camera"] }, { emoji: "ðŸŽ¨", tags: ["art", "design", "creative"] },
+    { emoji: "ðŸ–Œï¸", tags: ["paint", "art", "brush"] }, { emoji: "ðŸ§ ", tags: ["brain", "learning", "ai"] },
+    { emoji: "ðŸ“š", tags: ["books", "lernen", "study"] }, { emoji: "ðŸ“–", tags: ["book", "reading"] },
+    { emoji: "ðŸ“", tags: ["notes", "text", "write"] }, { emoji: "âœï¸", tags: ["edit", "pencil", "write"] },
+    { emoji: "ðŸ“Œ", tags: ["pin", "important", "mark"] }, { emoji: "ðŸ“Ž", tags: ["clip", "attach", "file"] },
+    { emoji: "ðŸ“", tags: ["folder", "files", "directory"] }, { emoji: "ðŸ“‚", tags: ["folder", "open", "files"] },
+    { emoji: "ðŸ—‚ï¸", tags: ["archive", "folders", "docs"] }, { emoji: "ðŸ—ƒï¸", tags: ["storage", "box", "archive"] },
+    { emoji: "ðŸ’¼", tags: ["work", "business", "office"] }, { emoji: "ðŸ§³", tags: ["travel", "trip", "luggage"] },
+    { emoji: "ðŸ› ï¸", tags: ["tools", "settings", "repair"] }, { emoji: "ðŸ”§", tags: ["wrench", "tool"] },
+    { emoji: "ðŸª›", tags: ["screwdriver", "tool"] }, { emoji: "ðŸ§°", tags: ["toolbox", "tools"] },
+    { emoji: "âš™ï¸", tags: ["settings", "config", "gear"] }, { emoji: "ðŸ”©", tags: ["bolt", "tool", "hardware"] },
+    { emoji: "ðŸ’»", tags: ["laptop", "computer", "pc"] }, { emoji: "ðŸ–¥ï¸", tags: ["desktop", "monitor", "pc"] },
+    { emoji: "ðŸ–¨ï¸", tags: ["printer", "office"] }, { emoji: "âŒ¨ï¸", tags: ["keyboard", "input"] },
+    { emoji: "ðŸ–±ï¸", tags: ["mouse", "input"] }, { emoji: "ðŸ“±", tags: ["phone", "mobile", "smartphone"] },
+    { emoji: "ðŸ“²", tags: ["mobile", "chat", "message"] }, { emoji: "ðŸ”‹", tags: ["battery", "power"] },
+    { emoji: "ðŸŒ", tags: ["web", "internet", "browser"] }, { emoji: "ðŸ”’", tags: ["lock", "security", "safe"] },
+    { emoji: "ðŸ”“", tags: ["unlock", "open", "security"] }, { emoji: "ðŸ”‘", tags: ["key", "security", "access"] },
+    { emoji: "ðŸ”", tags: ["security", "password", "lock"] }, { emoji: "ðŸ”", tags: ["search", "find", "zoom"] },
+    { emoji: "ðŸ”Ž", tags: ["search", "find"] }, { emoji: "ðŸ§ª", tags: ["lab", "test", "experiment"] },
+    { emoji: "ðŸ§¬", tags: ["science", "dna", "lab"] }, { emoji: "ðŸ“Š", tags: ["chart", "stats", "analytics"] },
+    { emoji: "ðŸ“ˆ", tags: ["growth", "chart", "business"] }, { emoji: "ðŸ“‰", tags: ["down", "chart"] },
+    { emoji: "ðŸ§®", tags: ["calc", "calculator", "math"] }, { emoji: "ðŸ’°", tags: ["money", "finance", "cash"] },
+    { emoji: "ðŸ’³", tags: ["card", "payment", "bank"] }, { emoji: "ðŸ¦", tags: ["bank", "finance"] },
+    { emoji: "ðŸ§¾", tags: ["receipt", "invoice", "finance"] }, { emoji: "ðŸ›’", tags: ["shop", "cart", "store"] },
+    { emoji: "ðŸ›ï¸", tags: ["shopping", "store", "buy"] }, { emoji: "ðŸ“¦", tags: ["package", "shipping", "box"] },
+    { emoji: "ðŸšš", tags: ["delivery", "shipping", "logistics"] }, { emoji: "ðŸ“¬", tags: ["mailbox", "mail"] },
+    { emoji: "âœ‰ï¸", tags: ["mail", "email", "message"] }, { emoji: "ðŸ“§", tags: ["email", "mail"] },
+    { emoji: "ðŸ“¨", tags: ["incoming", "mail"] }, { emoji: "ðŸ“©", tags: ["outgoing", "mail"] },
+    { emoji: "ðŸ“°", tags: ["news", "paper", "press"] }, { emoji: "ðŸ—žï¸", tags: ["news", "newspaper"] },
+    { emoji: "ðŸ—“ï¸", tags: ["calendar", "date", "plan"] }, { emoji: "ðŸ“…", tags: ["calendar", "schedule"] },
+    { emoji: "â°", tags: ["alarm", "time", "clock"] }, { emoji: "â±ï¸", tags: ["timer", "time"] },
+    { emoji: "ðŸ•’", tags: ["clock", "time"] }, { emoji: "âœ…", tags: ["check", "done", "ok"] },
+    { emoji: "â˜‘ï¸", tags: ["checkbox", "done"] }, { emoji: "â­", tags: ["star", "favorite", "fav"] },
+    { emoji: "ðŸŒŸ", tags: ["star", "highlight"] }, { emoji: "ðŸ”¥", tags: ["fire", "hot", "trend"] },
+    { emoji: "ðŸ’¡", tags: ["idea", "light", "brainstorm"] }, { emoji: "ðŸš€", tags: ["rocket", "launch", "start"] },
+    { emoji: "ðŸ›°ï¸", tags: ["satellite", "space"] }, { emoji: "ðŸ§­", tags: ["compass", "navigation"] },
+    { emoji: "ðŸ—ºï¸", tags: ["map", "travel", "navigation"] }, { emoji: "â˜ï¸", tags: ["cloud", "storage", "sync"] },
+    { emoji: "ðŸŒ™", tags: ["moon", "night", "dark"] }, { emoji: "â˜€ï¸", tags: ["sun", "light", "day"] },
+    { emoji: "ðŸŒˆ", tags: ["rainbow", "color"] }, { emoji: "ðŸŒŠ", tags: ["water", "wave", "ocean"] },
+    { emoji: "ðŸŒ³", tags: ["tree", "nature", "green"] }, { emoji: "ðŸ€", tags: ["luck", "nature"] },
+    { emoji: "ðŸŽ", tags: ["apple", "food", "fruit"] }, { emoji: "ðŸ•", tags: ["pizza", "food"] },
+    { emoji: "â˜•", tags: ["coffee", "drink"] }, { emoji: "ðŸº", tags: ["beer", "drink"] },
+    { emoji: "ðŸ ", tags: ["home", "house"] }, { emoji: "ðŸ¢", tags: ["office", "building", "work"] },
+    { emoji: "ðŸ¬", tags: ["mall", "store", "building"] }, { emoji: "ðŸš—", tags: ["car", "auto", "vehicle"] },
+    { emoji: "ðŸšŒ", tags: ["bus", "transport"] }, { emoji: "ðŸš†", tags: ["train", "transport"] },
+    { emoji: "âœˆï¸", tags: ["flight", "plane", "travel"] }, { emoji: "ðŸš¢", tags: ["ship", "travel"] },
+    { emoji: "ðŸŽ", tags: ["gift", "present"] }, { emoji: "ðŸ§¸", tags: ["toy", "cute"] },
+    { emoji: "ðŸ¶", tags: ["dog", "pet", "animal"] }, { emoji: "ðŸ±", tags: ["cat", "pet", "animal"] },
+    { emoji: "ðŸ¼", tags: ["panda", "animal"] }, { emoji: "ðŸ¦Š", tags: ["fox", "animal"] },
+    { emoji: "ðŸµ", tags: ["monkey", "animal"] }, { emoji: "ðŸ§", tags: ["penguin", "animal"] },
+    { emoji: "ðŸ¬", tags: ["dolphin", "animal"] }, { emoji: "ðŸ¦„", tags: ["unicorn", "magic"] },
+    { emoji: "ðŸ¤–", tags: ["robot", "ai", "bot"] }, { emoji: "ðŸ§©", tags: ["puzzle", "game", "logic"] },
+    { emoji: "ðŸ”®", tags: ["magic", "future"] }, { emoji: "ðŸ•¶ï¸", tags: ["glasses", "style"] },
+    { emoji: "ðŸŽ©", tags: ["hat", "style", "magic"] }, { emoji: "ðŸ’¬", tags: ["chat", "message", "comment"] },
+    { emoji: "ðŸ’­", tags: ["thought", "chat", "note"] }, { emoji: "ðŸ“ž", tags: ["phone", "call"] },
+    { emoji: "ðŸ“¡", tags: ["signal", "network", "antenna"] }, { emoji: "ðŸ“¶", tags: ["wifi", "network", "signal"] },
+    { emoji: "ðŸ§µ", tags: ["thread", "textile"] }, { emoji: "ðŸª„", tags: ["magic", "wand"] },
+    { emoji: "ðŸª™", tags: ["coin", "money"] }, { emoji: "ðŸª", tags: ["planet", "space"] },
+    { emoji: "ðŸ§±", tags: ["brick", "build"] }, { emoji: "ðŸ“‹", tags: ["clipboard", "copy", "paste"] },
+    { emoji: "ðŸ“„", tags: ["document", "file", "text"] }, { emoji: "ðŸ—’ï¸", tags: ["notepad", "notes"] },
+    { emoji: "ðŸ“’", tags: ["notebook", "notes"] }, { emoji: "ðŸ““", tags: ["notebook", "notes"] },
+    { emoji: "ðŸ“”", tags: ["book", "notes"] }, { emoji: "ðŸ“•", tags: ["book", "red"] },
+    { emoji: "ðŸ“—", tags: ["book", "green"] }, { emoji: "ðŸ“˜", tags: ["book", "blue"] },
+    { emoji: "ðŸ“™", tags: ["book", "orange"] }, { emoji: "ðŸ§·", tags: ["pin", "attach"] },
+    { emoji: "ðŸ“", tags: ["pin", "location", "map"] }, { emoji: "ðŸ§¿", tags: ["eye", "symbol"] },
+    { emoji: "ðŸ””", tags: ["notification", "bell", "alert"] }, { emoji: "ðŸ“£", tags: ["announce", "megaphone"] },
+    { emoji: "ðŸ“¢", tags: ["announce", "speaker"] }, { emoji: "ðŸ”Š", tags: ["volume", "sound", "audio"] },
+    { emoji: "ðŸ”‡", tags: ["mute", "audio"] }, { emoji: "ðŸ§¯", tags: ["safety", "fire"] },
+    { emoji: "ðŸ©º", tags: ["health", "medical"] }, { emoji: "ðŸ’Š", tags: ["health", "medical"] },
+    { emoji: "âš•ï¸", tags: ["medical", "health"] }, { emoji: "ðŸ¥", tags: ["hospital", "health"] },
+    { emoji: "ðŸŽ“", tags: ["education", "school", "study"] }, { emoji: "ðŸ«", tags: ["school", "education"] },
+    { emoji: "ðŸ§‘â€ðŸ’»", tags: ["developer", "code", "programming"] }, { emoji: "ðŸ‘¨â€ðŸ’»", tags: ["developer", "code"] },
+    { emoji: "ðŸ‘©â€ðŸ’»", tags: ["developer", "code"] }, { emoji: "ðŸ”—", tags: ["link", "chain", "connect"] },
+    { emoji: "ðŸ“¤", tags: ["upload", "export", "send"] }, { emoji: "ðŸ“¥", tags: ["download", "import", "receive"] },
+    { emoji: "ðŸ—‘ï¸", tags: ["delete", "trash", "remove"] }, { emoji: "ðŸ§¹", tags: ["clean", "clear"] },
+    { emoji: "ðŸ§¼", tags: ["clean", "wash"] }, { emoji: "âš¡", tags: ["power", "energy", "fast"] },
+    { emoji: "ðŸ”Œ", tags: ["power", "plug"] }, { emoji: "ðŸª«", tags: ["battery", "low"] },
+    { emoji: "ðŸ›¡ï¸", tags: ["shield", "security", "protection"] }, { emoji: "ðŸ§²", tags: ["magnet", "tool", "physics"] },
+    { emoji: "ðŸªœ", tags: ["ladder", "build", "work"] }, { emoji: "ðŸªµ", tags: ["wood", "material", "build"] },
+    { emoji: "ðŸ”¬", tags: ["microscope", "science", "lab"] }, { emoji: "ðŸ”­", tags: ["telescope", "space", "science"] },
+    { emoji: "ðŸ§«", tags: ["petri", "lab", "biology"] }, { emoji: "ðŸ§¹", tags: ["sweep", "clean", "maintenance"] },
+    { emoji: "ðŸª£", tags: ["bucket", "clean", "tools"] }, { emoji: "ðŸ§¨", tags: ["dynamite", "explosive", "fun"] },
+    { emoji: "ðŸ•¯ï¸", tags: ["candle", "light", "calm"] }, { emoji: "ðŸª”", tags: ["lamp", "light", "diya"] },
+    { emoji: "ðŸ§­", tags: ["navigate", "compass", "travel"] }, { emoji: "ðŸ", tags: ["finish", "race", "flag"] },
+    { emoji: "ðŸš¦", tags: ["traffic", "lights", "road"] }, { emoji: "ðŸ›£ï¸", tags: ["road", "travel", "route"] },
+    { emoji: "ðŸ§ ", tags: ["focus", "mind", "smart"] }, { emoji: "ðŸ«¶", tags: ["heart", "care", "support"] },
+    { emoji: "â¤ï¸", tags: ["love", "heart", "favorite"] }, { emoji: "ðŸ’œ", tags: ["heart", "purple"] },
+    { emoji: "ðŸ’™", tags: ["heart", "blue"] }, { emoji: "ðŸ’š", tags: ["heart", "green"] },
+    { emoji: "ðŸ–¤", tags: ["heart", "black"] }, { emoji: "ðŸ’¯", tags: ["hundred", "score", "success"] },
+    { emoji: "â—", tags: ["warning", "important", "alert"] }, { emoji: "â“", tags: ["question", "help"] },
+    { emoji: "â€¼ï¸", tags: ["important", "alert", "warning"] }, { emoji: "ðŸ“›", tags: ["name", "label", "tag"] },
+    { emoji: "ðŸ·ï¸", tags: ["label", "tag", "marker"] }, { emoji: "ðŸ”–", tags: ["bookmark", "save", "mark"] },
+    { emoji: "ðŸªª", tags: ["id", "identity", "card"] }, { emoji: "ðŸ“‡", tags: ["index", "contacts", "cards"] },
+    { emoji: "ðŸ“‘", tags: ["bookmark", "document", "tabs"] }, { emoji: "ðŸ“œ", tags: ["scroll", "document", "history"] },
+    { emoji: "ðŸ§¾", tags: ["bill", "invoice", "receipt"] }, { emoji: "ðŸ“", tags: ["ruler", "measure", "design"] },
+    { emoji: "ðŸ“", tags: ["measure", "length", "ruler"] }, { emoji: "ðŸ§ª", tags: ["experiment", "test", "research"] },
+    { emoji: "ðŸ§‘â€ðŸ”¬", tags: ["scientist", "research", "lab"] }, { emoji: "ðŸ§‘â€ðŸ«", tags: ["teacher", "education", "school"] },
+    { emoji: "ðŸ§‘â€âš–ï¸", tags: ["law", "justice", "legal"] }, { emoji: "âš–ï¸", tags: ["legal", "balance", "law"] },
+    { emoji: "ðŸ§‘â€ðŸš’", tags: ["firefighter", "rescue", "safety"] }, { emoji: "ðŸ§‘â€ðŸ”§", tags: ["mechanic", "repair", "tools"] },
+    { emoji: "ðŸ§‘â€ðŸ³", tags: ["cook", "kitchen", "food"] }, { emoji: "ðŸ½ï¸", tags: ["meal", "food", "dining"] },
+    { emoji: "ðŸ¥—", tags: ["food", "salad", "healthy"] }, { emoji: "ðŸ”", tags: ["burger", "food", "fastfood"] },
+    { emoji: "ðŸŒ®", tags: ["taco", "food"] }, { emoji: "ðŸœ", tags: ["ramen", "food", "noodles"] },
+    { emoji: "ðŸ£", tags: ["sushi", "food"] }, { emoji: "ðŸ°", tags: ["cake", "dessert", "sweet"] },
+    { emoji: "ðŸ©", tags: ["donut", "dessert", "sweet"] }, { emoji: "ðŸ¼", tags: ["baby", "bottle", "care"] },
+    { emoji: "ðŸ§ƒ", tags: ["juice", "drink"] }, { emoji: "ðŸ¥¤", tags: ["drink", "soda"] },
+    { emoji: "ðŸ«—", tags: ["pour", "drink", "liquid"] }, { emoji: "ðŸ‹ï¸", tags: ["gym", "fitness", "sport"] },
+    { emoji: "ðŸ§˜", tags: ["yoga", "health", "calm"] }, { emoji: "ðŸƒ", tags: ["run", "fitness", "sport"] },
+    { emoji: "ðŸš¶", tags: ["walk", "fitness", "movement"] }, { emoji: "ðŸ›Œ", tags: ["sleep", "rest", "bed"] },
+    { emoji: "ðŸ›ï¸", tags: ["bed", "sleep", "home"] }, { emoji: "ðŸª‘", tags: ["chair", "furniture", "home"] },
+    { emoji: "ðŸšª", tags: ["door", "entry", "home"] }, { emoji: "ðŸªŸ", tags: ["window", "home"] },
+    { emoji: "ðŸ§¯", tags: ["extinguisher", "safety", "fire"] }, { emoji: "ðŸª–", tags: ["helmet", "safety", "military"] },
+    { emoji: "ðŸ“¯", tags: ["horn", "announce", "audio"] }, { emoji: "ðŸŽº", tags: ["trumpet", "music", "instrument"] },
+    { emoji: "ðŸŽ¸", tags: ["guitar", "music", "instrument"] }, { emoji: "ðŸŽ¹", tags: ["piano", "music", "instrument"] },
+    { emoji: "ðŸ¥", tags: ["drums", "music", "instrument"] }, { emoji: "ðŸŽ»", tags: ["violin", "music", "instrument"] },
+    { emoji: "ðŸ“¼", tags: ["video", "tape", "media"] }, { emoji: "ðŸ’¿", tags: ["disk", "media", "cd"] },
+    { emoji: "ðŸ“€", tags: ["dvd", "media", "disk"] }, { emoji: "ðŸ§¿", tags: ["symbol", "amulet", "eye"] },
+    { emoji: "ðŸ“Ÿ", tags: ["pager", "device", "retro"] }, { emoji: "â˜Žï¸", tags: ["phone", "call", "contact"] },
+    { emoji: "ðŸ“ ", tags: ["fax", "office", "communication"] }, { emoji: "ðŸ“³", tags: ["vibrate", "phone", "mobile"] },
+    { emoji: "ðŸ“´", tags: ["offline", "phone", "disable"] }, { emoji: "ðŸ›œ", tags: ["wifi", "network", "internet"] },
+    { emoji: "ðŸ§‘â€ðŸ’¼", tags: ["office", "business", "work"] }, { emoji: "ðŸ‘¥", tags: ["team", "users", "group"] },
+    { emoji: "ðŸ‘¤", tags: ["user", "profile", "account"] }, { emoji: "ðŸ«‚", tags: ["community", "team", "social"] },
+    { emoji: "ðŸ’»", tags: ["coding", "dev", "workspace"] }, { emoji: "ðŸ—„ï¸", tags: ["cabinet", "archive", "storage"] },
+    { emoji: "ðŸ—‘", tags: ["trash", "delete", "remove"] }, { emoji: "ðŸ—³ï¸", tags: ["inbox", "collect", "archive"] },
+    { emoji: "ðŸ§º", tags: ["basket", "organize", "sort"] }, { emoji: "ðŸ§´", tags: ["tools", "utility", "clean"] },
+    { emoji: "ðŸ§ ", tags: ["knowledge", "ideas", "thinking"] }, { emoji: "ðŸ“”", tags: ["journal", "notes", "log"] },
+    { emoji: "ðŸ“’", tags: ["planner", "notes", "organizer"] }, { emoji: "ðŸ“ƒ", tags: ["page", "doc", "document"] },
+    { emoji: "ðŸ“œ", tags: ["policy", "terms", "document"] }, { emoji: "ðŸ“‚", tags: ["project", "files", "folder"] },
+    { emoji: "ðŸ§¾", tags: ["billing", "receipt", "finance"] }, { emoji: "ðŸ“Œ", tags: ["bookmark", "pin", "save"] },
+    { emoji: "ðŸ”", tags: ["sync", "repeat", "refresh"] }, { emoji: "ðŸ”„", tags: ["reload", "sync", "update"] },
+    { emoji: "â†—ï¸", tags: ["open", "external", "link"] }, { emoji: "â†˜ï¸", tags: ["download", "direction", "arrow"] },
+    { emoji: "â›“ï¸", tags: ["link", "chain", "connection"] }, { emoji: "ðŸ§·", tags: ["attach", "pin", "fasten"] },
+    { emoji: "ðŸªª", tags: ["credentials", "id", "identity"] }, { emoji: "ðŸ‘®", tags: ["security", "privacy", "safe"] },
+    { emoji: "ðŸ”", tags: ["signed", "security", "lock"] }, { emoji: "ðŸ›‚", tags: ["access", "control", "security"] },
+    { emoji: "ðŸ§¯", tags: ["emergency", "safety", "protection"] }, { emoji: "ðŸš¨", tags: ["alert", "emergency", "warning"] },
+    { emoji: "âš ï¸", tags: ["warning", "alert", "attention"] }, { emoji: "ðŸ†˜", tags: ["help", "emergency", "support"] },
+    { emoji: "ðŸ—¨ï¸", tags: ["chat", "message", "comment"] }, { emoji: "ðŸ—¯ï¸", tags: ["talk", "speech", "chat"] },
+    { emoji: "ðŸ’¼", tags: ["portfolio", "business", "career"] }, { emoji: "ðŸ“‰", tags: ["report", "analytics", "stats"] },
+    { emoji: "ðŸ§­", tags: ["navigation", "guide", "direction"] }, { emoji: "ðŸ§ª", tags: ["qa", "testing", "check"] },
+    { emoji: "ðŸ§±", tags: ["blocks", "builder", "construction"] }, { emoji: "ðŸ§¬", tags: ["research", "science", "lab"] },
+    { emoji: "ðŸ§‘â€âš•ï¸", tags: ["medical", "doctor", "health"] }, { emoji: "ðŸ§‘â€ðŸš€", tags: ["space", "astro", "explore"] },
+    { emoji: "ðŸ›°", tags: ["satellite", "signal", "space"] }, { emoji: "ðŸ›¸", tags: ["ufo", "space", "fun"] },
+    { emoji: "ðŸ“", tags: ["location", "pin", "place"] }, { emoji: "ðŸ—º", tags: ["maps", "route", "travel"] },
+    { emoji: "ðŸ§³", tags: ["trip", "travel", "tour"] }, { emoji: "ðŸï¸", tags: ["island", "travel", "vacation"] },
+    { emoji: "ðŸžï¸", tags: ["landscape", "nature", "travel"] }, { emoji: "ðŸ•ï¸", tags: ["camp", "outdoor", "nature"] },
+    { emoji: "ðŸ§Š", tags: ["cold", "ice", "cool"] }, { emoji: "ðŸŒ‹", tags: ["volcano", "hot", "nature"] },
+    { emoji: "ðŸŒªï¸", tags: ["storm", "weather", "wind"] }, { emoji: "â›ˆï¸", tags: ["rain", "storm", "weather"] },
+    { emoji: "ðŸŒ¤ï¸", tags: ["weather", "sun", "cloud"] }, { emoji: "ðŸŒ¥ï¸", tags: ["weather", "cloud"] },
+    { emoji: "ðŸ“¶", tags: ["signal", "network", "reception"] }, { emoji: "ðŸ§¾", tags: ["expenses", "receipt", "accounting"] },
+    { emoji: "ðŸ’¹", tags: ["stocks", "market", "trading"] }, { emoji: "ðŸ·", tags: ["label", "price", "tag"] },
+    { emoji: "ðŸªª", tags: ["auth", "identity", "account"] }, { emoji: "ðŸ§¿", tags: ["protect", "symbol", "amulet"] },
+    { emoji: "ðŸ”°", tags: ["beginner", "badge", "new"] }, { emoji: "ðŸ†•", tags: ["new", "fresh", "latest"] },
+    { emoji: "ðŸ†—", tags: ["ok", "confirm", "good"] }, { emoji: "ðŸ†’", tags: ["cool", "highlight", "special"] }
   ];
   let activeSuper = SUPER_ALL;
   let catManageMode = "sub";
@@ -4835,7 +5103,7 @@ function openCatManage(){
       const sortedSupers = [...superCategories].sort((a, b) => a.localeCompare(b, "de"));
       sortedSupers.forEach((superName) => {
         const rowIcon = getSuperIcon(superName);
-        const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "🖼️" : "•");
+        const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "ðŸ–¼ï¸" : "â€¢");
         const row = document.createElement("div");
         row.className = "cat-item";
         row.innerHTML = `
@@ -4866,7 +5134,7 @@ function openCatManage(){
       .sort((a, b) => a.localeCompare(b, "de"));
     sorted.forEach((c) => {
       const rowIcon = getCategoryIcon(c);
-      const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "🖼️" : "•");
+      const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "ðŸ–¼ï¸" : "â€¢");
       const row = document.createElement("div");
       row.className = "cat-item";
       row.innerHTML = `
@@ -5002,7 +5270,7 @@ function openCatManage(){
 
   document.addEventListener("keydown", (e) => {
     if (window.__TAURI__?.core?.invoke) return;
-    if (capturingHotkey || capturingAppHotkey) return;
+    if (capturingHotkey || capturingQuickLauncherHotkey || capturingAppHotkey) return;
     if (e.defaultPrevented || e.repeat) return;
     if (isTypingTarget(e.target)) return;
     if (quickLauncherOpen) return;
@@ -6014,7 +6282,7 @@ function openCatManage(){
     }).join("");
     return `
       <div class="card-hotkey">
-        <span class="card-hotkey-icon" aria-hidden="true">⛓️‍💥</span>
+        <span class="card-hotkey-icon" aria-hidden="true">â›“ï¸â€ðŸ’¥</span>
         <span class="card-hotkey-keys">${keysHtml}</span>
       </div>
     `;
@@ -7401,9 +7669,13 @@ function openCatManage(){
   // initial
   applyCategoryRailState();
   renderCategories();
+  automationUi?.render();
   setIconNone();
   syncTypeUI();
   render();
   setTimeout(bootstrapVoiceControl, 900);
   document.addEventListener("pointerdown", bootstrapVoiceControl, { once: true });
 });
+
+
+

@@ -181,6 +181,13 @@
         </div>
       </div>
       <div class="field">
+        <div class="label" data-i18n="settings_quick_start_hotkey_label">Hotkey (Quick Start öffnen)</div>
+        <div class="row2">
+          <input class="input" id="quickLauncherHotkeyInput" placeholder="Drücke 'Aufnehmen'…" data-i18n-placeholder="settings_hotkey_placeholder" readonly />
+          <button class="btn-primary" id="quickLauncherHotkeyCapture" type="button" data-i18n="settings_capture">Aufnehmen</button>
+        </div>
+      </div>
+      <div class="field" id="settingsClipboardField">
         <div class="label" data-i18n="settings_clipboard_label">Clipboard Verlauf</div>
         <div class="clipboard-mode-toggle" id="clipboardModeToggle" role="group" aria-label="Clipboard Modus">
           <button class="clipboard-mode-btn" id="clipboardModeCountBtn" type="button" data-mode="count" aria-label="Nach Anzahl löschen">🔢</button>
@@ -323,8 +330,6 @@
     </div>
   </div>
 </div>
-
-
 
 
 
