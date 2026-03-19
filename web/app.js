@@ -1,4 +1,4 @@
-﻿console.log("app.js loaded âœ…");
+﻿console.log("app.js loaded");
 
 document.addEventListener("DOMContentLoaded", async () => {
 
@@ -724,10 +724,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return raw.replace(/\{(\w+)\}/g, (_, name) => String(vars[name] ?? ""));
   }
 
+  const externalHotkeyBuckets = Object.create(null);
+  window.__KC_SET_EXTERNAL_HOTKEYS = (source, entries) => {
+    const bucket = String(source || "default");
+    externalHotkeyBuckets[bucket] = Array.isArray(entries) ? entries : [];
+    void applyAppGlobalHotkeys(apps);
+  };
+
   const automationUi = window.AutomationSurface?.create({
     root: macroSurface,
     getLang: () => currentLang,
-    escapeHtml
+    escapeHtml,
+    setExternalHotkeys: (entries) => window.__KC_SET_EXTERNAL_HOTKEYS?.("automation", entries)
   });
 
   function applyI18nToDom(){
@@ -826,6 +834,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (activeSurface === SURFACE_MACRO){
       closeNotes();
       closeClipboard();
+      automationUi?.reset?.();
+      automationUi?.render?.();
+    } else {
+      document.body.classList.remove("macro-apps-files-view");
     }
   }
 
@@ -2953,9 +2965,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function getVoiceModeIconGlyph(value){
     const mode = normalizeVoiceMode(value);
-    if (mode === "__female__") return "ðŸ™â€â™€ï¸";
-    if (mode === "__male__") return "ðŸ™â€â™‚ï¸";
-    return "ðŸŽµ";
+    if (mode === "__female__") return "🙍‍♀️";
+    if (mode === "__male__") return "🙍‍♂️";
+    return "🎵";
   }
 
   function voiceModeLabelKey(value){
@@ -4224,13 +4236,41 @@ function openCatManage(){
   scanRefresh?.addEventListener("click", () => loadScanApps(true));
 
   // Storage
+  function mojibakeScore(value){
+    const text = String(value ?? "");
+    const hits = text.match(/[\u00C3\u00C2\u00F0\u00E2]/g);
+    return hits ? hits.length : 0;
+  }
+
+  function tryUtf8FromLatin1(value){
+    const cp1252Map = {
+      "\u20AC": 0x80, "\u201A": 0x82, "\u0192": 0x83, "\u201E": 0x84, "\u2026": 0x85, "\u2020": 0x86, "\u2021": 0x87, "\u02C6": 0x88,
+      "\u2030": 0x89, "\u0160": 0x8A, "\u2039": 0x8B, "\u0152": 0x8C, "\u017D": 0x8E, "\u2018": 0x91, "\u2019": 0x92, "\u201C": 0x93,
+      "\u201D": 0x94, "\u2022": 0x95, "\u2013": 0x96, "\u2014": 0x97, "\u02DC": 0x98, "\u2122": 0x99, "\u0161": 0x9A, "\u203A": 0x9B,
+      "\u0153": 0x9C, "\u017E": 0x9E, "\u0178": 0x9F
+    };
+    const text = String(value ?? "");
+    const bytes = new Uint8Array(Array.from(text).map((ch) => {
+      if (cp1252Map[ch] != null) return cp1252Map[ch];
+      const code = ch.charCodeAt(0);
+      if (code >= 0 && code <= 0xff) return code;
+      return 0x3f;
+    }));
+    return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+  }
+
   function repairMojibakeString(input){
-    const value = String(input ?? "");
-    if (!/[ÃƒÃ‚Ã°Ã¢]/.test(value)) return value;
+    let value = String(input ?? "");
+    if (!/[\u00C3\u00C2\u00F0\u00E2]/.test(value)) return value;
     try{
-      const bytes = new Uint8Array(Array.from(value).map((ch) => ch.charCodeAt(0) & 0xff));
-      const decoded = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-      return /ï¿½/.test(decoded) ? value : decoded;
+      for (let i = 0; i < 3; i += 1){
+        const decoded = tryUtf8FromLatin1(value);
+        if (!decoded || decoded === value) break;
+        if (decoded.includes("\uFFFD")) break;
+        if (mojibakeScore(decoded) >= mojibakeScore(value)) break;
+        value = decoded;
+      }
+      return value;
     }catch{
       return value;
     }
@@ -4386,7 +4426,7 @@ function openCatManage(){
     try{
       const tauriApi = window.__TAURI__;
       if (!tauriApi?.core?.invoke) return;
-      const shortcuts = (Array.isArray(list) ? list : [])
+      const appShortcuts = (Array.isArray(list) ? list : [])
         .map((app) => {
           const shortcut = String(app?.hotkey || "").trim();
           const rawLaunch = String(app?.launch || "").trim();
@@ -4396,7 +4436,18 @@ function openCatManage(){
           return { shortcut, launch };
         })
         .filter(Boolean);
-      await tauriApi.core.invoke("set_app_shortcuts", { shortcuts });
+      const externalShortcuts = Object.values(externalHotkeyBuckets)
+        .flat()
+        .map((item) => {
+          const shortcut = String(item?.shortcut || "").trim();
+          const launch = String(item?.launch || "").trim();
+          if (!shortcut || !launch) return null;
+          return { shortcut, launch };
+        })
+        .filter(Boolean);
+      await tauriApi.core.invoke("set_app_shortcuts", {
+        shortcuts: [...appShortcuts, ...externalShortcuts]
+      });
     }catch(e){
       console.error("set_app_shortcuts failed:", e);
     }
@@ -4604,7 +4655,11 @@ function openCatManage(){
     { emoji: "ðŸªª", tags: ["auth", "identity", "account"] }, { emoji: "ðŸ§¿", tags: ["protect", "symbol", "amulet"] },
     { emoji: "ðŸ”°", tags: ["beginner", "badge", "new"] }, { emoji: "ðŸ†•", tags: ["new", "fresh", "latest"] },
     { emoji: "ðŸ†—", tags: ["ok", "confirm", "good"] }, { emoji: "ðŸ†’", tags: ["cool", "highlight", "special"] }
-  ];
+  ].map((item) => ({
+    ...item,
+    emoji: repairMojibakeString(item.emoji),
+    tags: Array.isArray(item.tags) ? item.tags.map((tag) => repairMojibakeString(tag)) : []
+  }));
   let activeSuper = SUPER_ALL;
   let catManageMode = "sub";
 
@@ -5103,7 +5158,7 @@ function openCatManage(){
       const sortedSupers = [...superCategories].sort((a, b) => a.localeCompare(b, "de"));
       sortedSupers.forEach((superName) => {
         const rowIcon = getSuperIcon(superName);
-        const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "ðŸ–¼ï¸" : "â€¢");
+        const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "🖼️" : "•");
         const row = document.createElement("div");
         row.className = "cat-item";
         row.innerHTML = `
@@ -5134,7 +5189,7 @@ function openCatManage(){
       .sort((a, b) => a.localeCompare(b, "de"));
     sorted.forEach((c) => {
       const rowIcon = getCategoryIcon(c);
-      const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "ðŸ–¼ï¸" : "â€¢");
+      const rowIconText = rowIcon?.type === "emoji" ? rowIcon.value : (rowIcon?.type === "image" ? "🖼️" : "•");
       const row = document.createElement("div");
       row.className = "cat-item";
       row.innerHTML = `
@@ -6282,7 +6337,7 @@ function openCatManage(){
     }).join("");
     return `
       <div class="card-hotkey">
-        <span class="card-hotkey-icon" aria-hidden="true">â›“ï¸â€ðŸ’¥</span>
+        <span class="card-hotkey-icon" aria-hidden="true">&#x26D3;&#xFE0F;&#x200D;&#x1F4A5;</span>
         <span class="card-hotkey-keys">${keysHtml}</span>
       </div>
     `;
@@ -7676,6 +7731,5 @@ function openCatManage(){
   setTimeout(bootstrapVoiceControl, 900);
   document.addEventListener("pointerdown", bootstrapVoiceControl, { once: true });
 });
-
 
 

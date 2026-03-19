@@ -12,6 +12,8 @@ use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShort
 const APP_SHORTCUT_COOLDOWN_MS: u64 = 900;
 const GLOBAL_SHORTCUT_COOLDOWN_MS: u64 = 600;
 const QUICK_LAUNCH_SHORTCUT_COOLDOWN_MS: u64 = 350;
+const AUTOMATION_SHORTCUT_SCHEME: &str = "kc-automation://";
+const AUTOMATION_SHORTCUT_EVENT: &str = "kc://run-automation";
 #[cfg(target_os = "macos")]
 const QUICK_LAUNCH_SHORTCUT: &str = "Super+Space";
 #[cfg(not(target_os = "macos"))]
@@ -93,6 +95,28 @@ fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
     .shell()
     .open(url, None)
     .map_err(|e| e.to_string())
+}
+
+fn path_to_file_url(path: &Path) -> String {
+  let s = path.to_string_lossy().replace('\\', "/");
+  #[cfg(target_os = "windows")]
+  {
+    format!("file:///{}", s)
+  }
+  #[cfg(not(target_os = "windows"))]
+  {
+    format!("file://{}", s)
+  }
+}
+
+#[tauri::command]
+fn pick_filesystem_target(kind: String) -> Result<Option<String>, String> {
+  let picked = match kind.as_str() {
+    "file" => rfd::FileDialog::new().pick_file(),
+    "folder" => rfd::FileDialog::new().pick_folder(),
+    _ => return Err("unsupported picker kind".to_string()),
+  };
+  Ok(picked.map(|p| path_to_file_url(&p)))
 }
 
 #[tauri::command]
@@ -707,6 +731,7 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       open_external,
+      pick_filesystem_target,
       scan_desktop_apps,
       set_window_icon,
       load_profile_state,
@@ -853,6 +878,11 @@ fn set_app_shortcuts(
         }
         fired.insert(shortcut_key.clone(), now);
         drop(fired);
+        if let Some(automation_id) = launch_value.strip_prefix(AUTOMATION_SHORTCUT_SCHEME) {
+          reveal_main_window(app);
+          let _ = app.emit_to("main", AUTOMATION_SHORTCUT_EVENT, automation_id.to_string());
+          return;
+        }
         let _ = app.shell().open(launch_value.clone(), None);
       })
       .map_err(|e| e.to_string())?;
