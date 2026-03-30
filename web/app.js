@@ -1401,9 +1401,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const appType = document.getElementById("appType");
   const appTypeToggleBtn = document.getElementById("appTypeToggleBtn");
   const appTypeToggleLabel = document.getElementById("appTypeToggleLabel");
-  const appHotkeyInput = document.getElementById("appHotkey");
-  const appHotkeyCapture = document.getElementById("appHotkeyCapture");
-  const appHotkeyClear = document.getElementById("appHotkeyClear");
   const appCategory = document.getElementById("appCategory");
   const appCategoryButton = document.getElementById("appCategoryButton");
   const appCategoryLabel = document.getElementById("appCategoryLabel");
@@ -1551,12 +1548,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     setText("#launchHelp", "modal_url_example");
     setText("#modalOverlay [data-i18n='modal_found_apps']", "modal_found_apps");
     setText("#modalOverlay [data-i18n='modal_scan_help']", "modal_scan_help");
-    setText("#modalOverlay [data-i18n='modal_app_hotkey_label']", "modal_app_hotkey_label");
-    setPh("#appHotkey", "modal_app_hotkey_placeholder");
-    setAttr("#appHotkeyClear", "aria-label", "modal_app_hotkey_clear");
-    setAttr("#appHotkeyClear", "data-tip", "modal_app_hotkey_clear");
-    if (!capturingAppHotkey) setText("#appHotkeyCapture", "settings_capture");
-
     setText("#catManageOverlay [data-i18n='cat_new_label']", "cat_new_label");
     setPh("#catManageInput", "cat_new_placeholder");
     setText("#catManageOverlay [data-i18n='cat_manage_help']", "cat_manage_help");
@@ -1911,7 +1902,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     overlay.classList.add("show");
     overlay.setAttribute("aria-hidden", "false");
-    stopAppHotkeyCapture();
     closeAppCategoryMenu();
     closeScanSelectMenu();
     syncAppCategoryUi();
@@ -3112,7 +3102,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   function closeModal() {
     overlay.classList.remove("show");
     overlay.setAttribute("aria-hidden", "true");
-    stopAppHotkeyCapture();
     closeAppCategoryMenu();
     closeScanSelectMenu();
     scanPrefillValue = "";
@@ -3569,7 +3558,6 @@ function openCatManage(){
 
   function startHotkeyCapture(){
     stopQuickLauncherHotkeyCapture();
-    stopAppHotkeyCapture();
     capturingHotkey = true;
     if (hotkeyCapture) hotkeyCapture.textContent = t("settings_capture_listen");
     document.addEventListener("keydown", onHotkeyKeydown, true);
@@ -3601,9 +3589,25 @@ function openCatManage(){
       NumpadEnter: "NumpadEnter"
     };
 
-    let key = numpadByCode[e.code] || e.key;
+    const codeKeyMap = {
+      Backquote: "Backquote",
+      Minus: "Minus",
+      Equal: "Equal",
+      BracketLeft: "BracketLeft",
+      BracketRight: "BracketRight",
+      Backslash: "Backslash",
+      IntlBackslash: "Backslash",
+      Semicolon: "Semicolon",
+      Quote: "Quote",
+      Comma: "Comma",
+      Period: "Period",
+      Slash: "Slash"
+    };
+
+    let key = numpadByCode[e.code] || (codeKeyMap[e.code] || e.key);
+    if (key === "#") key = "Backslash";
     if (key === " ") key = "Space";
-    if (key.length === 1) key = key.toUpperCase();
+    if (typeof key === "string" && /^[a-z0-9]$/i.test(key)) key = key.toUpperCase();
     if (["Control", "Alt", "Shift", "Meta"].includes(key)) return "";
     parts.push(key);
     return parts.join("+");
@@ -3659,7 +3663,6 @@ function openCatManage(){
 
   function startQuickLauncherHotkeyCapture(){
     stopHotkeyCapture();
-    stopAppHotkeyCapture();
     capturingQuickLauncherHotkey = true;
     if (quickLauncherHotkeyCapture) quickLauncherHotkeyCapture.textContent = t("settings_capture_listen");
     document.addEventListener("keydown", onQuickLauncherHotkeyKeydown, true);
@@ -3685,42 +3688,6 @@ function openCatManage(){
     stopQuickLauncherHotkeyCapture();
   }
 
-  let capturingAppHotkey = false;
-  function stopAppHotkeyCapture(){
-    if (!capturingAppHotkey) return;
-    capturingAppHotkey = false;
-    document.removeEventListener("keydown", onAppHotkeyKeydown, true);
-    if (appHotkeyCapture) appHotkeyCapture.textContent = t("settings_capture");
-  }
-
-  function startAppHotkeyCapture(){
-    stopHotkeyCapture();
-    stopQuickLauncherHotkeyCapture();
-    capturingAppHotkey = true;
-    if (appHotkeyCapture) appHotkeyCapture.textContent = t("settings_capture_listen");
-    document.addEventListener("keydown", onAppHotkeyKeydown, true);
-  }
-
-  function onAppHotkeyKeydown(e){
-    if (!capturingAppHotkey) return;
-    e.preventDefault();
-    e.stopPropagation();
-    e.stopImmediatePropagation();
-    if (e.key === "Escape"){
-      stopAppHotkeyCapture();
-      return;
-    }
-    if (e.key === "Backspace" || e.key === "Delete"){
-      if (appHotkeyInput) appHotkeyInput.value = "";
-      stopAppHotkeyCapture();
-      return;
-    }
-    const combo = normalizeKey(e);
-    if (!combo) return;
-    if (appHotkeyInput) appHotkeyInput.value = combo;
-    stopAppHotkeyCapture();
-  }
-
   hotkeyCapture?.addEventListener("click", () => {
     if (capturingHotkey) {
       stopHotkeyCapture();
@@ -3743,18 +3710,6 @@ function openCatManage(){
       positionDropdownMenu(scanSelectMenu, scanSelectButton);
     }
   });
-  appHotkeyCapture?.addEventListener("click", () => {
-    if (capturingAppHotkey){
-      stopAppHotkeyCapture();
-    } else {
-      startAppHotkeyCapture();
-    }
-  });
-  appHotkeyClear?.addEventListener("click", () => {
-    stopAppHotkeyCapture();
-    if (appHotkeyInput) appHotkeyInput.value = "";
-  });
-
   function onVoiceActivationChange(){
     const enabled = Boolean(voiceActivationToggle?.checked);
     if (voiceMicWrap) voiceMicWrap.classList.toggle("hidden", !enabled);
@@ -4060,7 +4015,6 @@ function openCatManage(){
 
     document.getElementById("appName").value = app.name || "";
     document.getElementById("appUrl").value = app.launch || "";
-    if (appHotkeyInput) appHotkeyInput.value = String(app.hotkey || "");
     if (app.type === "desktop"){
       scanPrefillValue = String(app.launch || "");
       scanPrefillLabel = String(app.name || app.launch || "");
@@ -4426,16 +4380,6 @@ function openCatManage(){
     try{
       const tauriApi = window.__TAURI__;
       if (!tauriApi?.core?.invoke) return;
-      const appShortcuts = (Array.isArray(list) ? list : [])
-        .map((app) => {
-          const shortcut = String(app?.hotkey || "").trim();
-          const rawLaunch = String(app?.launch || "").trim();
-          if (!shortcut || !rawLaunch) return null;
-          const launch = app?.type === "web" ? normalizeWebUrl(rawLaunch) : rawLaunch;
-          if (!launch) return null;
-          return { shortcut, launch };
-        })
-        .filter(Boolean);
       const externalShortcuts = Object.values(externalHotkeyBuckets)
         .flat()
         .map((item) => {
@@ -4446,7 +4390,7 @@ function openCatManage(){
         })
         .filter(Boolean);
       await tauriApi.core.invoke("set_app_shortcuts", {
-        shortcuts: [...appShortcuts, ...externalShortcuts]
+        shortcuts: externalShortcuts
       });
     }catch(e){
       console.error("set_app_shortcuts failed:", e);
@@ -5140,13 +5084,11 @@ function openCatManage(){
     }
     const allBaseTab = document.querySelector(".tabs > .tab[data-tab='all']");
     const favBaseTab = document.querySelector(".tabs > .tab[data-tab='fav']");
-    const hotkeysBaseTab = document.querySelector(".tabs > .tab[data-tab='hotkeys']");
     const showBaseTabs =
       normalizeSuperName(activeSuper) === normalizeSuperName(SUPER_ALL) &&
       !categorySearchTerm;
     if (allBaseTab) allBaseTab.style.display = showBaseTabs ? "" : "none";
     if (favBaseTab) favBaseTab.style.display = showBaseTabs ? "" : "none";
-    if (hotkeysBaseTab) hotkeysBaseTab.style.display = showBaseTabs ? "" : "none";
     applyCategoryRailState();
     refreshActiveTabClasses();
   }
@@ -5325,7 +5267,7 @@ function openCatManage(){
 
   document.addEventListener("keydown", (e) => {
     if (window.__TAURI__?.core?.invoke) return;
-    if (capturingHotkey || capturingQuickLauncherHotkey || capturingAppHotkey) return;
+    if (capturingHotkey || capturingQuickLauncherHotkey) return;
     if (e.defaultPrevented || e.repeat) return;
     if (isTypingTarget(e.target)) return;
     if (quickLauncherOpen) return;
@@ -5336,13 +5278,6 @@ function openCatManage(){
     if (superIconOverlay?.classList.contains("show")) return;
     if (confirmOverlay?.classList.contains("show")) return;
 
-    const combo = normalizeKey(e);
-    if (!combo) return;
-    const hit = apps.find((app) => normalizeShortcutText(app?.hotkey) === normalizeShortcutText(combo));
-    if (!hit) return;
-    e.preventDefault();
-    e.stopPropagation();
-    openLaunch(hit);
   });
 
   const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition || null;
@@ -6303,7 +6238,6 @@ function openCatManage(){
 
   function matches(app){
     if (activeTab === "fav" && !app.fav) return false;
-    if (activeTab === "hotkeys" && !String(app.hotkey || "").trim()) return false;
     if (activeTab === "misc" && app.category !== "Sonstiges") return false;
     if (activeTab.startsWith("cat:")){
       const cat = activeTab.slice(4);
@@ -6311,7 +6245,7 @@ function openCatManage(){
     }
 
     if (searchTerm){
-      const hay = (app.name + " " + app.launch + " " + app.category + " " + (app.hotkey || "") + " " + (app.description || "")).toLowerCase();
+      const hay = (app.name + " " + app.launch + " " + app.category + " " + (app.description || "")).toLowerCase();
       if (!hay.includes(searchTerm)) return false;
     }
     return true;
@@ -6324,23 +6258,6 @@ function openCatManage(){
       .replaceAll(">","&gt;")
       .replaceAll('"',"&quot;")
       .replaceAll("'","&#039;");
-  }
-
-  function renderCardHotkeyHtml(value){
-    const raw = String(value || "").trim();
-    if (!raw) return "";
-    const parts = raw.split("+").map((p) => p.trim()).filter(Boolean);
-    if (!parts.length) return "";
-    const keysHtml = parts.map((part, idx) => {
-      const sep = idx < parts.length - 1 ? `<span class="card-hotkey-sep" aria-hidden="true">+</span>` : "";
-      return `<span class="card-hotkey-key">${escapeHtml(part)}</span>${sep}`;
-    }).join("");
-    return `
-      <div class="card-hotkey">
-        <span class="card-hotkey-icon" aria-hidden="true">&#x26D3;&#xFE0F;&#x200D;&#x1F4A5;</span>
-        <span class="card-hotkey-keys">${keysHtml}</span>
-      </div>
-    `;
   }
 
   function getInitials(name){
@@ -6489,18 +6406,14 @@ function openCatManage(){
     // badges
     const badgeAll = document.getElementById("badgeAll");
     const badgeFav = document.getElementById("badgeFav");
-    const badgeHotkeys = document.getElementById("badgeHotkeys");
     const badgeMisc = document.getElementById("badgeMisc");
     const allCount = apps.length;
     const favCount = apps.filter(a => a.fav).length;
-    const hotkeyCount = apps.filter(a => String(a.hotkey || "").trim()).length;
     if (badgeAll) badgeAll.textContent = String(allCount);
     if (badgeFav) badgeFav.textContent = String(favCount);
-    if (badgeHotkeys) badgeHotkeys.textContent = String(hotkeyCount);
     if (badgeMisc) badgeMisc.textContent = String(apps.filter(a => a.category === "Sonstiges").length);
     const allBaseTab = document.querySelector(".tabs > .tab[data-tab='all']");
     const favBaseTab = document.querySelector(".tabs > .tab[data-tab='fav']");
-    const hotkeyBaseTab = document.querySelector(".tabs > .tab[data-tab='hotkeys']");
     if (allBaseTab){
       const tip = `${t("tab_all")} (${allCount})`;
       allBaseTab.dataset.tip = tip;
@@ -6512,12 +6425,6 @@ function openCatManage(){
       favBaseTab.dataset.tip = tip;
       favBaseTab.removeAttribute("title");
       favBaseTab.setAttribute("aria-label", tip);
-    }
-    if (hotkeyBaseTab){
-      const tip = `${t("tab_hotkeys")} (${hotkeyCount})`;
-      hotkeyBaseTab.dataset.tip = tip;
-      hotkeyBaseTab.removeAttribute("title");
-      hotkeyBaseTab.setAttribute("aria-label", tip);
     }
     const catBadges = document.querySelectorAll("[data-cat-badge]");
     catBadges.forEach(el => {
@@ -6592,8 +6499,6 @@ function openCatManage(){
       });
 
       const typeBadge = app.type === "desktop" ? t("card_type_desktop") : t("card_type_web");
-      const hotkeyValue = String(app.hotkey || "").trim();
-      const hotkeyHtml = renderCardHotkeyHtml(hotkeyValue);
 
       card.innerHTML = `
         <div class="card-top">
@@ -6614,7 +6519,6 @@ function openCatManage(){
               ${escapeHtml(typeBadge)}
             </span>
           </div>
-          ${hotkeyHtml}
         </div>
       `;
       fillIcon(card.querySelector(".card-icon"), app);
@@ -7611,7 +7515,6 @@ function openCatManage(){
     let name = document.getElementById("appName")?.value?.trim();
     let launch = document.getElementById("appUrl")?.value?.trim();
     let cat  = document.getElementById("appCategory")?.value || "";
-    const appHotkey = String(appHotkeyInput?.value || "").trim();
     const typeRaw = document.getElementById("appType")?.value || "web";
     let type = typeRaw;
     const isEdit = Boolean(editingId);
@@ -7645,14 +7548,6 @@ function openCatManage(){
       alert(t("alert_fill_required"));
       return;
     }
-    if (appHotkey){
-      apps.forEach((item) => {
-        if (!item || item.id === editingId) return;
-        if (normalizeShortcutText(item.hotkey) === normalizeShortcutText(appHotkey)){
-          item.hotkey = "";
-        }
-      });
-    }
     if (!categories.some(c => c.toLowerCase() === String(cat).toLowerCase()) || String(cat).toLowerCase() === "sonstiges"){
       cat = categories.find((c) => String(c).toLowerCase() !== "sonstiges") || categories[0] || "";
     }
@@ -7684,7 +7579,6 @@ function openCatManage(){
           type,          // "web" | "desktop"
           launch,        // url / uri / file:///
           category: cat,
-          hotkey: appHotkey,
           icon: iconState
         };
       }
@@ -7695,7 +7589,6 @@ function openCatManage(){
         type,          // "web" | "desktop"
         launch,        // url / uri / file:///
         category: cat,
-        hotkey: appHotkey,
         fav: false,
         icon: iconState,
         createdAt: Date.now()
@@ -7708,7 +7601,6 @@ function openCatManage(){
     // reset
     document.getElementById("appName").value = "";
     document.getElementById("appUrl").value = "";
-    if (appHotkeyInput) appHotkeyInput.value = "";
     if (appCategory){
       appCategory.value = "";
     }
@@ -7731,5 +7623,3 @@ function openCatManage(){
   setTimeout(bootstrapVoiceControl, 900);
   document.addEventListener("pointerdown", bootstrapVoiceControl, { once: true });
 });
-
-

@@ -8,6 +8,8 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
 use walkdir::WalkDir;
 use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShortcutExt, ShortcutState as HotkeyState};
+#[cfg(windows)]
+use std::sync::OnceLock;
 
 const APP_SHORTCUT_COOLDOWN_MS: u64 = 900;
 const GLOBAL_SHORTCUT_COOLDOWN_MS: u64 = 600;
@@ -70,6 +72,7 @@ struct ShortcutState {
 struct AppShortcutState {
   registered: Mutex<Vec<String>>,
   last_fired: Arc<Mutex<HashMap<String, Instant>>>,
+  pressed: Arc<Mutex<HashSet<String>>>,
 }
 struct QuickLauncherShortcutState {
   last_fired: Arc<Mutex<Option<Instant>>>,
@@ -81,6 +84,62 @@ struct AppShortcutEntry {
   launch: String,
 }
 
+#[cfg(windows)]
+#[derive(Clone)]
+struct MouseShortcutBinding {
+  shortcut_key: String,
+  launch: String,
+  button: MouseShortcutButton,
+  ctrl: bool,
+  alt: bool,
+  shift: bool,
+  super_key: bool,
+}
+
+#[cfg(windows)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum MouseShortcutButton {
+  Left,
+  Right,
+  Middle,
+  X1,
+  X2,
+}
+
+#[cfg(windows)]
+static MOUSE_SHORTCUTS: OnceLock<Arc<Mutex<Vec<MouseShortcutBinding>>>> = OnceLock::new();
+#[cfg(windows)]
+static MOUSE_SHORTCUTS_PRESSED: OnceLock<Arc<Mutex<HashSet<String>>>> = OnceLock::new();
+#[cfg(windows)]
+static MOUSE_SHORTCUTS_FIRED: OnceLock<Arc<Mutex<HashMap<String, Instant>>>> = OnceLock::new();
+#[cfg(windows)]
+static MOUSE_SHORTCUT_APP: OnceLock<tauri::AppHandle> = OnceLock::new();
+
+#[derive(serde::Deserialize)]
+struct KeyboardSequenceStep {
+  kind: String,
+  value: String,
+}
+
+#[derive(serde::Deserialize)]
+struct MouseSequenceStep {
+  kind: String,
+  value: String,
+}
+
+#[derive(serde::Deserialize)]
+struct SystemSequenceStep {
+  kind: String,
+  value: String,
+  amount: Option<i32>,
+}
+
+#[derive(Clone, serde::Serialize)]
+struct AutomationShortcutEvent {
+  id: String,
+  phase: String,
+}
+
 #[derive(serde::Serialize)]
 struct ClipboardPayload {
   kind: String,
@@ -89,12 +148,1028 @@ struct ClipboardPayload {
   sig: String,
 }
 
+#[cfg(windows)]
+fn parse_mouse_shortcut(shortcut: &str, launch: &str) -> Option<MouseShortcutBinding> {
+  let mut ctrl = false;
+  let mut alt = false;
+  let mut shift = false;
+  let mut super_key = false;
+  let mut button = None;
+
+  for raw_part in shortcut.split('+') {
+    let part = raw_part.trim().to_lowercase();
+    if part.is_empty() {
+      continue;
+    }
+    match part.as_str() {
+      "ctrl" | "control" => ctrl = true,
+      "alt" => alt = true,
+      "shift" => shift = true,
+      "super" | "win" | "meta" | "cmd" | "command" => super_key = true,
+      "mouseleft" | "leftmouse" | "lmb" => return None,
+      "mouseright" | "rightmouse" | "rmb" => return None,
+      "mousemiddle" | "middlemouse" | "mmb" => button = Some(MouseShortcutButton::Middle),
+      "mouse4" | "mousex1" | "xbutton1" | "x1" => button = Some(MouseShortcutButton::X1),
+      "mouse5" | "mousex2" | "xbutton2" | "x2" => button = Some(MouseShortcutButton::X2),
+      _ => return None,
+    }
+  }
+
+  Some(MouseShortcutBinding {
+    shortcut_key: shortcut.trim().to_lowercase(),
+    launch: launch.trim().to_string(),
+    button: button?,
+    ctrl,
+    alt,
+    shift,
+    super_key,
+  })
+}
+
+#[cfg(windows)]
+fn start_mouse_shortcut_hook_thread() {
+  std::thread::spawn(|| {
+    use windows::Win32::Foundation::{HINSTANCE, LPARAM, LRESULT, WPARAM};
+    use windows::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+      GetAsyncKeyState, VK_CONTROL, VK_LWIN, VK_MENU, VK_RWIN, VK_SHIFT,
+    };
+    use windows::Win32::UI::WindowsAndMessaging::{
+      CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, TranslateMessage,
+      HHOOK, MSG, MSLLHOOKSTRUCT, WH_MOUSE_LL, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
+      WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN, WM_XBUTTONUP,
+    };
+
+    unsafe fn modifier_down(vk: i32) -> bool {
+      (GetAsyncKeyState(vk) as u16 & 0x8000) != 0
+    }
+
+    unsafe fn current_modifiers() -> (bool, bool, bool, bool) {
+      (
+        modifier_down(VK_CONTROL.0 as i32),
+        modifier_down(VK_MENU.0 as i32),
+        modifier_down(VK_SHIFT.0 as i32),
+        modifier_down(VK_LWIN.0 as i32) || modifier_down(VK_RWIN.0 as i32),
+      )
+    }
+
+    unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+      use windows::Win32::UI::WindowsAndMessaging::HC_ACTION;
+
+      if code == HC_ACTION as i32 {
+        let message = wparam.0 as u32;
+        let info = *(lparam.0 as *const MSLLHOOKSTRUCT);
+        let (button, phase) = match message {
+          WM_LBUTTONDOWN => (Some(MouseShortcutButton::Left), Some("pressed")),
+          WM_LBUTTONUP => (Some(MouseShortcutButton::Left), Some("released")),
+          WM_RBUTTONDOWN => (Some(MouseShortcutButton::Right), Some("pressed")),
+          WM_RBUTTONUP => (Some(MouseShortcutButton::Right), Some("released")),
+          WM_MBUTTONDOWN => (Some(MouseShortcutButton::Middle), Some("pressed")),
+          WM_MBUTTONUP => (Some(MouseShortcutButton::Middle), Some("released")),
+          WM_XBUTTONDOWN => {
+            let hi = ((info.mouseData >> 16) & 0xffff) as u16;
+            let button = if hi == 0x0001 {
+              Some(MouseShortcutButton::X1)
+            } else if hi == 0x0002 {
+              Some(MouseShortcutButton::X2)
+            } else {
+              None
+            };
+            (button, Some("pressed"))
+          }
+          WM_XBUTTONUP => {
+            let hi = ((info.mouseData >> 16) & 0xffff) as u16;
+            let button = if hi == 0x0001 {
+              Some(MouseShortcutButton::X1)
+            } else if hi == 0x0002 {
+              Some(MouseShortcutButton::X2)
+            } else {
+              None
+            };
+            (button, Some("released"))
+          }
+          _ => (None, None),
+        };
+
+        if let (Some(button), Some(phase_value)) = (button, phase) {
+          let registry = MOUSE_SHORTCUTS.get();
+          let app_handle = MOUSE_SHORTCUT_APP.get();
+          let pressed_state = MOUSE_SHORTCUTS_PRESSED.get();
+          let fired_state = MOUSE_SHORTCUTS_FIRED.get();
+          if let (Some(registry), Some(app_handle), Some(pressed_state), Some(fired_state)) =
+            (registry, app_handle, pressed_state, fired_state)
+          {
+            let bindings = match registry.lock() {
+              Ok(guard) => guard.clone(),
+              Err(_) => Vec::new(),
+            };
+            let (ctrl, alt, shift, super_key) = current_modifiers();
+            for binding in bindings {
+              if binding.button != button {
+                continue;
+              }
+              if phase_value == "pressed" &&
+                (binding.ctrl != ctrl || binding.alt != alt || binding.shift != shift || binding.super_key != super_key)
+              {
+                continue;
+              }
+
+              if phase_value == "released" {
+                let should_emit = match pressed_state.lock() {
+                  Ok(mut pressed) => pressed.remove(&binding.shortcut_key),
+                  Err(_) => false,
+                };
+                if !should_emit {
+                  continue;
+                }
+                if let Some(automation_id) = binding.launch.strip_prefix(AUTOMATION_SHORTCUT_SCHEME) {
+                  let _ = app_handle.emit_to("main", AUTOMATION_SHORTCUT_EVENT, AutomationShortcutEvent {
+                    id: automation_id.to_string(),
+                    phase: "released".to_string(),
+                  });
+                }
+                continue;
+              }
+
+              let inserted = match pressed_state.lock() {
+                Ok(mut pressed) => pressed.insert(binding.shortcut_key.clone()),
+                Err(_) => false,
+              };
+              if !inserted {
+                continue;
+              }
+
+              if let Some(automation_id) = binding.launch.strip_prefix(AUTOMATION_SHORTCUT_SCHEME) {
+                let _ = app_handle.emit_to("main", AUTOMATION_SHORTCUT_EVENT, AutomationShortcutEvent {
+                  id: automation_id.to_string(),
+                  phase: "pressed".to_string(),
+                });
+                continue;
+              }
+
+              let now = Instant::now();
+              let allowed = match fired_state.lock() {
+                Ok(mut fired) => {
+                  let okay = fired
+                    .get(&binding.shortcut_key)
+                    .map(|prev| now.saturating_duration_since(*prev) >= Duration::from_millis(APP_SHORTCUT_COOLDOWN_MS))
+                    .unwrap_or(true);
+                  if okay {
+                    fired.insert(binding.shortcut_key.clone(), now);
+                  }
+                  okay
+                }
+                Err(_) => false,
+              };
+              if !allowed {
+                continue;
+              }
+              let _ = app_handle.shell().open(binding.launch.clone(), None);
+            }
+          }
+        }
+      }
+
+      unsafe { CallNextHookEx(HHOOK(std::ptr::null_mut()), code, wparam, lparam) }
+    }
+
+    unsafe {
+      let module = GetModuleHandleW(None).unwrap_or(HINSTANCE(std::ptr::null_mut()).into());
+      let hook = match SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_proc), module, 0) {
+        Ok(hook) => hook,
+        Err(_) => return,
+      };
+      if hook.0.is_null() {
+        return;
+      }
+      let mut message = MSG::default();
+      while GetMessageW(&mut message, None, 0, 0).into() {
+        let _ = TranslateMessage(&message);
+        let _ = DispatchMessageW(&message);
+      }
+    }
+  });
+}
+
 #[tauri::command]
 fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
   app
     .shell()
     .open(url, None)
     .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn run_keyboard_sequence(steps: Vec<KeyboardSequenceStep>) -> Result<(), String> {
+  #[cfg(not(windows))]
+  {
+    let _ = steps;
+    Err("keyboard automation is currently only implemented on Windows".to_string())
+  }
+
+  #[cfg(windows)]
+  {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+      SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY,
+      VK_BACK, VK_CONTROL, VK_DELETE, VK_DOWN, VK_END, VK_ESCAPE, VK_F1, VK_F2, VK_F3, VK_F4,
+      VK_F5, VK_F6, VK_F7, VK_F8, VK_F9, VK_F10, VK_F11, VK_F12, VK_HOME, VK_INSERT, VK_LEFT,
+      VK_MENU, VK_NEXT, VK_PRIOR, VK_RETURN, VK_RIGHT, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
+      VK_LWIN,
+    };
+
+    fn normalize_token(token: &str) -> String {
+      String::from(token)
+        .trim()
+        .to_uppercase()
+        .replace(' ', "")
+        .replace("ARROW", "")
+    }
+
+    fn key_inputs(vk: u16, key_up: bool) -> INPUT {
+      INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+          ki: KEYBDINPUT {
+            wVk: VIRTUAL_KEY(vk),
+            wScan: 0,
+            dwFlags: if key_up { KEYEVENTF_KEYUP } else { Default::default() },
+            time: 0,
+            dwExtraInfo: 0,
+          },
+        },
+      }
+    }
+
+    fn send_vk(vk: u16) -> Result<(), String> {
+      let inputs = [key_inputs(vk, false), key_inputs(vk, true)];
+      let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+      if sent != inputs.len() as u32 {
+        return Err(format!("SendInput failed for vk {}", vk));
+      }
+      Ok(())
+    }
+
+    fn send_combo(modifiers: &[u16], main_vk: u16) -> Result<(), String> {
+      let mut inputs = Vec::<INPUT>::new();
+      for vk in modifiers {
+        inputs.push(key_inputs(*vk, false));
+      }
+      inputs.push(key_inputs(main_vk, false));
+      inputs.push(key_inputs(main_vk, true));
+      for vk in modifiers.iter().rev() {
+        inputs.push(key_inputs(*vk, true));
+      }
+      let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+      if sent != inputs.len() as u32 {
+        return Err("SendInput failed for combo".to_string());
+      }
+      Ok(())
+    }
+
+    fn vk_from_token(token: &str) -> Option<u16> {
+      let normalized = normalize_token(token);
+      match normalized.as_str() {
+        "CTRL" | "CONTROL" => Some(VK_CONTROL.0 as u16),
+        "ALT" | "MENU" => Some(VK_MENU.0 as u16),
+        "SHIFT" => Some(VK_SHIFT.0 as u16),
+        "SUPER" | "WIN" | "META" | "CMD" | "COMMAND" => Some(VK_LWIN.0 as u16),
+        "ENTER" | "RETURN" => Some(VK_RETURN.0 as u16),
+        "TAB" => Some(VK_TAB.0 as u16),
+        "SPACE" | "SPACEBAR" => Some(VK_SPACE.0 as u16),
+        "ESC" | "ESCAPE" => Some(VK_ESCAPE.0 as u16),
+        "BACKSPACE" => Some(VK_BACK.0 as u16),
+        "DELETE" | "DEL" => Some(VK_DELETE.0 as u16),
+        "INSERT" | "INS" => Some(VK_INSERT.0 as u16),
+        "HOME" => Some(VK_HOME.0 as u16),
+        "END" => Some(VK_END.0 as u16),
+        "PAGEUP" | "PGUP" => Some(VK_PRIOR.0 as u16),
+        "PAGEDOWN" | "PGDN" => Some(VK_NEXT.0 as u16),
+        "UP" => Some(VK_UP.0 as u16),
+        "DOWN" => Some(VK_DOWN.0 as u16),
+        "LEFT" => Some(VK_LEFT.0 as u16),
+        "RIGHT" => Some(VK_RIGHT.0 as u16),
+        "F1" => Some(VK_F1.0 as u16),
+        "F2" => Some(VK_F2.0 as u16),
+        "F3" => Some(VK_F3.0 as u16),
+        "F4" => Some(VK_F4.0 as u16),
+        "F5" => Some(VK_F5.0 as u16),
+        "F6" => Some(VK_F6.0 as u16),
+        "F7" => Some(VK_F7.0 as u16),
+        "F8" => Some(VK_F8.0 as u16),
+        "F9" => Some(VK_F9.0 as u16),
+        "F10" => Some(VK_F10.0 as u16),
+        "F11" => Some(VK_F11.0 as u16),
+        "F12" => Some(VK_F12.0 as u16),
+        _ => {
+          if normalized.len() == 1 {
+            normalized.as_bytes().first().copied().map(|b| b as u16)
+          } else {
+            None
+          }
+        }
+      }
+    }
+
+    fn run_key_value(raw: &str) -> Result<(), String> {
+      let value = raw.trim();
+      if value.is_empty() {
+        return Ok(());
+      }
+      let parts = value.split('+').map(str::trim).filter(|p| !p.is_empty()).collect::<Vec<_>>();
+      if parts.is_empty() {
+        return Ok(());
+      }
+      if parts.len() == 1 {
+        let vk = vk_from_token(parts[0]).ok_or_else(|| format!("unsupported key '{}'", value))?;
+        return send_vk(vk);
+      }
+      let mut modifiers = Vec::<u16>::new();
+      for token in &parts[..parts.len() - 1] {
+        let vk = vk_from_token(token).ok_or_else(|| format!("unsupported modifier '{}'", token))?;
+        modifiers.push(vk);
+      }
+      let main_vk = vk_from_token(parts[parts.len() - 1])
+        .ok_or_else(|| format!("unsupported key '{}'", parts[parts.len() - 1]))?;
+      send_combo(&modifiers, main_vk)
+    }
+
+    for step in steps {
+      let kind = step.kind.trim().to_lowercase();
+      let value = step.value.trim().to_string();
+      if value.is_empty() {
+        continue;
+      }
+      if kind == "delay" {
+        let ms = value.parse::<u64>().map_err(|_| format!("invalid delay '{}'", value))?;
+        std::thread::sleep(Duration::from_millis(ms));
+        continue;
+      }
+      run_key_value(&value)?;
+    }
+    Ok(())
+  }
+}
+
+#[tauri::command]
+fn run_mouse_sequence(steps: Vec<MouseSequenceStep>) -> Result<(), String> {
+  #[cfg(not(windows))]
+  {
+    let _ = steps;
+    Err("mouse automation is currently only implemented on Windows".to_string())
+  }
+
+  #[cfg(windows)]
+  {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+      SendInput, INPUT, INPUT_0, INPUT_MOUSE, MOUSEEVENTF_HWHEEL, MOUSEEVENTF_LEFTDOWN,
+      MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE,
+      MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN,
+      MOUSEEVENTF_XUP, MOUSEINPUT, MOUSE_EVENT_FLAGS,
+    };
+    const XBUTTON1_DATA: u32 = 0x0001;
+    const XBUTTON2_DATA: u32 = 0x0002;
+
+    fn mouse_input(flags: u32, data: u32, dx: i32, dy: i32) -> INPUT {
+      INPUT {
+        r#type: INPUT_MOUSE,
+        Anonymous: INPUT_0 {
+          mi: MOUSEINPUT {
+            dx,
+            dy,
+            mouseData: data,
+            dwFlags: MOUSE_EVENT_FLAGS(flags),
+            time: 0,
+            dwExtraInfo: 0,
+          },
+        },
+      }
+    }
+
+    fn send_inputs(inputs: &[INPUT]) -> Result<(), String> {
+      let sent = unsafe { SendInput(inputs, std::mem::size_of::<INPUT>() as i32) };
+      if sent != inputs.len() as u32 {
+        return Err("SendInput failed for mouse sequence".to_string());
+      }
+      Ok(())
+    }
+
+    fn parse_button(value: &str) -> Option<(&'static str, u32)> {
+      match value.trim().to_lowercase().as_str() {
+        "left" => Some(("left", 0)),
+        "right" => Some(("right", 0)),
+        "middle" => Some(("middle", 0)),
+        "x1" => Some(("x", XBUTTON1_DATA)),
+        "x2" => Some(("x", XBUTTON2_DATA)),
+        _ => None,
+      }
+    }
+
+    fn button_inputs(button: &str, x_button: u32, pressed: bool) -> Vec<INPUT> {
+      match (button, pressed) {
+        ("left", true) => vec![mouse_input(MOUSEEVENTF_LEFTDOWN.0, 0, 0, 0)],
+        ("left", false) => vec![mouse_input(MOUSEEVENTF_LEFTUP.0, 0, 0, 0)],
+        ("right", true) => vec![mouse_input(MOUSEEVENTF_RIGHTDOWN.0, 0, 0, 0)],
+        ("right", false) => vec![mouse_input(MOUSEEVENTF_RIGHTUP.0, 0, 0, 0)],
+        ("middle", true) => vec![mouse_input(MOUSEEVENTF_MIDDLEDOWN.0, 0, 0, 0)],
+        ("middle", false) => vec![mouse_input(MOUSEEVENTF_MIDDLEUP.0, 0, 0, 0)],
+        ("x", true) => vec![mouse_input(MOUSEEVENTF_XDOWN.0, x_button, 0, 0)],
+        ("x", false) => vec![mouse_input(MOUSEEVENTF_XUP.0, x_button, 0, 0)],
+        _ => Vec::new(),
+      }
+    }
+
+    fn run_button_action(button_value: &str, mode: &str) -> Result<(), String> {
+      let (button, x_button) = parse_button(button_value)
+        .ok_or_else(|| format!("unsupported mouse button '{}'", button_value))?;
+      let inputs = if mode == "click" {
+        let mut items = button_inputs(button, x_button, true);
+        items.extend(button_inputs(button, x_button, false));
+        items
+      } else if mode == "down" {
+        button_inputs(button, x_button, true)
+      } else {
+        button_inputs(button, x_button, false)
+      };
+      send_inputs(&inputs)
+    }
+
+    fn run_move(value: &str) -> Result<(), String> {
+      let parts = value
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>();
+      if parts.len() != 2 && parts.len() != 3 {
+        return Err(format!("invalid mouse move '{}'", value));
+      }
+      let dx = parts[0]
+        .parse::<i32>()
+        .map_err(|_| format!("invalid mouse move x '{}'", parts[0]))?;
+      let dy = parts[1]
+        .parse::<i32>()
+        .map_err(|_| format!("invalid mouse move y '{}'", parts[1]))?;
+      let duration_ms = if parts.len() >= 3 {
+        parts[2]
+          .parse::<u64>()
+          .map_err(|_| format!("invalid mouse move duration '{}'", parts[2]))?
+      } else {
+        220
+      };
+      if duration_ms == 0 {
+        let inputs = [mouse_input(MOUSEEVENTF_MOVE.0, 0, dx, dy)];
+        return send_inputs(&inputs);
+      }
+
+      let distance = ((dx.abs() + dy.abs()) as u64).max(1);
+      let mut steps = std::cmp::max(8u64, distance / 6);
+      steps = std::cmp::min(steps, 120);
+      let sleep_ms = std::cmp::max(1, duration_ms / steps.max(1));
+      let mut sent_x = 0i32;
+      let mut sent_y = 0i32;
+
+      for step_idx in 1..=steps {
+        let target_x = ((dx as i64) * (step_idx as i64) / (steps as i64)) as i32;
+        let target_y = ((dy as i64) * (step_idx as i64) / (steps as i64)) as i32;
+        let move_x = target_x - sent_x;
+        let move_y = target_y - sent_y;
+        sent_x = target_x;
+        sent_y = target_y;
+        if move_x != 0 || move_y != 0 {
+          let inputs = [mouse_input(MOUSEEVENTF_MOVE.0, 0, move_x, move_y)];
+          send_inputs(&inputs)?;
+        }
+        std::thread::sleep(Duration::from_millis(sleep_ms));
+      }
+      Ok(())
+    }
+
+    fn run_scroll(value: &str, horizontal: bool) -> Result<(), String> {
+      let parts = value
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>();
+      if parts.is_empty() || parts.len() > 2 {
+        return Err(format!("invalid mouse scroll '{}'", value));
+      }
+      let amount = parts[0]
+        .parse::<i32>()
+        .map_err(|_| format!("invalid mouse scroll '{}'", value))?;
+      let duration_ms = if parts.len() >= 2 {
+        parts[1]
+          .parse::<u64>()
+          .map_err(|_| format!("invalid mouse scroll duration '{}'", parts[1]))?
+      } else {
+        180
+      };
+      let flag = if horizontal { MOUSEEVENTF_HWHEEL.0 } else { MOUSEEVENTF_WHEEL.0 };
+      if duration_ms == 0 {
+        let inputs = [mouse_input(flag, amount as u32, 0, 0)];
+        return send_inputs(&inputs);
+      }
+
+      let magnitude = amount.unsigned_abs() as u64;
+      let mut steps = std::cmp::max(6u64, magnitude / 40);
+      steps = std::cmp::min(steps, 48);
+      let sleep_ms = std::cmp::max(1, duration_ms / steps.max(1));
+      let mut sent_amount = 0i32;
+
+      for step_idx in 1..=steps {
+        let target = ((amount as i64) * (step_idx as i64) / (steps as i64)) as i32;
+        let delta = target - sent_amount;
+        sent_amount = target;
+        if delta != 0 {
+          let inputs = [mouse_input(flag, delta as u32, 0, 0)];
+          send_inputs(&inputs)?;
+        }
+        std::thread::sleep(Duration::from_millis(sleep_ms));
+      }
+      Ok(())
+    }
+
+    for step in steps {
+      let kind = step.kind.trim().to_lowercase();
+      let value = step.value.trim().to_string();
+      if value.is_empty() {
+        continue;
+      }
+      match kind.as_str() {
+        "delay" => {
+          let ms = value.parse::<u64>().map_err(|_| format!("invalid delay '{}'", value))?;
+          std::thread::sleep(Duration::from_millis(ms));
+        }
+        "click" | "down" | "up" => run_button_action(&value, &kind)?,
+        "move" => run_move(&value)?,
+        "scroll" => run_scroll(&value, false)?,
+        "hscroll" => run_scroll(&value, true)?,
+        _ => return Err(format!("unsupported mouse step '{}'", kind)),
+      }
+    }
+    Ok(())
+  }
+}
+
+#[tauri::command]
+fn run_system_sequence(steps: Vec<SystemSequenceStep>) -> Result<(), String> {
+  #[cfg(not(windows))]
+  {
+    let _ = steps;
+    Err("system automation is currently only implemented on Windows".to_string())
+  }
+
+  #[cfg(windows)]
+  {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+      SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP, VIRTUAL_KEY,
+      VK_LWIN, VK_MEDIA_NEXT_TRACK, VK_MEDIA_PLAY_PAUSE, VK_MEDIA_PREV_TRACK,
+      VK_MENU, VK_SHIFT, VK_VOLUME_DOWN, VK_VOLUME_MUTE, VK_VOLUME_UP,
+    };
+
+    fn key_input(vk: u16, key_up: bool) -> INPUT {
+      INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+          ki: KEYBDINPUT {
+            wVk: VIRTUAL_KEY(vk),
+            wScan: 0,
+            dwFlags: if key_up { KEYEVENTF_KEYUP } else { Default::default() },
+            time: 0,
+            dwExtraInfo: 0,
+          },
+        },
+      }
+    }
+
+    fn send_vk(vk: u16) -> Result<(), String> {
+      let inputs = [key_input(vk, false), key_input(vk, true)];
+      let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+      if sent != inputs.len() as u32 {
+        return Err(format!("SendInput failed for vk {}", vk));
+      }
+      Ok(())
+    }
+
+    fn send_combo(keys: &[u16]) -> Result<(), String> {
+      let mut inputs = Vec::<INPUT>::new();
+      for vk in keys {
+        inputs.push(key_input(*vk, false));
+      }
+      for vk in keys.iter().rev() {
+        inputs.push(key_input(*vk, true));
+      }
+      let sent = unsafe { SendInput(&inputs, std::mem::size_of::<INPUT>() as i32) };
+      if sent != inputs.len() as u32 {
+        return Err("SendInput failed for combo".to_string());
+      }
+      Ok(())
+    }
+
+    for step in steps {
+      let kind = step.kind.trim().to_lowercase();
+      let value = step.value.trim().to_lowercase();
+      let amount = step.amount.unwrap_or(1).clamp(1, 20) as usize;
+      if value.is_empty() {
+        continue;
+      }
+      if kind == "delay" {
+        let ms = value.parse::<u64>().map_err(|_| format!("invalid delay '{}'", value))?;
+        std::thread::sleep(Duration::from_millis(ms));
+        continue;
+      }
+      match kind.as_str() {
+        "volume" => match value.as_str() {
+          "volume_up" => {
+            for _ in 0..amount {
+              send_vk(VK_VOLUME_UP.0 as u16)?;
+            }
+          }
+          "volume_down" => {
+            for _ in 0..amount {
+              send_vk(VK_VOLUME_DOWN.0 as u16)?;
+            }
+          }
+          "volume_mute" => send_vk(VK_VOLUME_MUTE.0 as u16)?,
+          _ => return Err(format!("unsupported volume action '{}'", value)),
+        },
+        "media" => match value.as_str() {
+          "media_play_pause" => send_vk(VK_MEDIA_PLAY_PAUSE.0 as u16)?,
+          "media_next" => send_vk(VK_MEDIA_NEXT_TRACK.0 as u16)?,
+          "media_previous" => send_vk(VK_MEDIA_PREV_TRACK.0 as u16)?,
+          _ => return Err(format!("unsupported media action '{}'", value)),
+        },
+        "action" | "screenshot" => match value.as_str() {
+          "screenshot_image" => send_combo(&[VK_LWIN.0 as u16, VK_SHIFT.0 as u16, b'S' as u16])?,
+          "screenshot_video" => send_combo(&[VK_LWIN.0 as u16, VK_MENU.0 as u16, b'R' as u16])?,
+          "lock_screen" => {
+            let status = Command::new("rundll32.exe")
+              .args(["user32.dll,LockWorkStation"])
+              .spawn()
+              .map_err(|e| e.to_string())?;
+            let _ = status;
+          }
+          _ => return Err(format!("unsupported screenshot action '{}'", value)),
+        },
+        "lock" => match value.as_str() {
+          "lock_screen" => {
+            let status = Command::new("rundll32.exe")
+              .args(["user32.dll,LockWorkStation"])
+              .spawn()
+              .map_err(|e| e.to_string())?;
+            let _ = status;
+          }
+          _ => return Err(format!("unsupported lock action '{}'", value)),
+        },
+        _ => return Err(format!("unsupported system step '{}'", kind)),
+      }
+    }
+    Ok(())
+  }
+}
+
+#[tauri::command]
+fn close_app_target(target: String, app_name: String) -> Result<(), String> {
+  #[cfg(windows)]
+  {
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    let target = target.trim().to_string();
+    let app_name = app_name.trim().to_string();
+    if target.is_empty() && app_name.is_empty() {
+      return Ok(());
+    }
+
+    let escaped_target = target.replace('\'', "''");
+    let escaped_name = app_name.replace('\'', "''");
+    let script = format!(r#"
+$target = '{escaped_target}'
+$appName = '{escaped_name}'
+$targetPath = $null
+$targetArgs = $null
+$targetUrl = $null
+$appId = $null
+$steamAppId = $null
+$skipDirectProcessMatch = $false
+if ($target -match '^file:///') {{
+  $targetPath = [System.Uri]::UnescapeDataString($target.Substring(8)).Replace('/', '\')
+}} elseif ($target -match '^[A-Za-z]:\\') {{
+  $targetPath = $target
+}} elseif ($target -match '^shell:AppsFolder\\') {{
+  $appId = $target.Substring(17)
+}} elseif ($target -match '^steam://run/([0-9]+)') {{
+  $steamAppId = $Matches[1]
+}}
+$exeStem = $null
+if ($targetPath) {{
+  try {{
+    if ([System.IO.Path]::GetExtension($targetPath).Equals('.lnk', [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path $targetPath)) {{
+      $shell = New-Object -ComObject WScript.Shell
+      $shortcut = $shell.CreateShortcut($targetPath)
+      if ($shortcut) {{
+        if ($shortcut.TargetPath) {{
+          $targetPath = $shortcut.TargetPath
+        }}
+        if ($shortcut.Arguments) {{
+          $targetArgs = $shortcut.Arguments
+        }}
+        try {{
+          $resolvedStem = [System.IO.Path]::GetFileNameWithoutExtension($targetPath)
+          $resolvedNorm = (($resolvedStem -replace '[^A-Za-z0-9]', '').ToLowerInvariant())
+          if (@('chromeproxy','msedgeproxy','braveproxy','vivaldi','opera','operagx') -contains $resolvedNorm) {{
+            $skipDirectProcessMatch = $true
+          }}
+        }} catch {{}}
+      }}
+    }} elseif ([System.IO.Path]::GetExtension($targetPath).Equals('.url', [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path $targetPath)) {{
+      $urlLine = Get-Content $targetPath -ErrorAction SilentlyContinue | Where-Object {{ $_ -match '^URL=' }} | Select-Object -First 1
+      if ($urlLine) {{
+        $targetUrl = $urlLine.Substring(4).Trim()
+      }}
+    }}
+    $exeStem = [System.IO.Path]::GetFileNameWithoutExtension($targetPath)
+  }} catch {{}}
+}}
+function Normalize-Name([string]$value) {{
+  if (-not $value) {{ return "" }}
+  return (($value -replace '[^A-Za-z0-9]', '').ToLowerInvariant())
+}}
+function Stop-ByExactProcessName([string]$name) {{
+  if (-not $name) {{ return }}
+  $wanted = Normalize-Name $name
+  if (-not $wanted) {{ return }}
+  Get-Process -ErrorAction SilentlyContinue | Where-Object {{
+    (Normalize-Name $_.ProcessName) -eq $wanted
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+  }}
+}}
+function Stop-TreeByExactProcessName([string]$name) {{
+  if (-not $name) {{ return }}
+  $trimmed = $name.Trim()
+  if (-not $trimmed) {{ return }}
+  $exeName = if ($trimmed.ToLowerInvariant().EndsWith('.exe')) {{ $trimmed }} else {{ "$trimmed.exe" }}
+  & taskkill /IM $exeName /F /T *> $null
+}}
+function Stop-ByExactWindowTitle([string]$name) {{
+  if (-not $name) {{ return }}
+  $wanted = Normalize-Name $name
+  if (-not $wanted) {{ return }}
+  Get-Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.MainWindowTitle -and (Normalize-Name $_.MainWindowTitle) -eq $wanted
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+  }}
+}}
+function Stop-ByExactWindowTitleForBrowserHost([string]$name) {{
+  if (-not $name) {{ return }}
+  $wanted = Normalize-Name $name
+  if (-not $wanted) {{ return }}
+  $allowedHosts = @('msedge', 'msedgeproxy', 'chrome', 'chromeproxy', 'brave', 'braveproxy', 'vivaldi', 'opera', 'operagx')
+  Get-Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.MainWindowTitle -and
+    $allowedHosts -contains ($_.ProcessName.ToLowerInvariant()) -and
+    (Normalize-Name $_.MainWindowTitle) -eq $wanted
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+  }}
+}}
+function Stop-ByPathPrefix([string]$pathPrefix) {{
+  if (-not $pathPrefix) {{ return }}
+  $trimmed = $pathPrefix.Trim().TrimEnd('\')
+  if (-not $trimmed) {{ return }}
+  Get-Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.Path -and $_.Path.StartsWith($trimmed, [System.StringComparison]::OrdinalIgnoreCase)
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+  }}
+}}
+function Stop-TreeByPathPrefix([string]$pathPrefix) {{
+  if (-not $pathPrefix) {{ return }}
+  $trimmed = $pathPrefix.Trim().TrimEnd('\')
+  if (-not $trimmed) {{ return }}
+  Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.ExecutablePath -and $_.ExecutablePath.StartsWith($trimmed, [System.StringComparison]::OrdinalIgnoreCase)
+  }} | Sort-Object ProcessId -Descending | ForEach-Object {{
+    & taskkill /PID $_.ProcessId /F /T *> $null
+  }}
+}}
+function Get-RegValue([string]$key, [string]$valueName) {{
+  try {{
+    $line = reg query $key /v $valueName 2>$null | Select-String $valueName | Select-Object -First 1
+    if (-not $line) {{ return $null }}
+    $text = [string]$line
+    $idx = $text.IndexOf('REG_SZ')
+    if ($idx -lt 0) {{ return $null }}
+    $value = $text.Substring($idx + 6).Trim()
+    if ($value) {{ return $value }}
+  }} catch {{}}
+  return $null
+}}
+function Get-SteamRoots() {{
+  $roots = New-Object System.Collections.Generic.List[string]
+  $seen = @{{}}
+  function Add-Root([string]$candidate) {{
+    if (-not $candidate) {{ return }}
+    $expanded = $candidate.Replace('/', '\').TrimEnd('\')
+    if (-not (Test-Path $expanded)) {{ return }}
+    $key = $expanded.ToLowerInvariant()
+    if (-not $seen.ContainsKey($key)) {{
+      $seen[$key] = $true
+      $roots.Add($expanded)
+    }}
+  }}
+  Add-Root (Join-Path $env:'ProgramFiles(x86)' 'Steam')
+  Add-Root (Join-Path $env:ProgramFiles 'Steam')
+  Add-Root (Join-Path $env:LOCALAPPDATA 'Steam')
+  Add-Root (Get-RegValue 'HKCU\Software\Valve\Steam' 'SteamPath')
+  Add-Root (Get-RegValue 'HKLM\SOFTWARE\WOW6432Node\Valve\Steam' 'InstallPath')
+  Add-Root (Get-RegValue 'HKLM\SOFTWARE\Valve\Steam' 'InstallPath')
+  return $roots
+}}
+function Get-SteamAppsFolders([string]$steamRoot) {{
+  $folders = New-Object System.Collections.Generic.List[string]
+  $seen = @{{}}
+  function Add-Folder([string]$candidate) {{
+    if (-not $candidate) {{ return }}
+    $expanded = $candidate.Replace('/', '\').TrimEnd('\')
+    if (-not (Test-Path $expanded)) {{ return }}
+    $key = $expanded.ToLowerInvariant()
+    if (-not $seen.ContainsKey($key)) {{
+      $seen[$key] = $true
+      $folders.Add($expanded)
+    }}
+  }}
+  $main = Join-Path $steamRoot 'steamapps'
+  Add-Folder $main
+  $libraryVdf = Join-Path $main 'libraryfolders.vdf'
+  if (Test-Path $libraryVdf) {{
+    Get-Content $libraryVdf -ErrorAction SilentlyContinue | ForEach-Object {{
+      if ($_ -match '"path"\s+"([^"]+)"') {{
+        Add-Folder (Join-Path ($Matches[1] -replace '\\\\','\') 'steamapps')
+      }} elseif ($_ -match '"\d+"\s+"([^"]+)"') {{
+        $raw = $Matches[1] -replace '\\\\','\'
+        if ($raw -match '^[A-Za-z]:\\' -or $raw -match '^\\\\') {{
+          Add-Folder (Join-Path $raw 'steamapps')
+        }}
+      }}
+    }}
+  }}
+  return $folders
+}}
+function Get-VdfSimpleValue([string]$content, [string]$key) {{
+  $match = [regex]::Match($content, '"' + [regex]::Escape($key) + '"\s+"([^"]+)"', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+  if ($match.Success) {{
+    return $match.Groups[1].Value
+  }}
+  return $null
+}}
+function Stop-SteamGameByAppId([string]$appId) {{
+  if (-not $appId) {{ return }}
+  foreach ($steamRoot in Get-SteamRoots) {{
+    foreach ($steamapps in Get-SteamAppsFolders $steamRoot) {{
+      $manifest = Join-Path $steamapps ("appmanifest_" + $appId + ".acf")
+      if (-not (Test-Path $manifest)) {{ continue }}
+      $content = Get-Content -Raw $manifest -ErrorAction SilentlyContinue
+      if (-not $content) {{ continue }}
+      $installDir = Get-VdfSimpleValue $content 'installdir'
+      if (-not $installDir) {{ continue }}
+      $gameRoot = Join-Path (Join-Path $steamapps 'common') $installDir
+      if (Test-Path $gameRoot) {{
+        Stop-TreeByPathPrefix $gameRoot
+        Stop-ByPathPrefix $gameRoot
+        return
+      }}
+    }}
+  }}
+}}
+function Stop-ByCommandLineTokenForBrowserHost([string]$token) {{
+  if (-not $token) {{ return }}
+  $trimmed = $token.Trim()
+  if ($trimmed.Length -lt 6) {{ return }}
+  $allowedHosts = @('msedge', 'msedgeproxy', 'chrome', 'chromeproxy', 'brave', 'braveproxy', 'vivaldi', 'opera', 'opera gx')
+  Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.CommandLine -and
+    $allowedHosts -contains ($_.Name.ToLowerInvariant() -replace '\.exe$', '') -and
+    $_.CommandLine.Contains($trimmed)
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+  }}
+}}
+function Stop-ByBrowserAppUrl([string]$url) {{
+  if (-not $url) {{ return }}
+  $trimmed = $url.Trim()
+  if (-not $trimmed) {{ return }}
+  $host = $null
+  try {{
+    $uri = [System.Uri]$trimmed
+    $host = $uri.Host
+  }} catch {{}}
+  $allowedHosts = @('msedge', 'msedgeproxy', 'chrome', 'chromeproxy', 'brave', 'braveproxy', 'vivaldi', 'opera', 'opera gx')
+  Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.CommandLine -and
+    $allowedHosts -contains ($_.Name.ToLowerInvariant() -replace '\.exe$', '') -and
+    (
+      $_.CommandLine.Contains($trimmed) -or
+      ($host -and $_.CommandLine.Contains($host))
+    ) -and
+    (
+      $_.CommandLine.Contains('--app-url=') -or
+      $_.CommandLine.Contains('--app=') -or
+      $_.CommandLine.Contains('--app-id=') -or
+      $_.CommandLine.Contains('--app-launch-url-for-shortcuts-menu-item=')
+    )
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+  }}
+}}
+if ($targetPath -and -not $skipDirectProcessMatch) {{
+  Get-Process -ErrorAction SilentlyContinue | Where-Object {{
+    $_.Path -and $_.Path -ieq $targetPath
+  }} | ForEach-Object {{
+    Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+  }}
+}}
+if ($exeStem -and -not $skipDirectProcessMatch) {{
+  Stop-ByExactProcessName $exeStem
+  Stop-TreeByExactProcessName $exeStem
+}}
+if ($targetArgs) {{
+  $appIdMatch = [regex]::Match($targetArgs, '--app-id=([A-Za-z0-9]+)')
+  if ($appIdMatch.Success) {{
+    Stop-ByCommandLineTokenForBrowserHost $appIdMatch.Groups[1].Value
+  }}
+  $appUrlMatch = [regex]::Match($targetArgs, '--app(?:-url)?=(\"[^\"]+\"|\S+)')
+  if ($appUrlMatch.Success) {{
+    $matchedUrl = $appUrlMatch.Groups[1].Value.Trim('"')
+    Stop-ByBrowserAppUrl $matchedUrl
+  }}
+  Stop-ByExactWindowTitleForBrowserHost $appName
+}}
+if ($targetUrl) {{
+  Stop-ByBrowserAppUrl $targetUrl
+  Stop-ByExactWindowTitleForBrowserHost $appName
+}}
+if ($steamAppId) {{
+  Stop-SteamGameByAppId $steamAppId
+}}
+if ($appId) {{
+  $parts = $appId -split '!'
+  $packageFamily = if ($parts.Length -gt 0) {{ $parts[0] }} else {{ "" }}
+  $applicationId = if ($parts.Length -gt 1) {{ $parts[1] }} else {{ "" }}
+  $resolvedExe = $null
+  $pkgInstallLocation = $null
+  if ($packageFamily) {{
+    $pkg = Get-AppxPackage -PackageFamilyName $packageFamily -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($pkg -and $pkg.InstallLocation) {{
+      $pkgInstallLocation = $pkg.InstallLocation
+      $manifestPath = Join-Path $pkg.InstallLocation 'AppxManifest.xml'
+      if (Test-Path $manifestPath) {{
+        try {{
+          [xml]$manifest = Get-Content -Raw $manifestPath
+          $apps = @($manifest.Package.Applications.Application)
+          $appNode = $apps | Where-Object {{ $_.Id -eq $applicationId }} | Select-Object -First 1
+          if (-not $appNode) {{ $appNode = $apps | Select-Object -First 1 }}
+          if ($appNode -and $appNode.Executable) {{
+            $resolvedExe = [System.IO.Path]::GetFileNameWithoutExtension($appNode.Executable)
+          }}
+        }} catch {{}}
+      }}
+    }}
+  }}
+  $blocked = @('applicationframehost', 'msedge', 'msedgeproxy', 'chrome', 'chromeproxy', 'brave', 'braveproxy', 'vivaldi', 'opera', 'operagx', 'browserhost')
+  $resolvedNorm = Normalize-Name $resolvedExe
+  if ($resolvedNorm -and ($blocked -notcontains $resolvedNorm)) {{
+    Stop-ByExactProcessName $resolvedExe
+    Stop-TreeByExactProcessName $resolvedExe
+  }}
+  if ($pkgInstallLocation) {{
+    Stop-ByPathPrefix $pkgInstallLocation
+  }}
+  Stop-ByExactWindowTitle $appName
+}}
+if ($appName) {{
+  $wanted = Normalize-Name $appName
+  if ($wanted.Length -ge 5 -and -not $appId) {{
+    Stop-ByExactProcessName $appName
+    Stop-TreeByExactProcessName $appName
+  }}
+}}
+"#);
+
+    Command::new("powershell")
+      .creation_flags(CREATE_NO_WINDOW)
+      .args(["-NoProfile", "-WindowStyle", "Hidden", "-Command", script.as_str()])
+      .output()
+      .map_err(|e| e.to_string())?;
+    return Ok(());
+  }
+
+  #[cfg(not(windows))]
+  {
+    let _ = target;
+    let _ = app_name;
+    Ok(())
+  }
 }
 
 fn path_to_file_url(path: &Path) -> String {
@@ -680,11 +1755,20 @@ pub fn run() {
     .manage(AppShortcutState {
       registered: Mutex::new(Vec::new()),
       last_fired: Arc::new(Mutex::new(HashMap::new())),
+      pressed: Arc::new(Mutex::new(HashSet::new())),
     })
     .manage(QuickLauncherShortcutState {
       last_fired: Arc::new(Mutex::new(None)),
     })
     .setup(|app| {
+      #[cfg(windows)]
+      {
+        let _ = MOUSE_SHORTCUT_APP.set(app.handle().clone());
+        let _ = MOUSE_SHORTCUTS.set(Arc::new(Mutex::new(Vec::new())));
+        let _ = MOUSE_SHORTCUTS_PRESSED.set(Arc::new(Mutex::new(HashSet::new())));
+        let _ = MOUSE_SHORTCUTS_FIRED.set(Arc::new(Mutex::new(HashMap::new())));
+        start_mouse_shortcut_hook_thread();
+      }
       if cfg!(debug_assertions) {
         // Logging in dev disabled to keep terminal clean.
         // Uncomment to re-enable:
@@ -731,9 +1815,13 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       open_external,
+      close_app_target,
       pick_filesystem_target,
       scan_desktop_apps,
       set_window_icon,
+      run_keyboard_sequence,
+      run_mouse_sequence,
+      run_system_sequence,
       load_profile_state,
       save_profile_state,
       set_global_shortcut,
@@ -834,6 +1922,7 @@ fn set_app_shortcuts(
 ) -> Result<(), String> {
   let mut guard = state.registered.lock().map_err(|_| "lock failed")?;
   let fired_state = state.last_fired.clone();
+  let pressed_state = state.pressed.clone();
 
   for prev in guard.iter() {
     let _ = app.global_shortcut().unregister(prev.as_str());
@@ -842,8 +1931,31 @@ fn set_app_shortcuts(
   if let Ok(mut fired) = fired_state.lock() {
     fired.clear();
   }
+  if let Ok(mut pressed) = pressed_state.lock() {
+    pressed.clear();
+  }
+  #[cfg(windows)]
+  {
+    if let Some(registry) = MOUSE_SHORTCUTS.get() {
+      if let Ok(mut items) = registry.lock() {
+        items.clear();
+      }
+    }
+    if let Some(pressed) = MOUSE_SHORTCUTS_PRESSED.get() {
+      if let Ok(mut items) = pressed.lock() {
+        items.clear();
+      }
+    }
+    if let Some(fired) = MOUSE_SHORTCUTS_FIRED.get() {
+      if let Ok(mut items) = fired.lock() {
+        items.clear();
+      }
+    }
+  }
 
   let mut seen = HashSet::<String>::new();
+  #[cfg(windows)]
+  let mut mouse_bindings = Vec::<MouseShortcutBinding>::new();
   for item in shortcuts {
     let shortcut = item.shortcut.trim().to_string();
     let launch = item.launch.trim().to_string();
@@ -855,13 +1967,49 @@ fn set_app_shortcuts(
       continue;
     }
 
+    #[cfg(windows)]
+    if let Some(binding) = parse_mouse_shortcut(&shortcut, &launch) {
+      mouse_bindings.push(binding);
+      continue;
+    }
+
     let launch_value = launch.clone();
     let fired_state_local = fired_state.clone();
+    let pressed_state_local = pressed_state.clone();
     let shortcut_key = shortcut.to_lowercase();
     app
       .global_shortcut()
       .on_shortcut(shortcut.as_str(), move |app, _sc, event| {
-        if event.state != HotkeyState::Pressed {
+        match event.state {
+          HotkeyState::Released => {
+            if let Ok(mut pressed) = pressed_state_local.lock() {
+              pressed.remove(&shortcut_key);
+            }
+            if let Some(automation_id) = launch_value.strip_prefix(AUTOMATION_SHORTCUT_SCHEME) {
+              let _ = app.emit_to("main", AUTOMATION_SHORTCUT_EVENT, AutomationShortcutEvent {
+                id: automation_id.to_string(),
+                phase: "released".to_string(),
+              });
+            }
+            return;
+          }
+          HotkeyState::Pressed => {
+            let mut pressed = match pressed_state_local.lock() {
+              Ok(guard) => guard,
+              Err(_) => return,
+            };
+            if !pressed.insert(shortcut_key.clone()) {
+              return;
+            }
+          }
+        }
+
+        if let Some(automation_id) = launch_value.strip_prefix(AUTOMATION_SHORTCUT_SCHEME) {
+          let _ = app.emit_to("main", AUTOMATION_SHORTCUT_EVENT, AutomationShortcutEvent {
+            id: automation_id.to_string(),
+            phase: "pressed".to_string(),
+          });          
+        } else if event.state != HotkeyState::Pressed {
           return;
         }
         // Guard against hotkey spam: ignore rapid repeats per shortcut.
@@ -878,9 +2026,7 @@ fn set_app_shortcuts(
         }
         fired.insert(shortcut_key.clone(), now);
         drop(fired);
-        if let Some(automation_id) = launch_value.strip_prefix(AUTOMATION_SHORTCUT_SCHEME) {
-          reveal_main_window(app);
-          let _ = app.emit_to("main", AUTOMATION_SHORTCUT_EVENT, automation_id.to_string());
+        if launch_value.strip_prefix(AUTOMATION_SHORTCUT_SCHEME).is_some() {
           return;
         }
         let _ = app.shell().open(launch_value.clone(), None);
@@ -888,6 +2034,15 @@ fn set_app_shortcuts(
       .map_err(|e| e.to_string())?;
 
     guard.push(shortcut);
+  }
+
+  #[cfg(windows)]
+  {
+    if let Some(registry) = MOUSE_SHORTCUTS.get() {
+      if let Ok(mut items) = registry.lock() {
+        *items = mouse_bindings;
+      }
+    }
   }
 
   Ok(())

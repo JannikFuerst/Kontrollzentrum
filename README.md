@@ -1,184 +1,413 @@
 ﻿# Kontrollzentrum
 
-Moderne Tauri-Desktop-App (Tauri 2 + Vanilla JS) fuer den schnellen Zugriff auf Web- und Desktop-Apps in einer zentralen Oberflaeche.
+Zentrale Windows-/Desktop-Oberflaeche auf Basis von Tauri 2 und Vanilla JavaScript fuer App-Starts, Kategorien, globale Hotkeys, Schnellstart, Sprachsteuerung sowie Makroautomatisierung.
 
-**Version:** `3.0.0`
+**Version:** `3.5.0`
 
 ## Inhalt
 
-1. [Produktidee](#produktidee)
-2. [Feature-Set](#feature-set)
-3. [Quick Start und Shortcuts](#quick-start-und-shortcuts)
-4. [UI-Bereiche](#ui-bereiche)
-5. [Technischer Aufbau](#technischer-aufbau)
-6. [Installation und Development](#installation-und-development)
-7. [Build und Release](#build-und-release)
-8. [Datenmodell und Persistenz](#datenmodell-und-persistenz)
-9. [Tauri Commands (Rust Backend)](#tauri-commands-rust-backend)
-10. [Projektstruktur](#projektstruktur)
-11. [Troubleshooting](#troubleshooting)
-12. [Lizenz](#lizenz)
+1. [Kurzueberblick](#kurzueberblick)
+2. [Wofuer das Projekt gedacht ist](#wofuer-das-projekt-gedacht-ist)
+3. [Hauptfunktionen](#hauptfunktionen)
+4. [Die beiden Arbeitsbereiche](#die-beiden-arbeitsbereiche)
+5. [Appstart im Detail](#appstart-im-detail)
+6. [Makroautomatisierung im Detail](#makroautomatisierung-im-detail)
+7. [Hotkeys und Trigger](#hotkeys-und-trigger)
+8. [UI, Sprache, Theme und Watermark](#ui-sprache-theme-und-watermark)
+9. [Datenhaltung und Persistenz](#datenhaltung-und-persistenz)
+10. [Rust-/Tauri-Commands](#rust-tauri-commands)
+11. [Projektstruktur](#projektstruktur)
+12. [Voraussetzungen](#voraussetzungen)
+13. [Lokale Entwicklung](#lokale-entwicklung)
+14. [Build und Release](#build-und-release)
+15. [Versionierung auf 3.5.0](#versionierung-auf-350)
+16. [Plattformhinweise und Grenzen](#plattformhinweise-und-grenzen)
+17. [Troubleshooting](#troubleshooting)
+18. [Lizenz](#lizenz)
 
-## Produktidee
+## Kurzueberblick
 
-Kontrollzentrum reduziert Kontextwechsel: statt Browser-Bookmarks, Startmenue-Suche und verstreuten Launchern hast du einen zentralen, schnellen Einstiegspunkt fuer alles.
+`Kontrollzentrum` ist eine Desktop-App, die zwei Dinge miteinander verbindet:
 
-Ziel: Apps finden, starten, organisieren und automatisieren in Sekunden.
+1. Einen schnellen Launcher fuer Web-Apps, Desktop-Apps, Kategorien, Favoriten und Schnellzugriffe.
+2. Eine Makro-Ebene fuer wiederkehrende Ablaeufe aus Apps/Dateien, Tastatur, Maus und Systemaktionen.
 
-## Feature-Set
+Das Projekt ist bewusst nicht als reine Bookmark-Sammlung gebaut, sondern als alltaegliches Steuerpult fuer wiederkehrende Arbeitsablaeufe.
 
-- App-Hub mit Kartenansicht fuer Web- und Desktop-Apps
-- Favoriten, angepinnte Apps und Hotkey-Ansicht
-- Schnellfilter ueber Hauptsuche + Kategorie-Suche
-- Kategorien + Ueberkategorien (inkl. Icon-Mapping)
-- Drag-and-drop fuer Karten, Kategorien und Ueberkategorien
-- Kontextmenues fuer App- und Kategorie-Aktionen
-- Quick Launcher Overlay mit fuzzy / phonetic Matching
-- Fester Quick-Shortcut: `Ctrl+Space` (Windows/Linux) / `Super+Space` (macOS)
-- User-konfigurierbarer globaler Toggle-Hotkey (Fenster ein/ausblenden)
-- Pro-App-Hotkeys (globale Registrierung ueber Tauri)
-- Add/Edit-Modal mit Icon-Upload, Favicon, Scan-Auswahl und Hotkey-Capture
-- Desktop-App-Scan unter Windows (Start Apps, Startmenue, Desktop, Steam)
-- Notizen-Seitenleiste mit mehreren Seiten, Lock und Persistenz
-- Clipboard-Historie (Text/Bild), inklusive Retention-Regeln
-- Sprachsteuerung mit Wake Phrase + Befehlserkennung
-- DE/EN Sprachumschaltung (i18n)
-- Theming: Accent, Background Modes (theme/mono/duo/custom image)
-- Update-Hinweis gegen GitHub Releases (`latest.json`)
-- Profilspeicherung via Tauri (AppData), mit Shared-Profile-Export
+## Wofuer das Projekt gedacht ist
 
-## Quick Start und Shortcuts
+Die App ist sinnvoll, wenn du:
 
-### Shortcut-Ebenen
+- viele Web- und Desktop-Apps ueber den Tag verteilt startest,
+- Programme nicht mehr ueber Startmenue, Browser-Lesezeichen und Taskleiste zusammensuchen willst,
+- globale Hotkeys fuer einzelne Apps oder komplette Makros nutzen moechtest,
+- deine Arbeitsoberflaeche optisch anpassen willst,
+- Notizen, Clipboard-Verlauf und Sprachbefehle direkt im selben Tool haben willst.
 
-Im Projekt gibt es bewusst drei Shortcut-Typen:
+Typische Szenarien:
 
-1. **Quick Launcher (fix):**
-   - Windows/Linux: `Ctrl+Space`
-   - macOS: `Super+Space`
-   - Oeffnet den Quick Launcher immer direkt mit Fokus im Eingabefeld
+- Arbeitsstart mit Browser, Chat, Projektboard und IDE per Hotkey.
+- Gaming-/Streaming-Setup mit Discord, Steam, OBS und Begleittools.
+- Wiederkehrende Makros fuer Eingaben, Klicks oder Systemaktionen.
+- Team- oder Privat-Launcher fuer zentrale Websites, Dateien und Tools.
 
-2. **Global Toggle Hotkey (einstellbar):**
-   - In den Einstellungen aufnehmbar
-   - Blendet das Hauptfenster ein/aus
+## Hauptfunktionen
 
-3. **App Hotkeys (pro App):**
-   - Im Add/Edit-Modal je App hinterlegbar
-   - Startet die jeweilige App direkt
+### Launcher und Organisation
 
-### Weitere Tastatur-Shortcuts in der UI
+- Web-Apps und Desktop-Apps in einer gemeinsamen Oberflaeche.
+- Favoriten und angepinnte Apps.
+- Kategorien und Ueberkategorien.
+- Drag-and-drop fuer Karten, Kategorien und Ueberkategorien.
+- Kontextmenues fuer App- und Kategorieaktionen.
+- Quick Launcher / Quick Start als schnelle Overlay-Suche.
+- Fuzzy- und phonetic-artiges Matching fuer schnellere Treffer.
 
-- `Ctrl/Cmd + F`: Fokus auf App-Suche
-- `Ctrl/Cmd + G`: Fokus auf Kategorie-Suche
-- Quick Launcher Navigation: `ArrowUp`, `ArrowDown`, `Enter`, `Escape`
-- Hotkey-Capture abbrechen: `Escape`
-- App-Hotkey im Modal loeschen waehrend Capture: `Backspace` oder `Delete`
+### Desktop-Integration
 
-## UI-Bereiche
+- Globale Hotkeys zum Ein-/Ausblenden des Hauptfensters.
+- Eigener Hotkey fuer den Quick Launcher.
+- Pro-App-Hotkeys fuer direkte Starts.
+- Windows-Desktop-Scan fuer Startmenue-, Desktop- und weitere App-Quellen.
+- Systemnahes Oeffnen externer Ziele ueber Tauri Shell.
 
-- **Topbar:** Suche, Sprache, Voice Settings, Add-App, Settings
-- **Tab-Bereich:** Alle, Favoriten, Hotkeys, dynamische Kategorien
-- **Ueberkategorien:** frei anlegbar, reorderbar, Icon-unterstuetzt
-- **Pinned Row:** schnelle Favoriten-Zeile oben
-- **App Grid:** Karten mit Icon, Titel, Launch, Hotkey, Aktionen
-- **Quick Launcher Overlay:** ultraschneller fuzzy Start
-- **Notes Panel:** Seitenverwaltung, Lock-State, Persistenz
-- **Clipboard Panel:** Verlauf mit zeit-/mengenbasierter Bereinigung
-- **Modals:** Add/Edit App, Kategorieverwaltung, Icon Picker, Settings, Voice
+### Produktivitaetsfunktionen
 
-## Technischer Aufbau
+- Notizen-Seitenleiste mit mehreren Seiten.
+- Clipboard-Historie fuer Text und Bilder.
+- Retention-Regeln fuer Clipboard nach Zeit oder Anzahl.
+- DE/EN Umschaltung.
+- Accent-, Theme- und Background-Konfiguration.
+- Sprachsteuerung mit Wake-Words, Mikrofonwahl, Voice-Ausgabe und Aktivierungston.
 
-### Frontend
+### Makroautomatisierung
 
-- Vanilla JS (`web/app.js`)
-- Statisches HTML (`web/index.html`)
-- Styles in `web/styles.css`
-- Modals als HTML-Partial + JS-Helfer (`web/modals/*`)
+- `Apps & Dateien` Automationen.
+- `Tastatur-Eingabe` Automationen.
+- `Maus-Eingabe` Automationen.
+- `System` Automationen.
+- `Profile` als groessere Makros, die mehrere Bausteine miteinander verknuepfen.
+- Trigger-Modi fuer Makros wie `once`, `hold` und `toggle`.
+- Hotkey-Erfassung inklusive Konfliktpruefung fuer Automationen.
 
-### Desktop Shell
+## Die beiden Arbeitsbereiche
 
-- Tauri 2 (`src-tauri`)
-- Rust Commands fuer:
-  - Global Shortcuts
-  - App Shortcuts
-  - Desktop-App Scan (Windows)
-  - Clipboard IO (Text/Bild)
-  - Externes Oeffnen
-  - Profil laden/speichern
+Die App besitzt zwei Hauptbereiche, zwischen denen ueber das Oberflaechenmenue gewechselt wird.
 
-### Wichtige Plugins
+### 1. Steuerung / Appstart
 
-- `tauri-plugin-global-shortcut`
-- `tauri-plugin-shell`
-- `tauri-plugin-updater`
+Dieser Bereich ist der klassische Launcher:
 
-## Installation und Development
+- Suche ueber alle Apps.
+- Filter nach Favoriten, Kategorien und Ueberkategorien.
+- Kartenansicht mit Icon, Titel, Ziel und Aktionen.
+- Angepinnte Reihe fuer besonders wichtige Apps.
+- Add/Edit-Modal fuer neue Eintraege.
 
-### Voraussetzungen
+### 2. Makroautomatisierung
 
-- Node.js 20+
-- Rust Toolchain (stable)
-- Tauri Prerequisites fuer dein OS
-- Windows: WebView2 Runtime (bei aktuellen Systemen meist bereits installiert)
+Dieser Bereich verwaltet wiederverwendbare Aktionen und zusammengesetzte Ablaeufe:
 
-### Projekt starten
+- Einzelne Launch-Makros fuer Apps, Dateien, Ordner und URLs.
+- Eingabe-Makros fuer Tastatur und Maus.
+- System-Makros fuer Lautstaerke, Medien und Sperr-/Screenshot-Aktionen.
+- Profile fuer groessere Flows mit mehreren Bausteinen.
 
-```bash
-npm install
-npm run tauri dev
-```
+Die aktive Surface wird in `localStorage` gespeichert (`kc_surface_mode_v1`), damit die App beim naechsten Start an derselben Stelle weiterarbeitet.
 
-Das Projekt nutzt in Dev ein statisches Frontend unter `http://127.0.0.1:1420`.
+## Appstart im Detail
 
-### Nuetzliche NPM-Skripte
+### Apps hinzufuegen und bearbeiten
 
-- `npm run tauri dev` -> Desktop App im Dev-Modus
-- `npm run tauri build` -> Installer/Bundles bauen
-- `npm run profile:export` -> `%APPDATA%\\com.jannik.kontrollzentrum\\profile.json` nach `src-tauri/profile.shared.json` kopieren
+Neue Eintraege werden ueber das Add/Edit-Modal gepflegt. Dort lassen sich unter anderem setzen:
 
-## Build und Release
+- Name
+- Ziel (`https://`, App-URI, Datei/Programmziel)
+- Typ (`web`, `desktop`, `scan`)
+- Kategorie
+- eigenes Icon / Favicon / Scan-Icon
+- App-Hotkey
 
-### Lokaler Release Build
+Wenn `scan` genutzt wird, kann eine gefundene Desktop-App direkt ueber die Scanauswahl uebernommen werden.
 
-```bash
-npm run tauri build
-```
+### Kategorien und Ueberkategorien
 
-Typische Bundle-Ausgaben liegen unter:
+Es gibt zwei Organisationsebenen:
 
-- `src-tauri/target/release/bundle/`
+- Kategorien fuer die normale App-Struktur.
+- Ueberkategorien fuer hoehere Gruppierung ueber mehrere Kategorien hinweg.
 
-### GitHub Release per Tag
+Beide Ebenen koennen sortiert und teilweise mit Icons versehen werden. Die Reihenfolge wird im gespeicherten Profil gehalten.
 
-Im Repo ist ein Workflow vorhanden: `.github/workflows/release.yml`.
+### Favoriten, Pinned Row und Kontextmenues
 
-Trigger:
+- Favoriten koennen speziell gefiltert werden.
+- Angepinnte Apps erscheinen in einer separaten oberen Reihe.
+- Kontextmenues erlauben Bearbeiten, Loeschen, Favorisieren und Verwaltungsaktionen.
 
-- Push eines Tags nach Muster `v*.*.*` (z. B. `v3.0.0`)
+### Quick Launcher / Quick Start
 
-Ablauf:
+Der Quick Launcher ist das schnelle Overlay zum Starten von Eintraegen direkt ueber die Tastatur.
 
-- GitHub Action baut die Windows-Artefakte via `tauri-apps/tauri-action`
-- Release + Artefakte werden am Tag erstellt/aktualisiert
+Eigenschaften:
 
-### Versionierung (dieses Release)
+- global aufrufbar,
+- eigene Trefferliste,
+- Tastaturnavigation ueber `ArrowUp`, `ArrowDown`, `Enter`, `Escape`,
+- Ziel fuer schnellen Fokuswechsel ohne komplette Navigation durch die Hauptoberflaeche.
 
-`3.0.0` ist in diesen Dateien gepflegt:
+Standard-Hotkey:
 
-- `package.json`
-- `package-lock.json`
-- `src-tauri/Cargo.toml`
-- `src-tauri/Cargo.lock`
-- `src-tauri/tauri.conf.json`
-- `web/index.html` (`#versionTag`)
+- macOS: `Super+Space`
+- Windows/Linux: `Ctrl+Space`
 
-## Datenmodell und Persistenz
+Der Hotkey ist konfigurierbar und wird unter `kc_quick_launcher_hotkey` gespeichert.
 
-### Profil (Tauri AppData)
+### Notizen und Clipboard
 
-Das Profil wird als JSON gespeichert und beim Start geladen.
+#### Notizen
 
-Default Keys:
+Die Notizleiste bietet:
+
+- mehrere Seiten,
+- Seitenwechsel ueber kleine Tabs,
+- Lock/Unlock fuer Bearbeitung,
+- Seiten loeschen/leeren,
+- Statusanzeige fuer Speichern/Leerzustand.
+
+Wichtige LocalStorage-Keys:
+
+- `kc_notes`
+- `kc_notes_page`
+- `kc_notes_pages`
+- `kc_notes_lock`
+
+#### Clipboard-Verlauf
+
+Die Clipboard-Funktion kann Text und Bildinhalte verwalten. Die Historie unterstuetzt mehrere Modi:
+
+- manuell,
+- nach maximaler Anzahl,
+- nach Zeitfenster in Stunden.
+
+Wichtige LocalStorage-Keys:
+
+- `kc_clipboard_items`
+- `kc_clipboard_retention_mode`
+- `kc_clipboard_retention_hours`
+- `kc_clipboard_retention_count`
+
+### Sprachsteuerung
+
+Die Sprachsteuerung ist direkt in die App integriert und umfasst:
+
+- Aktivieren/Deaktivieren,
+- Mikrofonwahl,
+- Wake-Words,
+- Sprachausgabe / Systemstimme,
+- Aktivierungston,
+- Befehle wie App-Starts ueber gesprochene Eingaben.
+
+Wichtige Einstellungen in `localStorage`:
+
+- `kc_voice_enabled`
+- `kc_voice_mic`
+- `kc_voice_name`
+- `kc_voice_tone`
+- `kc_voice_wake`
+- `kc_voice_wake_mode`
+
+## Makroautomatisierung im Detail
+
+Die Makrooberflaeche liegt in [`web/automation.js`](web/automation.js) und organisiert mehrere Bibliotheken.
+
+### Apps & Dateien
+
+Storage-Key: `kc_apps_files_automations_v1`
+
+Unterstuetzte Schrittarten:
+
+- `app`
+- `url`
+- `file`
+- `folder`
+- `delay`
+
+Sinnvoll fuer:
+
+- mehrere Apps nacheinander oeffnen,
+- Websites, Dateien und Ordner kombinieren,
+- Startsequenzen fuer Arbeits- oder Gaming-Setups.
+
+### Tastatur-Eingabe
+
+Storage-Key: `kc_keyboard_automations_v1`
+
+Unterstuetzte Schrittarten:
+
+- `key`
+- `combo`
+- `delay`
+
+Backend-Seite: `run_keyboard_sequence`
+
+Damit lassen sich z. B. Tastendruecke, Tastenkombinationen und verzoegerte Abfolgen definieren.
+
+### Maus-Eingabe
+
+Storage-Key: `kc_mouse_automations_v1`
+
+Unterstuetzte Schrittarten:
+
+- `click`
+- `down`
+- `up`
+- `move`
+- `scroll`
+- `delay`
+
+Unterstuetzte Maustasten:
+
+- `left`
+- `right`
+- `middle`
+- `x1`
+- `x2`
+
+Backend-Seite: `run_mouse_sequence`
+
+### System
+
+Storage-Key: `kc_system_automations_v1`
+
+Unterstuetzte Schrittarten:
+
+- `volume`
+- `media`
+- `action`
+- `delay`
+
+Aktuell im Code vorhandene Aktionen:
+
+- Lautstaerke: `volume_up`, `volume_down`, `volume_mute`
+- Medien: `media_play_pause`, `media_next`, `media_previous`
+- Aktionen: `screenshot_image`, `lock_screen`
+
+Backend-Seite: `run_system_sequence`
+
+### Profile
+
+Storage-Key: `kc_profile_automations_v1`
+
+Profile sind die oberste Makroebene. Ein Profil kann mehrere bereits vorhandene Bausteine zu einem groesseren Flow zusammensetzen:
+
+- Apps & Dateien
+- Tastatur
+- Maus
+- System
+- Delay-Schritte
+
+Trigger-Modi:
+
+- `once`: einmaliger Lauf
+- `hold`: laeuft waehrend des Haltens
+- `toggle`: startet/stoppt als Umschalter
+
+Profile eignen sich fuer komplette Szenarien wie:
+
+- Streaming-Start
+- Arbeitsumgebung oeffnen
+- Spielstart inkl. Zusatztools
+- wiederkehrende Test- oder Setup-Ablaeufe
+
+## Hotkeys und Trigger
+
+Im Projekt gibt es mehrere Hotkey-Ebenen.
+
+### 1. Fenster-Hotkey
+
+Der globale Toggle-Hotkey blendet das Hauptfenster ein oder aus.
+
+Backend-Command:
+
+- `set_global_shortcut`
+
+### 2. Quick-Launcher-Hotkey
+
+Oeffnet direkt den Quick Launcher.
+
+Speicherung:
+
+- `kc_quick_launcher_hotkey`
+
+### 3. App-Hotkeys
+
+Jede App kann einen eigenen Hotkey erhalten.
+
+Backend-Command:
+
+- `set_app_shortcuts`
+
+### 4. Automations-Hotkeys
+
+Jede Automation bzw. jedes Profil kann einen eigenen Hotkey besitzen. Hotkey-Konflikte werden in der UI erkannt und gemeldet.
+
+### 5. Maus-Hotkeys fuer Automationen
+
+Im Rust-Backend ist ausserdem eine Windows-spezifische Mouse-Hook-Logik vorhanden, damit bestimmte Automationen auch ueber Maus-Buttons und Modifikator-Kombinationen ausgelost werden koennen.
+
+## UI, Sprache, Theme und Watermark
+
+### Sprache
+
+Die App unterstuetzt Deutsch und Englisch. Die Sprachumschaltung betrifft:
+
+- UI-Texte,
+- Tooltips,
+- Modal-Inhalte,
+- Teile der Sprachsteuerung.
+
+Storage-Key:
+
+- `kc_lang`
+
+### Theme und Accent
+
+Unterstuetzt werden mindestens:
+
+- Theme-Modus
+- Mono-Background
+- Duo-Background
+- Custom-Background
+- vordefinierte Accent-Farben
+- Custom-Accent ueber Farbrad und Helligkeit
+
+Wichtige Keys:
+
+- `kc_accent`
+- `kc_accent_custom_base`
+- `kc_accent_custom_brightness`
+- `kc_bg_mode`
+
+### Watermark unten rechts
+
+Unten rechts im Fenster befindet sich eine feste `corner-meta`-Watermark. Sie zeigt jetzt explizit:
+
+- den App-Namen `Kontrollzentrum`,
+- die aktuelle Versionsnummer,
+- den Credit `made by Jannik Fuerst`.
+
+Die sichtbare Versionszeile wird ueber `window.__TAURI__.app.getVersion()` in [`web/app.js`](web/app.js) gesetzt und hat einen Fallback-Wert in [`web/index.html`](web/index.html).
+
+## Datenhaltung und Persistenz
+
+Das Projekt verwendet zwei Hauptspeicherorte.
+
+### 1. Profilspeicherung ueber Tauri / AppData
+
+App-bezogene Kerndaten werden als Profil ueber das Rust-Backend geladen und gespeichert.
+
+Relevante Keys innerhalb des Profils:
 
 - `kc_apps`
 - `kc_pinned_order`
@@ -190,79 +419,291 @@ Default Keys:
 - `kc_super_icon_map`
 - `kc_category_icon_map`
 
-### LocalStorage (UI/Runtime Settings)
+Das Export-Skript [`scripts/export-shared-profile.ps1`](scripts/export-shared-profile.ps1) kopiert das Live-Profil aus `%APPDATA%\com.jannik.kontrollzentrum\profile.json` nach [`src-tauri/profile.shared.json`](src-tauri/profile.shared.json).
 
-Zusatzdaten werden lokal gehalten, z. B.:
+### 2. LocalStorage fuer UI- und Laufzeitdaten
 
-- Sprache, Theme, Accent, Background-Optionen
-- Notes/Clipboard States
-- Hotkey- und Voice-Settings
-- Rail/UI-Status
+LocalStorage haelt vor allem:
 
-## Tauri Commands (Rust Backend)
+- Surface-Auswahl,
+- Sprache,
+- Quick-Launcher-Hotkey,
+- Scan-Cache,
+- Notes,
+- Clipboard-Historie,
+- Theme/Accent/Background,
+- Voice-Einstellungen,
+- Automationsbibliotheken.
 
-Folgende Commands sind im Frontend per `window.__TAURI__.core.invoke` nutzbar:
+Wichtige Keys im Frontend:
+
+- `kc_surface_mode_v1`
+- `kc_quick_launcher_hotkey`
+- `kc_cat_rail_collapsed`
+- `kc_scan_cache_v9`
+- `kc_notes`
+- `kc_notes_page`
+- `kc_notes_pages`
+- `kc_notes_lock`
+- `kc_clipboard_items`
+- `kc_clipboard_retention_mode`
+- `kc_clipboard_retention_hours`
+- `kc_clipboard_retention_count`
+- `kc_accent`
+- `kc_accent_custom_base`
+- `kc_accent_custom_brightness`
+- `kc_bg_mode`
+- `kc_voice_enabled`
+- `kc_voice_mic`
+- `kc_voice_name`
+- `kc_voice_tone`
+- `kc_voice_wake`
+- `kc_voice_wake_mode`
+- `kc_apps_files_automations_v1`
+- `kc_keyboard_automations_v1`
+- `kc_mouse_automations_v1`
+- `kc_system_automations_v1`
+- `kc_profile_automations_v1`
+
+## Rust-/Tauri-Commands
+
+Die folgenden Commands sind im Backend registriert und stehen dem Frontend ueber Tauri zur Verfuegung:
 
 - `open_external`
-- `scan_desktop_apps`
+  Oeffnet externe Ziele ueber die Tauri-Shell.
+
+- `run_keyboard_sequence`
+  Fuehrt Tastatursequenzen aus.
+
+- `run_mouse_sequence`
+  Fuehrt Maussequenzen aus.
+
+- `run_system_sequence`
+  Fuehrt Systemaktionen aus.
+
+- `pick_filesystem_target`
+  Oeffnet Dateidialoge fuer Datei- oder Ordnerauswahl.
+
 - `set_window_icon`
+  Setzt das Fenstericon aus einem Data-URL-Bild.
+
 - `load_profile_state`
+  Laedt das gespeicherte Tauri-Profil.
+
 - `save_profile_state`
-- `set_global_shortcut`
-- `set_app_shortcuts`
+  Speichert das Tauri-Profil.
+
 - `get_clipboard_text`
+  Liest Text aus der Zwischenablage.
+
 - `get_clipboard_payload`
+  Liest Text oder Bilddaten aus der Zwischenablage.
+
 - `set_clipboard_text`
+  Schreibt Text in die Zwischenablage.
+
 - `set_clipboard_image`
+  Schreibt ein Bild in die Zwischenablage.
+
+- `scan_desktop_apps`
+  Sucht Desktop-Apps unterstuetzt durch Windows-spezifische Quellen.
+
+- `set_global_shortcut`
+  Registriert den globalen Fenster-Hotkey.
+
+- `set_app_shortcuts`
+  Registriert App- und Automations-Hotkeys.
 
 ## Projektstruktur
 
 ```text
 .
-|- web/
-|  |- index.html
-|  |- styles.css
-|  |- app.js
-|  |- assets/
-|  `- modals/
-|     |- add-app.modal.html
-|     `- add-app.modal.js
-|- src-tauri/
-|  |- src/lib.rs
-|  |- Cargo.toml
-|  |- tauri.conf.json
-|  `- icons/
+|- .github/
+|  `- workflows/
+|     `- release.yml
 |- scripts/
 |  `- export-shared-profile.ps1
-`- .github/workflows/release.yml
+|- src-tauri/
+|  |- capabilities/
+|  |- gen/
+|  |- icons/
+|  |- src/
+|  |  |- lib.rs
+|  |  `- main.rs
+|  |- Cargo.toml
+|  |- Cargo.lock
+|  |- profile.shared.json
+|  `- tauri.conf.json
+|- web/
+|  |- assets/
+|  |- modals/
+|  |  |- add-app.modal.html
+|  |  `- add-app.modal.js
+|  |- app.js
+|  |- automation.js
+|  |- index.html
+|  `- styles.css
+|- package.json
+|- package-lock.json
+`- README.md
 ```
+
+## Voraussetzungen
+
+Fuer Entwicklung und Build werden benoetigt:
+
+- Node.js 20+
+- Rust Stable Toolchain
+- Tauri 2 Voraussetzungen fuer das jeweilige System
+- unter Windows: WebView2 Runtime
+
+## Lokale Entwicklung
+
+### Installation
+
+```bash
+npm install
+```
+
+### Dev-Start
+
+```bash
+npm run tauri dev
+```
+
+Was dabei passiert:
+
+- das Frontend wird lokal ueber `http://127.0.0.1:1420` serviert,
+- Tauri startet die Desktop-App,
+- Rust-Backend und Web-UI laufen zusammen.
+
+### Weitere Skripte
+
+```bash
+npm run build
+npm run profile:export
+```
+
+Bedeutung:
+
+- `npm run build` baut die App ueber Tauri.
+- `npm run profile:export` exportiert das Live-Profil nach `src-tauri/profile.shared.json`.
+
+Hinweis:
+
+- Es ist aktuell kein eigener Linter- oder Testlauf in `package.json` hinterlegt.
+- Validierung erfolgt derzeit hauptsaechlich ueber den Build bzw. Lauf der App.
+
+## Build und Release
+
+### Lokaler Produktionsbuild
+
+```bash
+npm run build
+```
+
+Bundle-Ausgaben liegen typischerweise unter:
+
+- `src-tauri/target/release/bundle/`
+
+### GitHub-Release
+
+Der Workflow liegt in [`release.yml`](.github/workflows/release.yml).
+
+Trigger:
+
+- Push eines Tags nach Muster `v*.*.*`
+
+Ablauf:
+
+1. Checkout des Repositories auf `windows-latest`.
+2. Node-Setup mit Version 20.
+3. `npm ci` fuer Frontend-Abhaengigkeiten.
+4. Build und Release ueber `tauri-apps/tauri-action@v0`.
+
+Fuer signierte Releases werden folgende Secrets genutzt:
+
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+- `GITHUB_TOKEN`
+
+### Auto-Update
+
+In [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json) ist der Update-Endpunkt auf GitHub Releases konfiguriert:
+
+- `https://github.com/JannikFuerst/Kontrollzentrum/releases/latest/download/latest.json`
+
+Die UI prueft beim Start auf Updates und vergleicht `latest.json` mit der lokal installierten App-Version.
+
+## Versionierung auf 3.5.0
+
+Fuer dieses Release wurde die Version konsistent auf `3.5.0` angehoben.
+
+Betroffene Dateien:
+
+- [`package.json`](package.json)
+- [`package-lock.json`](package-lock.json)
+- [`src-tauri/Cargo.toml`](src-tauri/Cargo.toml)
+- [`src-tauri/Cargo.lock`](src-tauri/Cargo.lock)
+- [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json)
+- [`web/index.html`](web/index.html)
+- [`README.md`](README.md)
+
+Fuer den GitHub-Release-Workflow sollte das Tag als `v3.5.0` gepusht werden, weil genau dieses Format den Release-Workflow startet.
+
+## Plattformhinweise und Grenzen
+
+- Die App ist klar auf Desktop-Nutzung ausgelegt.
+- Desktop-Scan ist in der Praxis vor allem fuer Windows relevant.
+- Tastatur-, Maus- und Systemsequenzen sind im Rust-Backend aktuell nur fuer Windows implementiert.
+- Sprachsteuerung benoetigt Browser-/WebView-Mikrofonzugriff.
+- Ohne Tauri-Umgebung funktionieren bestimmte Features im reinen Browser nicht oder nur eingeschraenkt.
 
 ## Troubleshooting
 
-### `Ctrl+Space` oeffnet nichts
+### Der globale Hotkey reagiert nicht
 
-- Pruefen, ob die App als Tauri Desktop App laeuft (nicht nur im Browser)
-- Pruefen, ob ein anderes Tool den Shortcut global blockiert
-- Dev-Konsole/Terminal auf Shortcut-Registerfehler pruefen
+- Pruefen, ob ein anderes Tool denselben Shortcut blockiert.
+- Pruefen, ob die App als Desktop-App und nicht nur im Browser laeuft.
+- Bei neuen Hotkeys einmal die App neu fokussieren oder neu starten.
 
-### App-Icon wirkt unscharf
+### Der Quick Launcher oeffnet sich nicht
 
-- Nur hochaufgeloeste Basisdatei als Quelle nutzen (`app-icon-base.png`)
-- Danach `npm run tauri icon <pfad-zur-datei>` ausfuehren
-- Build neu starten
+- Quick-Launcher-Hotkey in den Einstellungen kontrollieren.
+- Konflikte mit Betriebssystem- oder Drittanbieter-Shortcuts ausschliessen.
 
-### Scan liefert keine Desktop-Apps
+### Desktop-Scan findet keine Apps
 
-- Feature ist fuer Windows implementiert
-- Auf anderen Plattformen liefert `scan_desktop_apps` leer zurueck
+- Funktion ist fuer Windows gedacht.
+- Startmenue-/Desktop-Eintraege muessen lokal verfuegbar sein.
+- Bei sehr neuen Installationen hilft oft ein erneuter Scan oder App-Neustart.
 
-### Update-Hinweis kommt nicht
+### Sprachsteuerung reagiert nicht
 
-- Internetzugriff auf GitHub Releases erforderlich
-- `latest.json` muss im letzten Release vorhanden sein
+- Mikrofonzugriff in Windows und in der WebView erlauben.
+- das richtige Mikrofon im Voice-Dialog waehlen,
+- Wake-Wort kontrollieren,
+- pruefen, ob Voice-Control aktiviert ist.
+
+### Clipboard bleibt leer
+
+- Clipboard-Funktion funktioniert nur mit Tauri-Bridge vollstaendig.
+- Bei Bilddaten auf gueltige Data-URL/Clipboard-Inhalte achten.
+
+### Update-Hinweis erscheint nicht
+
+- Es muss ein GitHub Release mit `latest.json` vorhanden sein.
+- Internetzugriff auf GitHub darf nicht blockiert sein.
+- Die lokale Version darf nicht bereits gleich oder neuer sein.
 
 ## Lizenz
 
-`package.json` enthaelt aktuell `ISC`.
+Laut [`package.json`](package.json) ist aktuell `ISC` eingetragen.
 
-Wenn du eine eigene Lizenzdatei nutzen willst, lege zusaetzlich eine `LICENSE` im Repo-Root an.
+Wenn du spaeter eine eigene Lizenzdatei pflegen willst, kannst du zusaetzlich eine `LICENSE` im Repo-Root anlegen.
+
+
+
+
+
+

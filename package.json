@@ -1,6 +1,6 @@
 {
   "name": "kontrollzentrum",
-  "version": "3.0.0",
+  "version": "3.5.0",
   "description": "",
   "main": "app.js",
   "scripts": {
@@ -20,6 +20,3 @@
     "@tauri-apps/plugin-shell": "^2.3.5"
   }
 }
-
-
-

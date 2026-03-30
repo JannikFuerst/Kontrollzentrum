@@ -145,11 +145,6 @@
             <span aria-hidden="true">&#x2B50;</span>
             <span data-i18n="tab_favorites">Favoriten</span> <span class="badge" id="badgeFav">0</span>
           </div>
-          <div class="tab" data-tab="hotkeys" role="tab" aria-selected="false">
-            <span aria-hidden="true">&#x26D3;&#xFE0F;&#x200D;&#x1F4A5;</span>
-            <span data-i18n="tab_hotkeys">Hotkeys</span> <span class="badge" id="badgeHotkeys">0</span>
-          </div>
-
           <div id="catTabs" class="cat-tabs"></div>
         </div>
         <div class="tabs-actions">
@@ -191,8 +186,9 @@
 	    </div>
   </div>
 
-  <div class="corner-meta">
-    <div id="versionTag">v3.0.0</div>
+  <div class="corner-meta" aria-hidden="true">
+    <div class="watermark-app">Kontrollzentrum</div>
+    <div id="versionTag" class="watermark-version">v3.5.0</div>
     <div class="credit">made by Jannik F&uuml;rst</div>
   </div>
 
@@ -210,4 +206,3 @@
   <script src="./app.js"></script>
 </body>
 </html>
-
