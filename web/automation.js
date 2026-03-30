@@ -23,6 +23,7 @@
     const MOUSE_STORAGE_KEY = "kc_mouse_automations_v1";
     const SYSTEM_STORAGE_KEY = "kc_system_automations_v1";
     const PROFILE_AUTOMATION_STORAGE_KEY = "kc_profile_automations_v1";
+    const HOTKEY_APP_BINDINGS_STORAGE_KEY = "kc_hotkey_app_bindings_v1";
     const APPS_FILES_KINDS = ["app", "url", "file", "folder", "delay"];
     const KEYBOARD_STEP_KINDS = ["key", "combo", "delay"];
     const MOUSE_STEP_KINDS = ["click", "down", "up", "move", "scroll", "delay"];
@@ -123,6 +124,13 @@
     let profileAutomations = loadProfileAutomations();
     const profileLoopControllers = new Map();
     const profileRunningOnce = new Set();
+    let profileGameAppMenuOpen = false;
+    let profileGameAppTypeaheadQuery = "";
+    let hotkeyAppBindings = loadHotkeyAppBindings();
+    let processBindingSelectedHotkeyId = "";
+    let processBindingSearchQuery = "";
+    let processBindingListFilter = "all";
+    let processBindingAppSearchQuery = "";
 
     const AUTOMATION_CATALOG = [
       {
@@ -164,11 +172,20 @@
       {
         id: "automations",
         icon: "\uD83E\uDDE9",
-        nameDe: "Profile",
-        nameEn: "Profiles",
+        nameDe: "Kombination",
+        nameEn: "Combinations",
         type: "automations",
         descDe: "Kombiniert mehrere Aktionen in einem Ablauf, z. B. Keyboard + Maus + Apps + Delays.",
         descEn: "Combines multiple actions in one flow, e.g. keyboard + mouse + apps + delays."
+      },
+      {
+        id: "process-detection",
+        icon: "\uD83C\uDFAE",
+        nameDe: "Spielerkennung",
+        nameEn: "Game Detection",
+        type: "process_binding",
+        descDe: "Ordnet Hotkeys Apps oder Spielen zu und aktiviert sie automatisch nur solange der Prozess läuft.",
+        descEn: "Assigns hotkeys to apps or games and keeps them active only while the process is running."
       }
     ];
 
@@ -294,7 +311,16 @@
     }
 
     function createProfileDraft() {
-      return { name: "", hotkey: "", triggerMode: "once", steps: [] };
+      return {
+        name: "",
+        hotkey: "",
+        triggerMode: "once",
+        gameBindingEnabled: false,
+        gameAppName: "",
+        gameAppLaunch: "",
+        gameMatchText: "",
+        steps: []
+      };
     }
 
     function resetAppsFilesEditorDraft(captureBtn, isDe) {
@@ -607,6 +633,75 @@
       publishAutomationHotkeys();
     }
 
+    function normalizeHotkeyAppBinding(entry) {
+      if (!entry || typeof entry !== "object") return null;
+      const hotkeyId = String(entry.hotkeyId || entry.automationId || "").trim();
+      const processName = String(entry.processName || entry.gameMatchText || "").trim();
+      if (!hotkeyId || !processName) return null;
+      return {
+        hotkeyId,
+        appName: String(entry.appName || entry.gameAppName || "").trim(),
+        appLaunch: String(entry.appLaunch || entry.gameAppLaunch || "").trim(),
+        processName,
+        createdAt: Number(entry.createdAt) || Date.now()
+      };
+    }
+
+    function migrateLegacyProfileAppBindings() {
+      return (Array.isArray(profileAutomations) ? profileAutomations : [])
+        .map((item) => {
+          const rawId = String(item?.id || "").trim();
+          const processName = String(item?.gameMatchText || "").trim();
+          if (!rawId || item?.gameBindingEnabled !== true || !processName) return null;
+          return normalizeHotkeyAppBinding({
+            hotkeyId: `profile:${rawId}`,
+            appName: item?.gameAppName,
+            appLaunch: item?.gameAppLaunch,
+            processName,
+            createdAt: item?.createdAt
+          });
+        })
+        .filter(Boolean);
+    }
+
+    function loadHotkeyAppBindings() {
+      try {
+        const raw = localStorage.getItem(HOTKEY_APP_BINDINGS_STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .map((entry) => normalizeHotkeyAppBinding(entry))
+              .filter(Boolean);
+          }
+        }
+      } catch {
+        // Ignore malformed storage; fall through to migration.
+      }
+
+      const migrated = migrateLegacyProfileAppBindings();
+      if (migrated.length) {
+        try {
+          localStorage.setItem(HOTKEY_APP_BINDINGS_STORAGE_KEY, JSON.stringify(migrated));
+        } catch {
+          // Ignore storage errors
+        }
+      }
+      return migrated;
+    }
+
+    function saveHotkeyAppBindings() {
+      hotkeyAppBindings = (Array.isArray(hotkeyAppBindings) ? hotkeyAppBindings : [])
+        .map((entry) => normalizeHotkeyAppBinding(entry))
+        .filter(Boolean);
+      try {
+        localStorage.setItem(HOTKEY_APP_BINDINGS_STORAGE_KEY, JSON.stringify(hotkeyAppBindings));
+      } catch {
+        // Ignore storage errors
+      }
+      publishAutomationHotkeys();
+    }
+
     function normalizeAppsFilesAutomation(entry) {
       if (!entry || typeof entry !== "object") return null;
       const normalizedSteps = [];
@@ -782,63 +877,196 @@
         })
         .filter(Boolean);
       if (!normalizedSteps.length) return null;
+      const gameMatchText = String(entry.gameMatchText || "").trim();
+      const gameBindingEnabled = entry.gameBindingEnabled === true && Boolean(gameMatchText);
       return {
         id: String(entry.id || uid()),
         name: String(entry.name || "").trim() || deriveProfileName(normalizedSteps[0], getLang() === "de"),
         hotkey: String(entry.hotkey || "").trim(),
         triggerMode: ["once", "hold", "toggle"].includes(String(entry.triggerMode || "").trim()) ? String(entry.triggerMode).trim() : "once",
-        enabled: entry.enabled !== false,
+        gameBindingEnabled,
+        gameAppName: String(entry.gameAppName || "").trim(),
+        gameAppLaunch: String(entry.gameAppLaunch || "").trim(),
+        gameMatchText,
+        enabled: gameBindingEnabled ? true : entry.enabled !== false,
         steps: normalizedSteps,
         createdAt: Number(entry.createdAt) || Date.now()
       };
     }
 
+    function getAutomationBindingKey(sourceType, rawId) {
+      const normalizedType = String(sourceType || "").trim();
+      const normalizedId = String(rawId || "").trim();
+      if (!normalizedType || !normalizedId) return "";
+      return `${normalizedType}:${normalizedId}`;
+    }
+
+    function getHotkeyAppBindingById(hotkeyId) {
+      const normalizedId = String(hotkeyId || "").trim();
+      if (!normalizedId) return null;
+      return (Array.isArray(hotkeyAppBindings) ? hotkeyAppBindings : []).find((entry) => String(entry?.hotkeyId || "").trim() === normalizedId) || null;
+    }
+
+    function getHotkeyAppBindingForItem(sourceType, item) {
+      return getHotkeyAppBindingById(getAutomationBindingKey(sourceType, item?.id));
+    }
+
+    function isAutomationAppBound(sourceType, item) {
+      return Boolean(String(getHotkeyAppBindingForItem(sourceType, item)?.processName || "").trim());
+    }
+
+    function getAutomationBoundAppLabel(sourceType, item) {
+      const binding = getHotkeyAppBindingForItem(sourceType, item);
+      if (!binding) return "";
+      return String(binding.appName || binding.processName || "").trim();
+    }
+
+    function getAutomationEffectiveEnabled(sourceType, item) {
+      if (isAutomationAppBound(sourceType, item)) return true;
+      return item?.enabled !== false;
+    }
+
+    function getAutomationStatusMeta(sourceType, item, isDe) {
+      if (isAutomationAppBound(sourceType, item)) {
+        return {
+          className: "is-auto",
+          label: isDe ? "Per App" : "Per app"
+        };
+      }
+      return item?.enabled === false
+        ? { className: "is-disabled", label: isDe ? "Deaktiviert" : "Disabled" }
+        : { className: "is-enabled", label: isDe ? "Aktiviert" : "Enabled" };
+    }
+
+    function getAutomationBindingMetaLabel(sourceType, item, isDe) {
+      const label = getAutomationBoundAppLabel(sourceType, item);
+      if (!label) return "";
+      return isDe ? `App: ${label}` : `App: ${label}`;
+    }
+
+    function isAutomationRuntimeAllowed(sourceType, item) {
+      if (!isAutomationAppBound(sourceType, item)) {
+        return item?.enabled !== false;
+      }
+      const binding = getHotkeyAppBindingForItem(sourceType, item);
+      const matchText = String(binding?.processName || "").trim();
+      if (!matchText) {
+        return false;
+      }
+      const checker = window.__KC_IS_PROCESS_MATCH_ACTIVE;
+      if (typeof checker !== "function") {
+        return true;
+      }
+      return checker(matchText);
+    }
+
+    function getAutomationSourceLabel(sourceType, isDe) {
+      if (sourceType === "keyboard") return isDe ? "Tastatur-Eingabe" : "Keyboard Input";
+      if (sourceType === "mouse") return isDe ? "Maus-Eingabe" : "Mouse Input";
+      if (sourceType === "system") return "System";
+      if (sourceType === "profile") return isDe ? "Kombination" : "Combination";
+      return isDe ? "Apps & Dateien" : "Apps & Files";
+    }
+
+    function getAutomationSourceCode(sourceType) {
+      if (sourceType === "keyboard") return "KEY";
+      if (sourceType === "mouse") return "MOUSE";
+      if (sourceType === "system") return "SYS";
+      if (sourceType === "profile") return "FLOW";
+      return "APP";
+    }
+
+    function buildAllHotkeyEntries() {
+      function buildEntries(items, sourceType) {
+        return (Array.isArray(items) ? items : [])
+          .map((item) => {
+            const rawId = String(item?.id || "").trim();
+            const shortcut = String(item?.hotkey || "").trim();
+            if (!rawId || !shortcut) return null;
+            const id = getAutomationBindingKey(sourceType, rawId);
+            const binding = getHotkeyAppBindingById(id);
+            return {
+              id,
+              rawId,
+              sourceType,
+              name: String(item?.name || "").trim() || id,
+              hotkey: shortcut,
+              triggerMode: String(item?.triggerMode || "").trim(),
+              stepCount: Array.isArray(item?.steps) ? item.steps.length : 0,
+              enabled: item?.enabled !== false,
+              effectiveEnabled: getAutomationEffectiveEnabled(sourceType, item),
+              boundAppLabel: String(binding?.appName || binding?.processName || "").trim(),
+              boundProcessName: String(binding?.processName || "").trim(),
+              boundAppLaunch: String(binding?.appLaunch || "").trim(),
+              createdAt: Number(item?.createdAt) || Date.now()
+            };
+          })
+          .filter(Boolean);
+      }
+
+      return [
+        ...buildEntries(appsFilesAutomations, "apps-files"),
+        ...buildEntries(keyboardAutomations, "keyboard"),
+        ...buildEntries(mouseAutomations, "mouse"),
+        ...buildEntries(systemAutomations, "system"),
+        ...buildEntries(profileAutomations, "profile")
+      ];
+    }
+
+    function upsertHotkeyAppBinding(hotkeyId, app) {
+      const normalizedId = String(hotkeyId || "").trim();
+      const normalized = normalizeHotkeyAppBinding({
+        hotkeyId: normalizedId,
+        appName: app?.name,
+        appLaunch: app?.launch,
+        processName: app?.processName
+      });
+      if (!normalized) return false;
+      hotkeyAppBindings = (Array.isArray(hotkeyAppBindings) ? hotkeyAppBindings : [])
+        .filter((entry) => String(entry?.hotkeyId || "").trim() !== normalizedId);
+      hotkeyAppBindings.unshift(normalized);
+      saveHotkeyAppBindings();
+      return true;
+    }
+
+    function removeHotkeyAppBinding(hotkeyId) {
+      const normalizedId = String(hotkeyId || "").trim();
+      const before = Array.isArray(hotkeyAppBindings) ? hotkeyAppBindings.length : 0;
+      hotkeyAppBindings = (Array.isArray(hotkeyAppBindings) ? hotkeyAppBindings : [])
+        .filter((entry) => String(entry?.hotkeyId || "").trim() !== normalizedId);
+      if (hotkeyAppBindings.length === before) return false;
+      saveHotkeyAppBindings();
+      return true;
+    }
+
     function collectPublishedHotkeyEntries() {
-      const appsFilesEntries = (Array.isArray(appsFilesAutomations) ? appsFilesAutomations : [])
-        .map((item) => {
-          if (item?.enabled === false) return null;
-          const shortcut = String(item?.hotkey || "").trim();
-          const id = String(item?.id || "").trim();
-          if (!shortcut || !id) return null;
-          return { shortcut, launch: `kc-automation://apps-files:${id}` };
-        })
-        .filter(Boolean);
-      const keyboardEntries = (Array.isArray(keyboardAutomations) ? keyboardAutomations : [])
-        .map((item) => {
-          if (item?.enabled === false) return null;
-          const shortcut = String(item?.hotkey || "").trim();
-          const id = String(item?.id || "").trim();
-          if (!shortcut || !id) return null;
-          return { shortcut, launch: `kc-automation://keyboard:${id}` };
-        })
-        .filter(Boolean);
-      const mouseEntries = (Array.isArray(mouseAutomations) ? mouseAutomations : [])
-        .map((item) => {
-          if (item?.enabled === false) return null;
-          const shortcut = String(item?.hotkey || "").trim();
-          const id = String(item?.id || "").trim();
-          if (!shortcut || !id) return null;
-          return { shortcut, launch: `kc-automation://mouse:${id}` };
-        })
-        .filter(Boolean);
-      const systemEntries = (Array.isArray(systemAutomations) ? systemAutomations : [])
-        .map((item) => {
-          if (item?.enabled === false) return null;
-          const shortcut = String(item?.hotkey || "").trim();
-          const id = String(item?.id || "").trim();
-          if (!shortcut || !id) return null;
-          return { shortcut, launch: `kc-automation://system:${id}` };
-        })
-        .filter(Boolean);
-      const profileEntries = (Array.isArray(profileAutomations) ? profileAutomations : [])
-        .map((item) => {
-          if (item?.enabled === false) return null;
-          const shortcut = String(item?.hotkey || "").trim();
-          const id = String(item?.id || "").trim();
-          if (!shortcut || !id) return null;
-          return { shortcut, launch: `kc-automation://profile:${id}` };
-        })
-        .filter(Boolean);
+      function buildEntries(items, sourceType) {
+        return (Array.isArray(items) ? items : [])
+          .map((item) => {
+            const shortcut = String(item?.hotkey || "").trim();
+            const rawId = String(item?.id || "").trim();
+            if (!shortcut || !rawId) return null;
+            const id = `${sourceType}:${rawId}`;
+            const binding = getHotkeyAppBindingById(id);
+            if (!getAutomationEffectiveEnabled(sourceType, item)) return null;
+            return {
+              id,
+              label: String(item?.name || "").trim() || id,
+              sourceType,
+              shortcut,
+              launch: `kc-automation://${sourceType}:${rawId}`,
+              gameBindingEnabled: Boolean(String(binding?.processName || "").trim()),
+              gameMatchText: String(binding?.processName || "").trim()
+            };
+          })
+          .filter(Boolean);
+      }
+
+      const appsFilesEntries = buildEntries(appsFilesAutomations, "apps-files");
+      const keyboardEntries = buildEntries(keyboardAutomations, "keyboard");
+      const mouseEntries = buildEntries(mouseAutomations, "mouse");
+      const systemEntries = buildEntries(systemAutomations, "system");
+      const profileEntries = buildEntries(profileAutomations, "profile");
       return [...appsFilesEntries, ...keyboardEntries, ...mouseEntries, ...systemEntries, ...profileEntries];
     }
 
@@ -920,10 +1148,10 @@
     }
 
     function deriveProfileName(step, isDe) {
-      if (!step) return isDe ? "Neues Profil" : "New profile";
+      if (!step) return isDe ? "Neue Kombination" : "New combination";
       if (step.kind === "delay") return `${isDe ? "Warte" : "Wait"} ${step.value || "100"} ms`;
       const label = getProfileReferenceLabel(step.kind, step.refId, isDe);
-      return label || (isDe ? "Neues Profil" : "New profile");
+      return label || (isDe ? "Neue Kombination" : "New combination");
     }
 
     function cloneKeyboardSteps(steps) {
@@ -1007,7 +1235,7 @@
       const automationId = String(id || "").trim();
       if (!automationId) return;
       const item = appsFilesAutomations.find((entry) => entry.id === automationId);
-      if (!item || item.enabled === false) return;
+      if (!item || !getAutomationEffectiveEnabled("apps-files", item) || !isAutomationRuntimeAllowed("apps-files", item)) return;
       await runAppsFilesAutomation(item);
     }
 
@@ -1120,7 +1348,7 @@
 
     function getKeyboardFilterValue(item) {
       if (keyboardListFilter === "enabled" || keyboardListFilter === "disabled") {
-        return item?.enabled === false ? "disabled" : "enabled";
+        return getAutomationEffectiveEnabled("keyboard", item) ? "enabled" : "disabled";
       }
       return getKeyboardPrimaryKind(item);
     }
@@ -1297,7 +1525,7 @@
       const automationId = String(id || "").trim();
       if (!automationId) return;
       const item = keyboardAutomations.find((entry) => entry.id === automationId);
-      if (!item || item.enabled === false) return;
+      if (!item || !getAutomationEffectiveEnabled("keyboard", item) || !isAutomationRuntimeAllowed("keyboard", item)) return;
       await handleKeyboardAutomationTrigger(item, String(phase || "pressed"));
     }
 
@@ -1422,7 +1650,7 @@
 
     function getMouseFilterValue(item) {
       if (mouseListFilter === "enabled" || mouseListFilter === "disabled") {
-        return item?.enabled === false ? "disabled" : "enabled";
+        return getAutomationEffectiveEnabled("mouse", item) ? "enabled" : "disabled";
       }
       return getMousePrimaryKind(item);
     }
@@ -1585,7 +1813,7 @@
       const automationId = String(id || "").trim();
       if (!automationId) return;
       const item = mouseAutomations.find((entry) => entry.id === automationId);
-      if (!item || item.enabled === false) return;
+      if (!item || !getAutomationEffectiveEnabled("mouse", item) || !isAutomationRuntimeAllowed("mouse", item)) return;
       await handleMouseAutomationTrigger(item, String(phase || "pressed"));
     }
 
@@ -1664,7 +1892,7 @@
 
     function getSystemFilterValue(item) {
       if (systemListFilter === "enabled" || systemListFilter === "disabled") {
-        return item?.enabled === false ? "disabled" : "enabled";
+        return getAutomationEffectiveEnabled("system", item) ? "enabled" : "disabled";
       }
       const primaryKind = getSystemPrimaryKind(item);
       if (primaryKind === "flow") return "flow";
@@ -1769,16 +1997,169 @@
 
     function getProfileFilterValue(item) {
       if (profileListFilter === "enabled" || profileListFilter === "disabled") {
-        return item?.enabled === false ? "disabled" : "enabled";
+        return getProfileEffectiveEnabled(item) ? "enabled" : "disabled";
       }
       return getProfilePrimaryKind(item);
     }
 
+    function isProfileGameBound(item) {
+      return isAutomationAppBound("profile", item);
+    }
+
+    function getProfileEffectiveEnabled(item) {
+      return getAutomationEffectiveEnabled("profile", item);
+    }
+
+    function getProfileStatusMeta(item, isDe) {
+      return getAutomationStatusMeta("profile", item, isDe);
+    }
+
+    function getProfileBoundAppLabel(item) {
+      return getAutomationBoundAppLabel("profile", item);
+    }
+
+    function getProfileGameBindingSummary(item, isDe) {
+      if (!isProfileGameBound(item)) return "";
+      const label = getProfileBoundAppLabel(item);
+      if (!label) return "";
+      return isDe ? `App: ${label}` : `App: ${label}`;
+    }
+
     function getProfileInfoLines(item, isDe) {
-      return (Array.isArray(item?.steps) ? item.steps : []).map((step, idx) => {
+      const lines = [];
+      const gameBindingSummary = getProfileGameBindingSummary(item, isDe);
+      if (gameBindingSummary) {
+        lines.push(
+          isDe
+            ? `${gameBindingSummary} (Hotkey nur aktiv, solange der Prozess läuft)`
+            : `${gameBindingSummary} (hotkey active only while the process is running)`
+        );
+      }
+      return lines.concat((Array.isArray(item?.steps) ? item.steps : []).map((step, idx) => {
         const label = step?.kind === "delay" ? "Delay" : profileStepKindLabel(step?.kind, isDe);
         return `${idx + 1}. ${label}: ${formatProfileStepSummary(step, isDe) || "-"}`;
-      });
+      }));
+    }
+
+    function getProcessBindingFilterOptions(isDe) {
+      return [
+        { value: "all", label: isDe ? "Alle" : "All" },
+        { value: "bound", label: isDe ? "Verknüpft" : "Bound" },
+        { value: "unbound", label: isDe ? "Ohne App" : "Without app" },
+        { value: "apps-files", label: isDe ? "Apps & Dateien" : "Apps & Files" },
+        { value: "keyboard", label: isDe ? "Tastatur" : "Keyboard" },
+        { value: "mouse", label: isDe ? "Maus" : "Mouse" },
+        { value: "system", label: "System" },
+        { value: "profile", label: isDe ? "Kombination" : "Combinations" }
+      ];
+    }
+
+    function getProcessBindingEntries() {
+      return buildAllHotkeyEntries()
+        .slice()
+        .sort((a, b) => b.createdAt - a.createdAt || String(a?.name || "").localeCompare(String(b?.name || ""), undefined, { sensitivity: "base" }));
+    }
+
+    function getProcessBindingFilterValue(entry) {
+      if (processBindingListFilter === "bound" || processBindingListFilter === "unbound") {
+        return entry?.boundAppLabel ? "bound" : "unbound";
+      }
+      return String(entry?.sourceType || "").trim() || "apps-files";
+    }
+
+    function getFilteredProcessBindingEntries() {
+      const query = normalizeTypeaheadText(processBindingSearchQuery);
+      return getProcessBindingEntries()
+        .filter((entry) => {
+          if (!query) return true;
+          return [
+            entry?.name,
+            entry?.hotkey,
+            entry?.boundAppLabel,
+            getAutomationSourceLabel(entry?.sourceType, getLang() === "de")
+          ].some((value) => normalizeTypeaheadText(value || "").includes(query));
+        })
+        .filter((entry) => processBindingListFilter === "all" || getProcessBindingFilterValue(entry) === processBindingListFilter);
+    }
+
+    function getSelectedProcessBindingEntry() {
+      const selectedId = String(processBindingSelectedHotkeyId || "").trim();
+      const entries = getProcessBindingEntries();
+      if (!entries.length) return null;
+      if (!selectedId) return entries[0];
+      return entries.find((entry) => entry.id === selectedId) || entries[0];
+    }
+
+    function getFilteredProcessBindingApps() {
+      const query = normalizeTypeaheadText(processBindingAppSearchQuery);
+      const items = (Array.isArray(appsFilesScannedApps) ? appsFilesScannedApps : [])
+        .filter((app) => String(app?.processName || "").trim());
+      if (!query) return items.slice(0, 80);
+      return items.filter((app) => {
+        const name = normalizeTypeaheadText(app?.name || "");
+        const launch = normalizeTypeaheadText(app?.launch || "");
+        const processName = normalizeTypeaheadText(app?.processName || "");
+        return name.includes(query) || launch.includes(query) || processName.includes(query);
+      }).slice(0, 80);
+    }
+
+    function getProcessBindingStatusMeta(entry, isDe) {
+      if (entry?.boundAppLabel) {
+        return { className: "is-auto", label: isDe ? "Per App" : "Per app" };
+      }
+      if (entry?.enabled === false) {
+        return { className: "is-disabled", label: isDe ? "Deaktiviert" : "Disabled" };
+      }
+      return { className: "is-enabled", label: isDe ? "Manuell" : "Manual" };
+    }
+
+    function setAutomationEnabledState(sourceType, rawId, enabled) {
+      const normalizedSourceType = String(sourceType || "").trim();
+      const normalizedId = String(rawId || "").trim();
+      if (!normalizedSourceType || !normalizedId) return false;
+      const nextEnabled = enabled !== false;
+
+      if (normalizedSourceType === "apps-files") {
+        appsFilesAutomations = appsFilesAutomations.map((item) => item.id === normalizedId ? { ...item, enabled: nextEnabled } : item);
+        saveAppsFilesAutomations();
+        return true;
+      }
+      if (normalizedSourceType === "keyboard") {
+        keyboardAutomations = keyboardAutomations.map((item) => item.id === normalizedId ? { ...item, enabled: nextEnabled } : item);
+        saveKeyboardAutomations();
+        return true;
+      }
+      if (normalizedSourceType === "mouse") {
+        mouseAutomations = mouseAutomations.map((item) => item.id === normalizedId ? { ...item, enabled: nextEnabled } : item);
+        saveMouseAutomations();
+        return true;
+      }
+      if (normalizedSourceType === "system") {
+        systemAutomations = systemAutomations.map((item) => item.id === normalizedId ? { ...item, enabled: nextEnabled } : item);
+        saveSystemAutomations();
+        return true;
+      }
+      if (normalizedSourceType === "profile") {
+        profileAutomations = profileAutomations.map((item) => item.id === normalizedId ? { ...item, enabled: nextEnabled } : item);
+        if (!nextEnabled) stopProfileLoop(normalizedId);
+        saveProfileAutomations();
+        return true;
+      }
+      return false;
+    }
+
+    function toggleProcessBindingEntryEnabled(entry) {
+      if (!entry || entry.boundAppLabel) return false;
+      return setAutomationEnabledState(entry.sourceType, entry.rawId, entry.enabled === false);
+    }
+
+    function getProcessBindingPanelHint(isDe) {
+      if (appsFilesScanLoading) return isDe ? "Apps werden geladen..." : "Loading apps...";
+      if (appsFilesScanError) return isDe ? "Apps konnten nicht geladen werden." : "Could not load apps.";
+      if (!getFilteredProcessBindingApps().length) {
+        return isDe ? "Keine passende App gefunden." : "No matching app found.";
+      }
+      return "";
     }
 
     function getProfilePendingDeleteItem() {
@@ -2023,7 +2404,7 @@
       const automationId = String(id || "").trim();
       if (!automationId) return;
       const item = systemAutomations.find((entry) => entry.id === automationId);
-      if (!item || item.enabled === false) return;
+      if (!item || !getAutomationEffectiveEnabled("system", item) || !isAutomationRuntimeAllowed("system", item)) return;
       await handleSystemAutomationTrigger(item, String(phase || "pressed"));
     }
 
@@ -2140,7 +2521,7 @@
       const automationId = String(id || "").trim();
       if (!automationId) return;
       const item = profileAutomations.find((entry) => entry.id === automationId);
-      if (!item || item.enabled === false) return;
+      if (!item || !getAutomationEffectiveEnabled("profile", item) || !isAutomationRuntimeAllowed("profile", item)) return;
       await handleProfileAutomationTrigger(item, String(phase || "pressed"));
     }
 
@@ -2426,7 +2807,7 @@
 
     function getAutomationFilterValue(item) {
       if (appsFilesListFilter === "enabled" || appsFilesListFilter === "disabled") {
-        return item?.enabled === false ? "disabled" : "enabled";
+        return getAutomationEffectiveEnabled("apps-files", item) ? "enabled" : "disabled";
       }
       return getAutomationPrimaryKind(item);
     }
@@ -2452,7 +2833,10 @@
       return String(value || "")
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, " ")
+        .trim()
+        .replace(/\s+/g, " ");
     }
 
     function resetAppsFilesAppTypeahead() {
@@ -2514,7 +2898,8 @@
           ? result
             .map((entry) => ({
               name: String(entry?.name || "").trim(),
-              launch: String(entry?.launch || "").trim()
+              launch: String(entry?.launch || "").trim(),
+              processName: String(entry?.process_name || entry?.processName || "").trim()
             }))
             .filter((entry) => entry.name && entry.launch)
           : [];
@@ -2530,6 +2915,63 @@
         appsFilesScanLoading = false;
         render();
       }
+    }
+
+    function resetProfileGameAppTypeahead() {
+      profileGameAppTypeaheadQuery = "";
+    }
+
+    function getProfileBindableScannedApps() {
+      return (Array.isArray(appsFilesScannedApps) ? appsFilesScannedApps : [])
+        .filter((app) => String(app?.processName || "").trim());
+    }
+
+    function getProfileGameBindingApp() {
+      const launch = String(profileDraft.gameAppLaunch || "").trim();
+      if (launch) {
+        const byLaunch = getProfileBindableScannedApps().find((entry) => String(entry?.launch || "").trim() === launch);
+        if (byLaunch) return byLaunch;
+      }
+      const processName = String(profileDraft.gameMatchText || "").trim();
+      if (processName) {
+        return getProfileBindableScannedApps().find((entry) => String(entry?.processName || "").trim() === processName) || null;
+      }
+      return null;
+    }
+
+    function getProfileFilteredBindableScannedApps() {
+      const query = normalizeTypeaheadText(profileGameAppTypeaheadQuery);
+      const items = getProfileBindableScannedApps();
+      if (!query) return items;
+      return items.filter((app) => {
+        const name = normalizeTypeaheadText(app?.name || "");
+        const launch = normalizeTypeaheadText(app?.launch || "");
+        const processName = normalizeTypeaheadText(app?.processName || "");
+        return name.includes(query) || launch.includes(query) || processName.includes(query);
+      });
+    }
+
+    function getProfileGameScanStatusLabel(isDe) {
+      if (appsFilesScanLoading) return isDe ? "Apps werden geladen..." : "Loading apps...";
+      if (appsFilesScanError) return isDe ? "Apps konnten nicht geladen werden." : "Could not load apps.";
+      if (!getProfileBindableScannedApps().length && appsFilesScanLoaded) {
+        return isDe ? "Keine passenden Apps gefunden." : "No matching apps found.";
+      }
+      return "";
+    }
+
+    function getProfileGameAppButtonLabel(isDe) {
+      const query = String(profileGameAppTypeaheadQuery || "");
+      if (profileGameAppMenuOpen && query) {
+        return query;
+      }
+      const selectedApp = getProfileGameBindingApp();
+      if (selectedApp?.name) return String(selectedApp.name);
+      const savedName = String(profileDraft.gameAppName || "").trim();
+      if (savedName) return savedName;
+      const savedProcess = String(profileDraft.gameMatchText || "").trim();
+      if (savedProcess) return savedProcess;
+      return isDe ? "App auswählen" : "Select app";
     }
 
     async function browseFilesystemTarget(kind) {
@@ -2592,17 +3034,16 @@
       currentView = "catalog";
       appsFilesCreateOpen = false;
       keyboardCreateOpen = false;
+      processBindingAppSearchQuery = "";
       render();
     }
 
     function syncBodyViewClass() {
-      const inAutomationEditor = currentView === "apps-files" || currentView === "keyboard-input" || currentView === "mouse-input" || currentView === "system" || currentView === "automations";
+      const inAutomationEditor = currentView === "apps-files" || currentView === "keyboard-input" || currentView === "mouse-input" || currentView === "system" || currentView === "automations" || currentView === "process-detection";
       document.body.classList.toggle("macro-apps-files-view", inAutomationEditor);
     }
 
     document.addEventListener("keydown", (e) => {
-      if (currentView !== "apps-files") return;
-
       const key = String(e.key || "");
       const targetEl = e.target;
       const inEditable =
@@ -2613,6 +3054,72 @@
           targetEl.tagName === "SELECT" ||
           targetEl.isContentEditable
         );
+
+      if (currentView === "automations") {
+        if (profileGameAppMenuOpen && profileDraft.gameBindingEnabled) {
+          if (key === "Escape") {
+            e.preventDefault();
+            if (profileGameAppTypeaheadQuery) {
+              resetProfileGameAppTypeahead();
+            } else {
+              profileGameAppMenuOpen = false;
+            }
+            render();
+            return;
+          }
+
+          if (!inEditable) {
+            if (key === "Enter") {
+              e.preventDefault();
+              const first = getProfileFilteredBindableScannedApps()[0];
+              if (!first) return;
+              profileDraft.gameAppLaunch = String(first.launch || "").trim();
+              profileDraft.gameAppName = String(first.name || "").trim();
+              profileDraft.gameMatchText = String(first.processName || "").trim();
+              profileGameAppMenuOpen = false;
+              resetProfileGameAppTypeahead();
+              if (profileFormError) profileFormError = "";
+              render();
+              return;
+            }
+
+            if (key === "Backspace") {
+              e.preventDefault();
+              profileGameAppTypeaheadQuery = profileGameAppTypeaheadQuery.slice(0, -1);
+              render();
+              return;
+            }
+
+            if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+              e.preventDefault();
+              profileGameAppTypeaheadQuery += key;
+              if (!appsFilesScanLoaded && !appsFilesScanLoading) {
+                void loadAppsFilesScannedApps(false);
+              }
+              render();
+              return;
+            }
+          }
+        }
+
+        if (key === "Escape" && profileGameAppMenuOpen) {
+          e.preventDefault();
+          profileGameAppMenuOpen = false;
+          resetProfileGameAppTypeahead();
+          render();
+        }
+        return;
+      }
+
+      if (currentView === "process-detection") {
+        if (key === "Escape") {
+          e.preventDefault();
+          goBackToCatalog();
+        }
+        return;
+      }
+
+      if (currentView !== "apps-files") return;
 
       if (appsFilesAppMenuStepId) {
         const step = appsFilesDraft.steps.find((s) => s.id === appsFilesAppMenuStepId);
@@ -2732,6 +3239,11 @@
             render();
             return;
           }
+          if (selectedAutomationId === "process-detection") {
+            currentView = "process-detection";
+            render();
+            return;
+          }
           render();
         };
 
@@ -2773,8 +3285,10 @@
         .map((item) => {
           const infoLines = getAutomationInfoLines(item, isDe);
           const isExpanded = appsFilesExpandedInfoId === item.id;
+          const statusMeta = getAutomationStatusMeta("apps-files", item, isDe);
+          const bindingSummary = getAutomationBindingMetaLabel("apps-files", item, isDe);
           return `
-          <article class="apps-files-item" data-af-id="${escapeHtml(item.id)}" data-enabled="${item.enabled === false ? "false" : "true"}">
+          <article class="apps-files-item" data-af-id="${escapeHtml(item.id)}" data-enabled="${getAutomationEffectiveEnabled("apps-files", item) ? "true" : "false"}">
             <div class="apps-files-item-main">
               <div class="apps-files-item-shell">
                 <div class="apps-files-item-type">${escapeHtml(getAutomationKindCode(item))}</div>
@@ -2784,13 +3298,14 @@
                     <span>${escapeHtml(getAutomationKindLabel(item, isDe))}</span>
                     <span class="apps-files-dot" aria-hidden="true"></span>
                     <span>${escapeHtml(`${Array.isArray(item.steps) ? item.steps.length : 0} ${isDe ? "Schritte" : "steps"}`)}</span>
+                    ${bindingSummary ? `<span class="apps-files-dot" aria-hidden="true"></span><span>${escapeHtml(isDe ? "Per App" : "Per app")}</span>` : ""}
                   </div>
                 </div>
                 <div class="apps-files-item-hotkey-box ${getAutomationHotkeyLabel(item) ? "" : "is-empty"}">
                   <span class="apps-files-item-hotkey-label">Hotkey</span>
                   <span class="apps-files-item-hotkey-value">${escapeHtml(getAutomationHotkeyLabel(item) || "")}</span>
                 </div>
-                <div class="apps-files-item-status ${item.enabled === false ? "is-disabled" : "is-enabled"}">${item.enabled === false ? (isDe ? "Deaktiviert" : "Disabled") : (isDe ? "Aktiviert" : "Enabled")}</div>
+                <div class="apps-files-item-status ${statusMeta.className}">${escapeHtml(statusMeta.label)}</div>
               </div>
               ${isExpanded ? `
                 <div class="apps-files-item-info">
@@ -2801,7 +3316,7 @@
             <div class="apps-files-item-actions">
               <button class="btn-ghost apps-files-info" type="button" data-af-action="info" data-af-id="${escapeHtml(item.id)}">${isExpanded ? (isDe ? "Schlie\u00DFen" : "Close") : "Info"}</button>
               <button class="btn-ghost apps-files-edit" type="button" data-af-action="edit" data-af-id="${escapeHtml(item.id)}">${isDe ? "Bearbeiten" : "Edit"}</button>
-              <button class="btn-ghost apps-files-toggle" type="button" data-af-action="toggle" data-af-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>
+              ${isAutomationAppBound("apps-files", item) ? "" : `<button class="btn-ghost apps-files-toggle" type="button" data-af-action="toggle" data-af-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>`}
               <button class="btn-ghost apps-files-duplicate" type="button" data-af-action="duplicate" data-af-id="${escapeHtml(item.id)}">${isDe ? "Duplizieren" : "Duplicate"}</button>
               <button class="btn-ghost apps-files-delete" type="button" data-af-action="delete" data-af-id="${escapeHtml(item.id)}">${isDe ? "L\u00F6schen" : "Delete"}</button>
               </div>
@@ -3447,6 +3962,8 @@
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-af-id") || "";
           if (!id) return;
+          const current = appsFilesAutomations.find((item) => item.id === id);
+          if (!current || isAutomationAppBound("apps-files", current)) return;
           let nextEnabled = true;
           appsFilesAutomations = appsFilesAutomations.map((item) => item.id === id
             ? ((nextEnabled = item.enabled === false), { ...item, enabled: nextEnabled })
@@ -3551,8 +4068,10 @@
           const infoLines = getKeyboardInfoLines(item, isDe);
           const isExpanded = keyboardExpandedInfoId === item.id;
           const primaryKind = getKeyboardPrimaryKind(item);
+          const statusMeta = getAutomationStatusMeta("keyboard", item, isDe);
+          const bindingSummary = getAutomationBindingMetaLabel("keyboard", item, isDe);
           return `
-            <article class="apps-files-item" data-kb-id="${escapeHtml(item.id)}" data-enabled="${item.enabled === false ? "false" : "true"}">
+            <article class="apps-files-item" data-kb-id="${escapeHtml(item.id)}" data-enabled="${getAutomationEffectiveEnabled("keyboard", item) ? "true" : "false"}">
               <div class="apps-files-item-main">
                 <div class="apps-files-item-shell">
                   <div class="apps-files-item-type">${escapeHtml(primaryKind === "flow" ? "FLOW" : keyboardStepKindCode(primaryKind))}</div>
@@ -3564,20 +4083,21 @@
                       <span>${escapeHtml(keyboardTriggerModeLabel(item.triggerMode, isDe))}</span>
                       <span class="apps-files-dot" aria-hidden="true"></span>
                       <span>${escapeHtml(`${Array.isArray(item.steps) ? item.steps.length : 0} ${isDe ? "Schritte" : "steps"}`)}</span>
+                      ${bindingSummary ? `<span class="apps-files-dot" aria-hidden="true"></span><span>${escapeHtml(isDe ? "Per App" : "Per app")}</span>` : ""}
                     </div>
                   </div>
                   <div class="apps-files-item-hotkey-box ${getAutomationHotkeyLabel(item) ? "" : "is-empty"}">
                     <span class="apps-files-item-hotkey-label">Hotkey</span>
                     <span class="apps-files-item-hotkey-value">${escapeHtml(getAutomationHotkeyLabel(item) || "")}</span>
                   </div>
-                  <div class="apps-files-item-status ${item.enabled === false ? "is-disabled" : "is-enabled"}">${item.enabled === false ? (isDe ? "Deaktiviert" : "Disabled") : (isDe ? "Aktiviert" : "Enabled")}</div>
+                  <div class="apps-files-item-status ${statusMeta.className}">${escapeHtml(statusMeta.label)}</div>
                 </div>
                 ${isExpanded ? `<div class="apps-files-item-info">${infoLines.map((line) => `<div class="apps-files-item-info-line">${escapeHtml(line)}</div>`).join("")}</div>` : ""}
               </div>
               <div class="apps-files-item-actions">
                 <button class="btn-ghost" type="button" data-kb-action="info" data-kb-id="${escapeHtml(item.id)}">${isExpanded ? (isDe ? "Schlie\u00DFen" : "Close") : "Info"}</button>
                 <button class="btn-ghost" type="button" data-kb-action="edit" data-kb-id="${escapeHtml(item.id)}">${isDe ? "Bearbeiten" : "Edit"}</button>
-                <button class="btn-ghost" type="button" data-kb-action="toggle" data-kb-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>
+                ${isAutomationAppBound("keyboard", item) ? "" : `<button class="btn-ghost" type="button" data-kb-action="toggle" data-kb-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>`}
                 <button class="btn-ghost" type="button" data-kb-action="duplicate" data-kb-id="${escapeHtml(item.id)}">${isDe ? "Duplizieren" : "Duplicate"}</button>
                 <button class="btn-ghost apps-files-delete" type="button" data-kb-action="delete" data-kb-id="${escapeHtml(item.id)}">${isDe ? "L\u00F6schen" : "Delete"}</button>
               </div>
@@ -4013,6 +4533,8 @@
       root.querySelectorAll("[data-kb-action='toggle']").forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-kb-id") || "";
+          const current = keyboardAutomations.find((item) => item.id === id);
+          if (!current || isAutomationAppBound("keyboard", current)) return;
           let nextEnabled = true;
           keyboardAutomations = keyboardAutomations.map((item) => item.id === id ? { ...item, enabled: item.enabled === false } : item);
           const updated = keyboardAutomations.find((item) => item.id === id);
@@ -4097,8 +4619,10 @@
           const infoLines = getMouseInfoLines(item, isDe);
           const isExpanded = mouseExpandedInfoId === item.id;
           const primaryKind = getMousePrimaryKind(item);
+          const statusMeta = getAutomationStatusMeta("mouse", item, isDe);
+          const bindingSummary = getAutomationBindingMetaLabel("mouse", item, isDe);
           return `
-            <article class="apps-files-item" data-mouse-id="${escapeHtml(item.id)}" data-enabled="${item.enabled === false ? "false" : "true"}">
+            <article class="apps-files-item" data-mouse-id="${escapeHtml(item.id)}" data-enabled="${getAutomationEffectiveEnabled("mouse", item) ? "true" : "false"}">
               <div class="apps-files-item-main">
                 <div class="apps-files-item-shell">
                   <div class="apps-files-item-type">${escapeHtml(primaryKind === "flow" ? "FLOW" : mouseStepKindCode(primaryKind))}</div>
@@ -4110,20 +4634,21 @@
                       <span>${escapeHtml(keyboardTriggerModeLabel(item.triggerMode, isDe))}</span>
                       <span class="apps-files-dot" aria-hidden="true"></span>
                       <span>${escapeHtml(`${Array.isArray(item.steps) ? item.steps.length : 0} ${isDe ? "Schritte" : "steps"}`)}</span>
+                      ${bindingSummary ? `<span class="apps-files-dot" aria-hidden="true"></span><span>${escapeHtml(isDe ? "Per App" : "Per app")}</span>` : ""}
                     </div>
                   </div>
                   <div class="apps-files-item-hotkey-box ${getAutomationHotkeyLabel(item) ? "" : "is-empty"}">
                     <span class="apps-files-item-hotkey-label">Hotkey</span>
                     <span class="apps-files-item-hotkey-value">${escapeHtml(getAutomationHotkeyLabel(item) || "")}</span>
                   </div>
-                  <div class="apps-files-item-status ${item.enabled === false ? "is-disabled" : "is-enabled"}">${item.enabled === false ? (isDe ? "Deaktiviert" : "Disabled") : (isDe ? "Aktiviert" : "Enabled")}</div>
+                  <div class="apps-files-item-status ${statusMeta.className}">${escapeHtml(statusMeta.label)}</div>
                 </div>
                 ${isExpanded ? `<div class="apps-files-item-info">${infoLines.map((line) => `<div class="apps-files-item-info-line">${escapeHtml(line)}</div>`).join("")}</div>` : ""}
               </div>
               <div class="apps-files-item-actions">
                 <button class="btn-ghost" type="button" data-mouse-action="info" data-mouse-id="${escapeHtml(item.id)}">${isExpanded ? (isDe ? "Schlie\u00DFen" : "Close") : "Info"}</button>
                 <button class="btn-ghost" type="button" data-mouse-action="edit" data-mouse-id="${escapeHtml(item.id)}">${isDe ? "Bearbeiten" : "Edit"}</button>
-                <button class="btn-ghost" type="button" data-mouse-action="toggle" data-mouse-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>
+                ${isAutomationAppBound("mouse", item) ? "" : `<button class="btn-ghost" type="button" data-mouse-action="toggle" data-mouse-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>`}
                 <button class="btn-ghost" type="button" data-mouse-action="duplicate" data-mouse-id="${escapeHtml(item.id)}">${isDe ? "Duplizieren" : "Duplicate"}</button>
                 <button class="btn-ghost apps-files-delete" type="button" data-mouse-action="delete" data-mouse-id="${escapeHtml(item.id)}">${isDe ? "L\u00F6schen" : "Delete"}</button>
               </div>
@@ -4642,6 +5167,8 @@
       root.querySelectorAll("[data-mouse-action='toggle']").forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-mouse-id") || "";
+          const current = mouseAutomations.find((item) => item.id === id);
+          if (!current || isAutomationAppBound("mouse", current)) return;
           mouseAutomations = mouseAutomations.map((item) => item.id === id ? { ...item, enabled: item.enabled === false } : item);
           const updated = mouseAutomations.find((item) => item.id === id);
           if (updated?.enabled === false) {
@@ -4718,8 +5245,10 @@
           const infoLines = getSystemInfoLines(item, isDe);
           const isExpanded = systemExpandedInfoId === item.id;
           const primaryKind = getSystemPrimaryKind(item);
+          const statusMeta = getAutomationStatusMeta("system", item, isDe);
+          const bindingSummary = getAutomationBindingMetaLabel("system", item, isDe);
           return `
-            <article class="apps-files-item" data-system-id="${escapeHtml(item.id)}" data-enabled="${item.enabled === false ? "false" : "true"}">
+            <article class="apps-files-item" data-system-id="${escapeHtml(item.id)}" data-enabled="${getAutomationEffectiveEnabled("system", item) ? "true" : "false"}">
               <div class="apps-files-item-main">
                 <div class="apps-files-item-shell">
                   <div class="apps-files-item-type">${escapeHtml(primaryKind === "flow" ? "FLOW" : systemStepKindCode(primaryKind))}</div>
@@ -4731,20 +5260,21 @@
                       <span>${escapeHtml(keyboardTriggerModeLabel(item.triggerMode, isDe))}</span>
                       <span class="apps-files-dot" aria-hidden="true"></span>
                       <span>${escapeHtml(`${Array.isArray(item.steps) ? item.steps.length : 0} ${isDe ? "Schritte" : "steps"}`)}</span>
+                      ${bindingSummary ? `<span class="apps-files-dot" aria-hidden="true"></span><span>${escapeHtml(isDe ? "Per App" : "Per app")}</span>` : ""}
                     </div>
                   </div>
                   <div class="apps-files-item-hotkey-box ${getAutomationHotkeyLabel(item) ? "" : "is-empty"}">
                     <span class="apps-files-item-hotkey-label">Hotkey</span>
                     <span class="apps-files-item-hotkey-value">${escapeHtml(getAutomationHotkeyLabel(item) || "")}</span>
                   </div>
-                  <div class="apps-files-item-status ${item.enabled === false ? "is-disabled" : "is-enabled"}">${item.enabled === false ? (isDe ? "Deaktiviert" : "Disabled") : (isDe ? "Aktiviert" : "Enabled")}</div>
+                  <div class="apps-files-item-status ${statusMeta.className}">${escapeHtml(statusMeta.label)}</div>
                 </div>
                 ${isExpanded ? `<div class="apps-files-item-info">${infoLines.map((line) => `<div class="apps-files-item-info-line">${escapeHtml(line)}</div>`).join("")}</div>` : ""}
               </div>
               <div class="apps-files-item-actions">
                 <button class="btn-ghost" type="button" data-system-action="info" data-system-id="${escapeHtml(item.id)}">${isExpanded ? (isDe ? "Schlie\u00DFen" : "Close") : "Info"}</button>
                 <button class="btn-ghost" type="button" data-system-action="edit" data-system-id="${escapeHtml(item.id)}">${isDe ? "Bearbeiten" : "Edit"}</button>
-                <button class="btn-ghost" type="button" data-system-action="toggle" data-system-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>
+                ${isAutomationAppBound("system", item) ? "" : `<button class="btn-ghost" type="button" data-system-action="toggle" data-system-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>`}
                 <button class="btn-ghost" type="button" data-system-action="duplicate" data-system-id="${escapeHtml(item.id)}">${isDe ? "Duplizieren" : "Duplicate"}</button>
                 <button class="btn-ghost apps-files-delete" type="button" data-system-action="delete" data-system-id="${escapeHtml(item.id)}">${isDe ? "L\u00F6schen" : "Delete"}</button>
               </div>
@@ -5191,6 +5721,8 @@
       root.querySelectorAll("[data-system-action='toggle']").forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-system-id") || "";
+          const current = systemAutomations.find((item) => item.id === id);
+          if (!current || isAutomationAppBound("system", current)) return;
           systemAutomations = systemAutomations.map((item) => item.id === id ? { ...item, enabled: item.enabled === false } : item);
           const updated = systemAutomations.find((item) => item.id === id);
           if (updated?.enabled === false) {
@@ -5251,6 +5783,12 @@
       const filterOptions = getProfileFilterOptions(isDe);
       const deleteConfirmHtml = buildAutomationDeleteConfirmHtml(getProfilePendingDeleteItem(), "profileDelete", isDe);
       const profileEditorOpen = profileCreateOpen || Boolean(profileEditingId);
+      if (profileEditorOpen && profileDraft.gameBindingEnabled && !appsFilesScanLoaded && !appsFilesScanLoading) {
+        void loadAppsFilesScannedApps(false);
+      }
+      const filteredBindableApps = profileGameAppMenuOpen ? getProfileFilteredBindableScannedApps() : getProfileBindableScannedApps();
+      const selectedProfileGameAppLabel = getProfileBoundAppLabel(profileDraft);
+      const selectedProfileGameProcess = String(getProfileGameBindingApp()?.processName || profileDraft.gameMatchText || "").trim();
       const filteredAutomations = profileAutomations
         .filter((item) => {
           const query = normalizeTypeaheadText(profileSearchQuery);
@@ -5263,6 +5801,9 @@
         const infoLines = getProfileInfoLines(item, isDe);
         const isExpanded = profileExpandedInfoId === item.id;
         const primaryKind = getProfilePrimaryKind(item);
+        const gameBindingSummary = getProfileGameBindingSummary(item, isDe);
+        const profileStatusMeta = getProfileStatusMeta(item, isDe);
+        const boundAppLabel = isProfileGameBound(item) ? getProfileBoundAppLabel(item) : "";
         const stepPills = (Array.isArray(item.steps) ? item.steps : []).slice(0, 5).map((step) => `
           <div class="profile-block-pill">
             <span class="profile-block-pill-kind">${escapeHtml(profileStepKindCode(step.kind))}</span>
@@ -5270,7 +5811,7 @@
           </div>
         `).join("");
         return `
-          <article class="apps-files-item profile-item" data-profile-id="${escapeHtml(item.id)}" data-enabled="${item.enabled === false ? "false" : "true"}">
+          <article class="apps-files-item profile-item" data-profile-id="${escapeHtml(item.id)}" data-enabled="${getProfileEffectiveEnabled(item) ? "true" : "false"}">
             <div class="apps-files-item-main">
               <div class="apps-files-item-shell">
                 <div class="apps-files-item-type">${escapeHtml(primaryKind === "flow" ? "FLOW" : profileStepKindCode(primaryKind))}</div>
@@ -5282,13 +5823,14 @@
                     <span>${escapeHtml(keyboardTriggerModeLabel(item.triggerMode, isDe))}</span>
                     <span class="apps-files-dot" aria-hidden="true"></span>
                     <span>${escapeHtml(`${Array.isArray(item.steps) ? item.steps.length : 0} ${isDe ? "Bausteine" : "blocks"}`)}</span>
+                    ${gameBindingSummary ? `<span class="apps-files-dot" aria-hidden="true"></span><span>${escapeHtml(isDe ? "Start/Schließen automatisch" : "Start/close automatic")}</span>` : ""}
                   </div>
                 </div>
                 <div class="apps-files-item-hotkey-box ${getAutomationHotkeyLabel(item) ? "" : "is-empty"}">
                   <span class="apps-files-item-hotkey-label">Hotkey</span>
                   <span class="apps-files-item-hotkey-value">${escapeHtml(getAutomationHotkeyLabel(item) || "-")}</span>
                 </div>
-                <div class="apps-files-item-status ${item.enabled === false ? "is-disabled" : "is-enabled"}">${item.enabled === false ? (isDe ? "Deaktiviert" : "Disabled") : (isDe ? "Aktiviert" : "Enabled")}</div>
+                <div class="apps-files-item-status ${profileStatusMeta.className}">${escapeHtml(profileStatusMeta.label)}</div>
               </div>
               <div class="profile-block-strip">${stepPills}${(Array.isArray(item.steps) ? item.steps.length : 0) > 5 ? `<div class="profile-block-pill profile-block-pill-more">+${item.steps.length - 5}</div>` : ""}</div>
               ${isExpanded ? `<div class="apps-files-item-info">${infoLines.map((line) => `<div class="apps-files-item-info-line">${escapeHtml(line)}</div>`).join("")}</div>` : ""}
@@ -5296,7 +5838,7 @@
             <div class="apps-files-item-actions">
               <button class="btn-ghost" type="button" data-profile-action="info" data-profile-id="${escapeHtml(item.id)}">${isExpanded ? (isDe ? "Schlie\u00DFen" : "Close") : "Info"}</button>
               <button class="btn-ghost" type="button" data-profile-action="edit" data-profile-id="${escapeHtml(item.id)}">${isDe ? "Bearbeiten" : "Edit"}</button>
-              <button class="btn-ghost" type="button" data-profile-action="toggle" data-profile-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>
+              ${isProfileGameBound(item) ? "" : `<button class="btn-ghost" type="button" data-profile-action="toggle" data-profile-id="${escapeHtml(item.id)}">${item.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable")}</button>`}
               <button class="btn-ghost" type="button" data-profile-action="duplicate" data-profile-id="${escapeHtml(item.id)}">${isDe ? "Duplizieren" : "Duplicate"}</button>
               <button class="btn-ghost apps-files-delete" type="button" data-profile-action="delete" data-profile-id="${escapeHtml(item.id)}">${isDe ? "L\u00F6schen" : "Delete"}</button>
             </div>
@@ -5366,7 +5908,7 @@
       const editorHtml = profileEditorOpen ? `
         <section class="profile-editor-inline">
           <div class="profile-editor-inline-head">
-            <div class="profile-editor-inline-title">${escapeHtml(profileEditingId ? (isDe ? "Profil bearbeiten" : "Edit profile") : (isDe ? "Neues Profil" : "New profile"))}</div>
+            <div class="profile-editor-inline-title">${escapeHtml(profileEditingId ? (isDe ? "Kombination bearbeiten" : "Edit combination") : (isDe ? "Neue Kombination" : "New combination"))}</div>
             <button class="icon-btn" type="button" id="profileEditorClose" aria-label="${escapeHtml(isDe ? "Schlie\u00DFen" : "Close")}">&times;</button>
           </div>
           <div class="profile-editor-inline-body">
@@ -5376,6 +5918,33 @@
                   <label class="apps-files-field"><span>${isDe ? "Name" : "Name"}</span><input id="profileName" class="input" type="text" value="${escapeHtml(profileDraft.name)}" placeholder="${escapeHtml(isDe ? "z. B. Stream Start" : "e.g. Stream Start")}" /></label>
                   <label class="apps-files-field"><span>Hotkey</span><div class="apps-files-hotkey-row"><input id="profileHotkey" class="input" type="text" value="${escapeHtml(profileDraft.hotkey || "")}" placeholder="${escapeHtml(isDe ? "Dr\u00FCcke 'Aufnehmen'..." : "Press 'Capture'...")}" readonly /><button id="profileHotkeyCapture" class="btn-ghost apps-files-hotkey-capture" type="button">${isDe ? (profileCapturingHotkey ? "Dr\u00FCcke Tasten..." : "Aufnehmen") : (profileCapturingHotkey ? "Press keys..." : "Capture")}</button><button id="profileHotkeyClear" class="icon-btn apps-files-hotkey-clear" type="button" aria-label="${isDe ? "Hotkey entfernen" : "Remove hotkey"}" title="${isDe ? "Hotkey entfernen" : "Remove hotkey"}">&times;</button></div></label>
                   <div class="apps-files-field apps-files-field-wide apps-files-trigger-field"><span>${isDe ? "Makro-Typ" : "Macro type"}</span><div class="apps-files-trigger-row"><button class="apps-files-trigger-icon-btn ${profileDraft.triggerMode === "once" ? "active" : ""}" type="button" data-profile-trigger="once" aria-label="${escapeHtml(keyboardTriggerModeLabel("once", isDe))}" title="${escapeHtml(keyboardTriggerModeLabel("once", isDe))}">${keyboardTriggerModeIcon("once")}</button><button class="apps-files-trigger-icon-btn ${profileDraft.triggerMode === "hold" ? "active" : ""}" type="button" data-profile-trigger="hold" aria-label="${escapeHtml(keyboardTriggerModeLabel("hold", isDe))}" title="${escapeHtml(keyboardTriggerModeLabel("hold", isDe))}">${keyboardTriggerModeIcon("hold")}</button><button class="apps-files-trigger-icon-btn ${profileDraft.triggerMode === "toggle" ? "active" : ""}" type="button" data-profile-trigger="toggle" aria-label="${escapeHtml(keyboardTriggerModeLabel("toggle", isDe))}" title="${escapeHtml(keyboardTriggerModeLabel("toggle", isDe))}">${keyboardTriggerModeIcon("toggle")}</button></div><div class="apps-files-trigger-active">${escapeHtml(isDe ? "Aktiv: " : "Active: ")}<strong>${escapeHtml(keyboardTriggerModeLabel(profileDraft.triggerMode, isDe))}</strong></div></div>
+                  <div class="apps-files-field apps-files-field-wide profile-game-field">
+                    <span>${isDe ? "Spiel-/App-Bindung" : "Game/app binding"}</span>
+                    <label class="profile-game-toggle">
+                      <input id="profileGameBindingEnabled" type="checkbox" ${profileDraft.gameBindingEnabled ? "checked" : ""} />
+                      <span>${escapeHtml(isDe ? "Kombinations-Hotkey nur aktiv, solange das Spiel läuft" : "Keep the combination hotkey active only while the game is running")}</span>
+                    </label>
+                    <div class="profile-game-select-row">
+                      <div class="profile-game-app-wrap category-select-wrap ${profileGameAppMenuOpen ? "open" : ""}">
+                        <button id="profileGameAppButton" class="category-select-button apps-step-app-btn profile-game-app-btn" type="button" aria-label="${escapeHtml(isDe ? "App auswählen" : "Select app")}" aria-expanded="${profileGameAppMenuOpen ? "true" : "false"}" ${profileDraft.gameBindingEnabled ? "" : "disabled"}>
+                          <span class="category-select-label ${profileGameAppMenuOpen && profileGameAppTypeaheadQuery ? "apps-step-app-label-query" : ""}">${escapeHtml(getProfileGameAppButtonLabel(isDe))}</span>
+                        </button>
+                        <div id="profileGameAppMenu" class="category-select-menu apps-step-app-menu ${profileGameAppMenuOpen ? "" : "hidden"}">
+                          ${appsFilesScanLoading ? `<div class="apps-step-app-status">${escapeHtml(isDe ? "Scanne..." : "Scanning...")}</div>` : ""}
+                          ${(!filteredBindableApps.length && !appsFilesScanLoading) ? `<div class="apps-step-app-status">${escapeHtml(getProfileGameScanStatusLabel(isDe) || (isDe ? "Keine Apps gefunden" : "No apps found"))}</div>` : ""}
+                          ${filteredBindableApps.map((entry) => `
+                            <button class="category-select-item apps-step-app-option ${String(entry?.launch || "").trim() === String(profileDraft.gameAppLaunch || "").trim() ? "selected" : ""}" type="button" data-profile-game-launch="${escapeHtml(String(entry?.launch || "").trim())}">
+                              ${escapeHtml(String(entry?.name || "").trim() || String(entry?.processName || "").trim())}
+                            </button>
+                          `).join("")}
+                        </div>
+                      </div>
+                      <button id="profileGameRefresh" class="btn-ghost apps-step-app-refresh profile-game-refresh" type="button" ${profileDraft.gameBindingEnabled ? "" : "disabled"} aria-label="${escapeHtml(isDe ? "App-Liste aktualisieren" : "Refresh app list")}" title="${escapeHtml(isDe ? "App-Liste aktualisieren" : "Refresh app list")}">&#x21BA;</button>
+                    </div>
+                    ${profileDraft.gameBindingEnabled && selectedProfileGameAppLabel ? `<div class="profile-game-selected"><span class="profile-game-selected-kicker">${escapeHtml(isDe ? "Verknüpfte App" : "Linked app")}</span><strong>${escapeHtml(selectedProfileGameAppLabel)}</strong><span>${escapeHtml(selectedProfileGameProcess ? (isDe ? `Prozess: ${selectedProfileGameProcess}` : `Process: ${selectedProfileGameProcess}`) : (isDe ? "Wird automatisch beim Starten und Schließen gesteuert." : "Controlled automatically when the app starts and closes."))}</span></div>` : ""}
+                    <div class="profile-game-help">${escapeHtml(isDe ? "Wähle dieselbe App-Auswahl wie bei Apps & Dateien. Intern wird der passende Prozess für das automatische Aktivieren und Deaktivieren gespeichert." : "Use the same app picker as Apps & Files. Internally, the matching process is stored for automatic enable and disable.")}</div>
+                    ${profileDraft.gameBindingEnabled && !appsFilesScanLoading && !filteredBindableApps.length ? `<div class="profile-game-status">${escapeHtml(isDe ? "Wenn deine App fehlt, klicke auf Aktualisieren oder prüfe, ob eine normale Desktop-Verknüpfung vorhanden ist." : "If your app is missing, click refresh or check whether a normal desktop shortcut exists.")}</div>` : ""}
+                  </div>
                 </div>
                 </div>
                 <div class="profile-workspace">
@@ -5404,16 +5973,16 @@
         <section class="automation-shell profile-shell ${profileEditorOpen ? "is-editing" : ""}">
           <div class="profile-hero">
             <div class="profile-hero-copy">
-              <h2>${isDe ? "Profile" : "Profiles"}</h2>
+              <h2>${isDe ? "Kombination" : "Combinations"}</h2>
               <p>${isDe ? "Verbinde Apps & Dateien, Tastatur, Maus und System in einem gro\u00DFen Ablauf mit einem einzigen Hotkey." : "Combine apps, keyboard, mouse and system into one bigger flow with a single hotkey."}</p>
-              ${profileEditorOpen ? "" : `<div class="profile-hero-stats"><div class="profile-hero-stat"><strong>${profileAutomations.length}</strong><span>${isDe ? "Profile" : "Profiles"}</span></div><div class="profile-hero-stat"><strong>${appsFilesAutomations.length + keyboardAutomations.length + mouseAutomations.length + systemAutomations.length}</strong><span>${isDe ? "Bausteine" : "building blocks"}</span></div><div class="profile-hero-stat"><strong>${profileAutomations.filter((item) => item.enabled !== false).length}</strong><span>${isDe ? "Aktiv" : "Active"}</span></div></div>`}
+              ${profileEditorOpen ? "" : `<div class="profile-hero-stats"><div class="profile-hero-stat"><strong>${profileAutomations.length}</strong><span>${isDe ? "Kombinationen" : "Combinations"}</span></div><div class="profile-hero-stat"><strong>${appsFilesAutomations.length + keyboardAutomations.length + mouseAutomations.length + systemAutomations.length}</strong><span>${isDe ? "Bausteine" : "building blocks"}</span></div><div class="profile-hero-stat"><strong>${profileAutomations.filter((item) => item.enabled !== false).length}</strong><span>${isDe ? "Aktiv" : "Active"}</span></div></div>`}
             </div>
             <div class="profile-hero-rail"><button class="btn-ghost automation-back profile-back" id="profileBack" type="button" aria-label="${isDe ? "Zur\u00FCck" : "Back"}" title="${isDe ? "Zur\u00FCck" : "Back"}"><span class="automation-back-glyph" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false" aria-hidden="true"><path d="M15 6L8 12L15 18Z" fill="currentColor"></path></svg></span></button></div>
           </div>
-          ${profileEditorOpen ? "" : `<div class="profile-toolbar"><div class="apps-files-filters">${filtersHtml}</div><button class="btn-primary profile-create-btn" type="button" id="profileCreate">${isDe ? "+ Profil hinzuf\u00FCgen" : "+ Add profile"}</button></div>`}
-          ${profileEditorOpen ? "" : `<div class="profile-search-row"><input id="profileSearch" class="input apps-files-search-input" type="text" value="${escapeHtml(profileSearchQuery)}" placeholder="${escapeHtml(isDe ? "Profile suchen..." : "Search profiles...")}" /></div>`}
+          ${profileEditorOpen ? "" : `<div class="profile-toolbar"><div class="apps-files-filters">${filtersHtml}</div><button class="btn-primary profile-create-btn" type="button" id="profileCreate">${isDe ? "+ Kombination hinzuf\u00FCgen" : "+ Add combination"}</button></div>`}
+          ${profileEditorOpen ? "" : `<div class="profile-search-row"><input id="profileSearch" class="input apps-files-search-input" type="text" value="${escapeHtml(profileSearchQuery)}" placeholder="${escapeHtml(isDe ? "Kombinationen suchen..." : "Search combinations...")}" /></div>`}
           ${editorHtml}
-          ${profileEditorOpen ? "" : `<div class="profile-card-grid">${entriesHtml || `<div class="automation-empty apps-files-empty">${escapeHtml(isDe ? "Noch keine Profile. Baue jetzt dein erstes Haupt-Makro." : "No profiles yet. Build your first master macro now.")}</div>`}</div>`}
+          ${profileEditorOpen ? "" : `<div class="profile-card-grid">${entriesHtml || `<div class="automation-empty apps-files-empty">${escapeHtml(isDe ? "Noch keine Kombinationen. Baue jetzt deine erste Haupt-Kombination." : "No combinations yet. Build your first master combination now.")}</div>`}</div>`}
         </section>
       `;
       compactAutomationItemActions("profile");
@@ -5425,12 +5994,96 @@
         el.removeAttribute("title");
       });
       root.querySelector("#profileBack")?.addEventListener("click", goBackToCatalog);
-      root.querySelector("#profileCreate")?.addEventListener("click", () => { profileCreateOpen = true; profileEditingId = ""; profileDraft = createProfileDraft(); profileFormError = ""; render(); });
+      root.querySelector("#profileCreate")?.addEventListener("click", () => { profileCreateOpen = true; profileEditingId = ""; profileDraft = createProfileDraft(); profileFormError = ""; profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); render(); });
       root.querySelector("#profileSearch")?.addEventListener("input", (e) => { profileSearchQuery = String(e.target?.value || ""); render(); });
       root.querySelectorAll("[data-profile-filter]").forEach((btn) => btn.addEventListener("click", () => { profileListFilter = btn.getAttribute("data-profile-filter") || "all"; render(); }));
-      root.querySelector("#profileEditorClose")?.addEventListener("click", () => { profileCreateOpen = false; profileEditingId = ""; profileFormError = ""; render(); });
+      root.querySelector("#profileEditorClose")?.addEventListener("click", () => { profileCreateOpen = false; profileEditingId = ""; profileFormError = ""; profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); render(); });
       root.querySelector("#profileName")?.addEventListener("input", (e) => { profileDraft.name = String(e.target?.value || ""); if (profileFormError) { profileFormError = ""; render(); } });
       root.querySelectorAll("[data-profile-trigger]").forEach((btn) => btn.addEventListener("click", () => { const nextMode = btn.getAttribute("data-profile-trigger") || "once"; profileDraft.triggerMode = ["once", "hold", "toggle"].includes(nextMode) ? nextMode : "once"; render(); }));
+      root.querySelector("#profileGameBindingEnabled")?.addEventListener("change", (e) => {
+        profileDraft.gameBindingEnabled = Boolean(e.target?.checked);
+        profileGameAppMenuOpen = false;
+        resetProfileGameAppTypeahead();
+        if (profileFormError) profileFormError = "";
+        if (profileDraft.gameBindingEnabled && !appsFilesScanLoaded && !appsFilesScanLoading) {
+          void loadAppsFilesScannedApps(false);
+        }
+        render();
+      });
+      root.querySelector("#profileGameRefresh")?.addEventListener("click", () => {
+        void loadAppsFilesScannedApps(true);
+      });
+      const handleProfileGameAppTypeaheadKey = (e) => {
+        if (!profileDraft.gameBindingEnabled) return;
+        const key = String(e.key || "");
+        if (key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (profileGameAppTypeaheadQuery) {
+            resetProfileGameAppTypeahead();
+          } else {
+            profileGameAppMenuOpen = false;
+          }
+          render();
+          return;
+        }
+        if (key === "Enter") {
+          if (!profileGameAppMenuOpen) return;
+          e.preventDefault();
+          e.stopPropagation();
+          const first = getProfileFilteredBindableScannedApps()[0];
+          if (!first) return;
+          profileDraft.gameAppLaunch = String(first.launch || "").trim();
+          profileDraft.gameAppName = String(first.name || "").trim();
+          profileDraft.gameMatchText = String(first.processName || "").trim();
+          profileGameAppMenuOpen = false;
+          resetProfileGameAppTypeahead();
+          if (profileFormError) profileFormError = "";
+          render();
+          return;
+        }
+        if (key === "Backspace") {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!profileGameAppMenuOpen) profileGameAppMenuOpen = true;
+          profileGameAppTypeaheadQuery = profileGameAppTypeaheadQuery.slice(0, -1);
+          render();
+          return;
+        }
+        if (key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (!profileGameAppMenuOpen) profileGameAppMenuOpen = true;
+          profileGameAppTypeaheadQuery += key;
+          if (!appsFilesScanLoaded && !appsFilesScanLoading) {
+            void loadAppsFilesScannedApps(false);
+          }
+          render();
+        }
+      };
+      root.querySelector("#profileGameAppButton")?.addEventListener("click", () => {
+        if (!profileDraft.gameBindingEnabled) return;
+        profileGameAppMenuOpen = !profileGameAppMenuOpen;
+        resetProfileGameAppTypeahead();
+        if (profileGameAppMenuOpen && !appsFilesScanLoaded && !appsFilesScanLoading) {
+          void loadAppsFilesScannedApps(false);
+        }
+        render();
+      });
+      root.querySelector("#profileGameAppButton")?.addEventListener("keydown", handleProfileGameAppTypeaheadKey);
+      root.querySelector("#profileGameAppMenu")?.addEventListener("keydown", handleProfileGameAppTypeaheadKey);
+      root.querySelectorAll("[data-profile-game-launch]").forEach((btn) => btn.addEventListener("click", () => {
+        const launch = String(btn.getAttribute("data-profile-game-launch") || "").trim();
+        const selected = getProfileBindableScannedApps().find((entry) => String(entry?.launch || "").trim() === launch);
+        if (!selected) return;
+        profileDraft.gameAppLaunch = String(selected.launch || "").trim();
+        profileDraft.gameAppName = String(selected.name || "").trim();
+        profileDraft.gameMatchText = String(selected.processName || "").trim();
+        profileGameAppMenuOpen = false;
+        resetProfileGameAppTypeahead();
+        if (profileFormError) profileFormError = "";
+        render();
+      }));
       root.querySelector("#profileHotkeyCapture")?.addEventListener("click", () => {
         const btn = root.querySelector("#profileHotkeyCapture");
         const input = root.querySelector("#profileHotkey");
@@ -5462,8 +6115,8 @@
       });
       root.querySelector("#profileHotkeyClear")?.addEventListener("click", () => { profileDraft.hotkey = ""; const input = root.querySelector("#profileHotkey"); if (input) input.value = ""; });
       root.querySelector("#profileAddStep")?.addEventListener("click", () => { profileDraft.steps.push(createProfileStep()); profileFormError = ""; render(); });
-      root.querySelector("#profileReset")?.addEventListener("click", () => { profileDraft = createProfileDraft(); profileEditingId = ""; profileCreateOpen = true; profileFormError = ""; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileReorderStepId = null; render(); });
-      root.querySelector("#profileCancel")?.addEventListener("click", () => { profileCreateOpen = false; profileDraft = createProfileDraft(); profileEditingId = ""; profileFormError = ""; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileReorderStepId = null; render(); });
+      root.querySelector("#profileReset")?.addEventListener("click", () => { profileDraft = createProfileDraft(); profileEditingId = ""; profileCreateOpen = true; profileFormError = ""; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileReorderStepId = null; profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); render(); });
+      root.querySelector("#profileCancel")?.addEventListener("click", () => { profileCreateOpen = false; profileDraft = createProfileDraft(); profileEditingId = ""; profileFormError = ""; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileReorderStepId = null; profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); render(); });
       root.querySelector("#profileTest")?.addEventListener("click", async () => { try { await runProfileDraftTest(isDe); } catch (err) { profileFormError = String(err?.message || err || (isDe ? "Test fehlgeschlagen." : "Test failed.")); render(); } });
       root.querySelectorAll("[data-profile-kind-btn]").forEach((btn) => btn.addEventListener("click", () => { const stepId = btn.getAttribute("data-profile-kind-btn") || ""; profileKindMenuStepId = profileKindMenuStepId === stepId ? null : stepId; profileTargetMenuStepId = null; profileReorderStepId = null; render(); }));
       root.querySelectorAll("[data-profile-kind]").forEach((btn) => btn.addEventListener("click", () => { const stepId = btn.getAttribute("data-profile-step-id") || ""; const kind = btn.getAttribute("data-profile-kind") || "apps-files"; const step = profileDraft.steps.find((entry) => entry.id === stepId); if (!step) return; const nextStep = createProfileStep(kind); step.kind = nextStep.kind; step.refId = nextStep.refId; step.value = nextStep.value; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileFormError = ""; render(); }));
@@ -5476,19 +6129,193 @@
       root.querySelectorAll("[data-profile-remove]").forEach((btn) => btn.addEventListener("click", () => { const stepId = btn.getAttribute("data-profile-remove") || ""; profileDraft.steps = profileDraft.steps.filter((entry) => entry.id !== stepId); if (profileKindMenuStepId === stepId) profileKindMenuStepId = null; if (profileTargetMenuStepId === stepId) profileTargetMenuStepId = null; if (profileReorderStepId === stepId) profileReorderStepId = null; profileFormError = ""; render(); }));
       root.querySelectorAll("[data-profile-reorder]").forEach((btn) => btn.addEventListener("click", () => { const stepId = btn.getAttribute("data-profile-reorder") || ""; profileReorderStepId = profileReorderStepId === stepId ? null : stepId; profileKindMenuStepId = null; profileTargetMenuStepId = null; render(); }));
       root.querySelectorAll("[data-profile-target-index]").forEach((btn) => btn.addEventListener("click", () => { const stepId = btn.getAttribute("data-profile-step-id") || ""; const targetIdx = Number(btn.getAttribute("data-profile-target-index")); const fromIdx = profileDraft.steps.findIndex((entry) => entry.id === stepId); if (fromIdx < 0 || Number.isNaN(targetIdx) || targetIdx < 0 || targetIdx >= profileDraft.steps.length) return; const steps = [...profileDraft.steps]; const [moved] = steps.splice(fromIdx, 1); steps.splice(targetIdx, 0, moved); profileDraft.steps = steps; profileReorderStepId = null; render(); }));
-      root.querySelector("#profileForm")?.addEventListener("submit", (e) => { e.preventDefault(); const name = String(root.querySelector("#profileName")?.value || "").trim(); const hotkey = String(root.querySelector("#profileHotkey")?.value || "").trim(); if (!name) { profileFormError = isDe ? "Bitte gib einen Namen ein." : "Please enter a name."; render(); return; } const validation = validateProfileSteps(profileDraft.steps, isDe); if (validation.error) { profileFormError = validation.error; render(); return; } const conflict = getAutomationHotkeyConflict(hotkey, "profile", profileEditingId); if (conflict) { profileHotkeyConflict = { hotkey, name: String(conflict.name || "") }; profileFormError = isDe ? `Der Hotkey "${hotkey}" ist bereits bei "${profileHotkeyConflict.name}" vergeben.` : `The hotkey "${hotkey}" is already assigned to "${profileHotkeyConflict.name}".`; render(); return; } profileFormError = ""; profileHotkeyConflict = null; if (profileEditingId) { profileAutomations = profileAutomations.map((item) => item.id === profileEditingId ? { ...item, name, hotkey, triggerMode: profileDraft.triggerMode || "once", steps: validation.steps } : item); } else { profileAutomations.unshift({ id: uid(), name, hotkey, triggerMode: profileDraft.triggerMode || "once", enabled: true, steps: validation.steps, createdAt: Date.now() }); } saveProfileAutomations(); profileCreateOpen = false; profileDraft = createProfileDraft(); profileEditingId = ""; render(); });
+      root.querySelector("#profileForm")?.addEventListener("submit", (e) => { e.preventDefault(); const name = String(root.querySelector("#profileName")?.value || "").trim(); const hotkey = String(root.querySelector("#profileHotkey")?.value || "").trim(); if (!name) { profileFormError = isDe ? "Bitte gib einen Namen ein." : "Please enter a name."; render(); return; } const validation = validateProfileSteps(profileDraft.steps, isDe); if (validation.error) { profileFormError = validation.error; render(); return; } const conflict = getAutomationHotkeyConflict(hotkey, "profile", profileEditingId); if (conflict) { profileHotkeyConflict = { hotkey, name: String(conflict.name || "") }; profileFormError = isDe ? `Der Hotkey "${hotkey}" ist bereits bei "${profileHotkeyConflict.name}" vergeben.` : `The hotkey "${hotkey}" is already assigned to "${profileHotkeyConflict.name}".`; render(); return; } profileFormError = ""; profileHotkeyConflict = null; if (profileEditingId) { profileAutomations = profileAutomations.map((item) => item.id === profileEditingId ? { ...item, name, hotkey, triggerMode: profileDraft.triggerMode || "once", steps: validation.steps } : item); } else { profileAutomations.unshift({ id: uid(), name, hotkey, triggerMode: profileDraft.triggerMode || "once", enabled: true, steps: validation.steps, createdAt: Date.now() }); } saveProfileAutomations(); profileCreateOpen = false; profileDraft = createProfileDraft(); profileEditingId = ""; profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); render(); });
       root.querySelectorAll("[data-profile-action='info']").forEach((btn) => btn.addEventListener("click", () => { const id = btn.getAttribute("data-profile-id") || ""; profileExpandedInfoId = profileExpandedInfoId === id ? "" : id; render(); }));
-      root.querySelectorAll("[data-profile-action='edit']").forEach((btn) => btn.addEventListener("click", () => { const id = btn.getAttribute("data-profile-id") || ""; const item = profileAutomations.find((entry) => entry.id === id); if (!item) return; profileCreateOpen = true; profileEditingId = item.id; profileDraft = { name: String(item.name || ""), hotkey: String(item.hotkey || ""), triggerMode: ["once", "hold", "toggle"].includes(String(item.triggerMode || "").trim()) ? String(item.triggerMode).trim() : "once", steps: cloneProfileSteps(item.steps) }; profileFormError = ""; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileReorderStepId = null; render(); }));
-      root.querySelectorAll("[data-profile-action='toggle']").forEach((btn) => btn.addEventListener("click", () => { const id = btn.getAttribute("data-profile-id") || ""; profileAutomations = profileAutomations.map((item) => item.id === id ? { ...item, enabled: item.enabled === false } : item); const updated = profileAutomations.find((item) => item.id === id); if (updated?.enabled === false) stopProfileLoop(id); saveProfileAutomations(); render(); }));
+      root.querySelectorAll("[data-profile-action='edit']").forEach((btn) => btn.addEventListener("click", () => { const id = btn.getAttribute("data-profile-id") || ""; const item = profileAutomations.find((entry) => entry.id === id); if (!item) return; profileCreateOpen = true; profileEditingId = item.id; profileDraft = { name: String(item.name || ""), hotkey: String(item.hotkey || ""), triggerMode: ["once", "hold", "toggle"].includes(String(item.triggerMode || "").trim()) ? String(item.triggerMode).trim() : "once", steps: cloneProfileSteps(item.steps) }; profileFormError = ""; profileKindMenuStepId = null; profileTargetMenuStepId = null; profileReorderStepId = null; profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); render(); }));
+      root.querySelectorAll("[data-profile-action='toggle']").forEach((btn) => btn.addEventListener("click", () => { const id = btn.getAttribute("data-profile-id") || ""; const current = profileAutomations.find((item) => item.id === id); if (!current || isProfileGameBound(current)) return; profileAutomations = profileAutomations.map((item) => item.id === id ? { ...item, enabled: item.enabled === false } : item); const updated = profileAutomations.find((item) => item.id === id); if (updated?.enabled === false) stopProfileLoop(id); saveProfileAutomations(); render(); }));
       root.querySelectorAll("[data-profile-action='duplicate']").forEach((btn) => btn.addEventListener("click", () => { const id = btn.getAttribute("data-profile-id") || ""; const item = profileAutomations.find((entry) => entry.id === id); if (!item) return; profileAutomations.unshift({ ...item, id: uid(), name: isDe ? `${item.name} Kopie` : `${item.name} Copy`, hotkey: "", steps: cloneProfileSteps(item.steps).map((step) => ({ ...step, id: uid() })), createdAt: Date.now() }); saveProfileAutomations(); render(); }));
       root.querySelectorAll("[data-profile-action='delete']").forEach((btn) => btn.addEventListener("click", () => { profilePendingDeleteId = btn.getAttribute("data-profile-id") || ""; render(); }));
       document.querySelectorAll('[data-delete-close="profileDelete"]').forEach((btn) => btn.addEventListener("click", () => { profilePendingDeleteId = ""; render(); }));
-      document.querySelector('[data-delete-confirm="profileDelete"]')?.addEventListener("click", () => { const id = profilePendingDeleteId; if (!id) return; profileAutomations = profileAutomations.filter((entry) => entry.id !== id); stopProfileLoop(id); if (profileEditingId === id) { profileEditingId = ""; profileCreateOpen = false; profileDraft = createProfileDraft(); } if (profileExpandedInfoId === id) profileExpandedInfoId = ""; profilePendingDeleteId = ""; saveProfileAutomations(); render(); });
+      document.querySelector('[data-delete-confirm="profileDelete"]')?.addEventListener("click", () => { const id = profilePendingDeleteId; if (!id) return; profileAutomations = profileAutomations.filter((entry) => entry.id !== id); stopProfileLoop(id); if (profileEditingId === id) { profileEditingId = ""; profileCreateOpen = false; profileDraft = createProfileDraft(); profileGameAppMenuOpen = false; resetProfileGameAppTypeahead(); } if (profileExpandedInfoId === id) profileExpandedInfoId = ""; profilePendingDeleteId = ""; saveProfileAutomations(); render(); });
     }
+
+    function renderProcessDetectionMenu() {
+      const isDe = getLang() === "de";
+      renderAppsFilesDeleteModalHost("");
+      if (!appsFilesScanLoaded && !appsFilesScanLoading) {
+        void loadAppsFilesScannedApps(false);
+      }
+      const allEntries = getProcessBindingEntries();
+      const filteredEntries = getFilteredProcessBindingEntries();
+      const resolvedSelected = (() => {
+        const selectedId = String(processBindingSelectedHotkeyId || "").trim();
+        if (selectedId) {
+          const byId = allEntries.find((entry) => entry.id === selectedId);
+          if (byId) return byId;
+        }
+        return filteredEntries[0] || allEntries[0] || null;
+      })();
+      if (resolvedSelected && processBindingSelectedHotkeyId !== resolvedSelected.id) {
+        processBindingSelectedHotkeyId = resolvedSelected.id;
+      }
+      if (!resolvedSelected) {
+        processBindingSelectedHotkeyId = "";
+      }
+      const selectedEntry = resolvedSelected;
+      const selectedBinding = selectedEntry ? getHotkeyAppBindingById(selectedEntry.id) : null;
+      const filterOptions = getProcessBindingFilterOptions(isDe);
+      const filtersHtml = filterOptions.map((option) => `<button class="apps-files-filter-chip ${processBindingListFilter === option.value ? "active" : ""}" type="button" data-pb-filter="${escapeHtml(option.value)}">${escapeHtml(option.label)}</button>`).join("");
+      const entriesHtml = filteredEntries.map((entry) => {
+        const isSelected = selectedEntry?.id === entry.id;
+        const statusMeta = getProcessBindingStatusMeta(entry, isDe);
+        const sourceLabel = getAutomationSourceLabel(entry.sourceType, isDe);
+        const toggleLabel = entry.enabled === false ? (isDe ? "Aktivieren" : "Enable") : (isDe ? "Deaktivieren" : "Disable");
+        return `
+          <article class="apps-files-item process-binding-item ${isSelected ? "active" : ""}" data-enabled="${entry.effectiveEnabled ? "true" : "false"}">
+            <div class="apps-files-item-main">
+              <div class="apps-files-item-shell">
+                <div class="apps-files-item-type">${escapeHtml(getAutomationSourceCode(entry.sourceType))}</div>
+                <div class="apps-files-item-content">
+                  <div class="apps-files-item-title">${escapeHtml(entry.name)}</div>
+                  <div class="apps-files-item-meta">
+                    <span>${escapeHtml(sourceLabel)}</span>
+                    <span class="apps-files-dot" aria-hidden="true"></span>
+                    <span>${escapeHtml(keyboardTriggerModeLabel(entry.triggerMode || "once", isDe))}</span>
+                    <span class="apps-files-dot" aria-hidden="true"></span>
+                    <span>${escapeHtml(`${entry.stepCount || 0} ${isDe ? "Schritte" : "steps"}`)}</span>
+                    ${entry.boundAppLabel ? `<span class="apps-files-dot" aria-hidden="true"></span><span>${escapeHtml(entry.boundAppLabel)}</span>` : ""}
+                  </div>
+                </div>
+                <div class="apps-files-item-hotkey-box ${entry.boundAppLabel ? "" : "is-empty"}">
+                  <span class="apps-files-item-hotkey-label">${escapeHtml(isDe ? "App" : "App")}</span>
+                  <span class="apps-files-item-hotkey-value">${escapeHtml(entry.boundAppLabel || "-")}</span>
+                </div>
+                <div class="apps-files-item-hotkey-box ${entry.hotkey ? "" : "is-empty"}">
+                  <span class="apps-files-item-hotkey-label">Hotkey</span>
+                  <span class="apps-files-item-hotkey-value">${escapeHtml(entry.hotkey || "-")}</span>
+                </div>
+                <div class="apps-files-item-status ${statusMeta.className}">${escapeHtml(statusMeta.label)}</div>
+              </div>
+            </div>
+            <div class="apps-files-item-actions">
+              <button class="btn-ghost" type="button" data-pb-select="${escapeHtml(entry.id)}">${escapeHtml(isSelected ? (isDe ? "Ausgewählt" : "Selected") : (isDe ? "Konfigurieren" : "Configure"))}</button>
+              ${entry.boundAppLabel ? "" : `<button class="btn-ghost" type="button" data-pb-toggle="${escapeHtml(entry.id)}">${escapeHtml(toggleLabel)}</button>`}
+              ${entry.boundAppLabel ? `<button class="btn-ghost apps-files-delete" type="button" data-pb-clear="${escapeHtml(entry.id)}">${escapeHtml(isDe ? "App lösen" : "Remove app")}</button>` : ""}
+            </div>
+          </article>
+        `;
+      }).join("");
+      const filteredApps = getFilteredProcessBindingApps();
+
+      root.innerHTML = `
+        <section class="automation-shell apps-files-shell process-binding-shell">
+          <div class="apps-files-topbar">
+            <div class="apps-files-heading">
+              <button class="btn-ghost automation-back" id="processBindingBack" type="button" aria-label="${isDe ? "Zurück" : "Back"}" title="${isDe ? "Zurück" : "Back"}">
+                <span class="automation-back-glyph" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                    <path d="M15 6L8 12L15 18Z" fill="currentColor"></path>
+                  </svg>
+                </span>
+              </button>
+              <div class="apps-files-heading-text">
+                <h2>${isDe ? "Spielerkennung" : "Game Detection"}</h2>
+                <p>${isDe ? "Ordne bestehende Hotkeys einer App oder einem Spiel zu. Gebundene Hotkeys laufen dann nur, solange der Prozess aktiv ist." : "Assign existing hotkeys to an app or game. Bound hotkeys stay active only while the process is running."}</p>
+              </div>
+            </div>
+            <div class="apps-files-top-actions">
+              <div class="apps-files-stat"><span>${isDe ? "Hotkeys" : "Hotkeys"}</span><strong>${allEntries.length}</strong></div>
+              <div class="apps-files-stat"><span>${isDe ? "Verknüpft" : "Bound"}</span><strong>${allEntries.filter((entry) => entry.boundAppLabel).length}</strong></div>
+            </div>
+          </div>
+          <div class="apps-files-layout">
+            <section class="apps-files-list-panel">
+              <div class="apps-files-panel-head">
+                <h3>${isDe ? "Hotkeys mit App-Steuerung" : "Hotkeys with app control"}</h3>
+                <span>${filteredEntries.length}</span>
+              </div>
+              <div class="apps-files-filters">${filtersHtml}</div>
+              <div class="apps-files-search-row">
+                <input id="processBindingSearch" class="input apps-files-search-input" type="text" value="${escapeHtml(processBindingSearchQuery)}" placeholder="${escapeHtml(isDe ? "Hotkeys oder Apps suchen..." : "Search hotkeys or apps...")}" />
+              </div>
+              <div class="apps-files-list">
+                ${entriesHtml || `<div class="automation-empty apps-files-empty">${escapeHtml(isDe ? "Noch keine Hotkeys gefunden. Erstelle zuerst einen Hotkey in einer der anderen Kacheln." : "No hotkeys found yet. Create a hotkey in one of the other tiles first.")}</div>`}
+              </div>
+            </section>
+            <aside class="apps-files-compose-panel show process-binding-panel">
+              <div class="apps-files-form process-binding-form">
+                ${selectedEntry ? `
+                  <div class="apps-files-form-title-row">
+                    <h3>${escapeHtml(isDe ? "App zuordnen" : "Assign app")}</h3>
+                    <span class="apps-files-form-hint">${escapeHtml(getAutomationSourceLabel(selectedEntry.sourceType, isDe))}</span>
+                  </div>
+                  <div class="process-binding-summary">
+                    <div class="process-binding-summary-name">${escapeHtml(selectedEntry.name)}</div>
+                    <div class="apps-files-item-meta">
+                      <span>${escapeHtml(selectedEntry.hotkey)}</span>
+                      <span class="apps-files-dot" aria-hidden="true"></span>
+                      <span>${escapeHtml(keyboardTriggerModeLabel(selectedEntry.triggerMode || "once", isDe))}</span>
+                      <span class="apps-files-dot" aria-hidden="true"></span>
+                      <span>${escapeHtml(`${selectedEntry.stepCount || 0} ${isDe ? "Schritte" : "steps"}`)}</span>
+                    </div>
+                  </div>
+                  ${selectedBinding ? `<div class="profile-game-selected"><span class="profile-game-selected-kicker">${escapeHtml(isDe ? "Aktuell verknüpft" : "Currently linked")}</span><strong>${escapeHtml(selectedBinding.appName || selectedBinding.processName || "")}</strong><span>${escapeHtml(isDe ? `Prozess: ${selectedBinding.processName}` : `Process: ${selectedBinding.processName}`)}</span></div>` : `<div class="process-binding-empty">${escapeHtml(isDe ? "Diesem Hotkey ist aktuell noch keine App zugeordnet." : "This hotkey does not have an assigned app yet.")}</div>`}
+                  <div class="process-binding-picker-head">
+                    <label class="apps-files-field process-binding-search-field">
+                      <span>${escapeHtml(isDe ? "App suchen" : "Search app")}</span>
+                      <input id="processBindingAppSearch" class="input" type="text" value="${escapeHtml(processBindingAppSearchQuery)}" placeholder="${escapeHtml(isDe ? "z. B. Counter-Strike oder discord" : "e.g. Counter-Strike or discord")}" />
+                    </label>
+                    <button class="btn-ghost apps-step-app-refresh process-binding-refresh" id="processBindingRefresh" type="button" aria-label="${escapeHtml(isDe ? "Aktualisieren" : "Refresh")}" data-tip="${escapeHtml(isDe ? "Aktualisieren" : "Refresh")}" ${appsFilesScanLoading ? "disabled" : ""}>&#x21BA;</button>
+                  </div>
+                  <div class="process-binding-help">${escapeHtml(isDe ? "Klicke eine App in der Liste an. Der Hotkey wird sofort gespeichert und später nur noch beim Starten und Schließen dieser App gesteuert. Hotkeys ohne App kannst du hier weiter manuell aktivieren oder deaktivieren." : "Click an app in the list. The hotkey is saved immediately and will later be controlled only when that app starts and closes. Hotkeys without an app can still be enabled or disabled here manually.")}</div>
+                  <div class="process-binding-options">
+                    ${appsFilesScanLoading ? `<div class="apps-step-app-status">${escapeHtml(isDe ? "Scanne..." : "Scanning...")}</div>` : ""}
+                    ${!appsFilesScanLoading && !filteredApps.length ? `<div class="apps-step-app-status">${escapeHtml(getProcessBindingPanelHint(isDe))}</div>` : ""}
+                    ${filteredApps.map((app) => `<button class="process-binding-option ${String(app?.launch || "").trim() === String(selectedBinding?.appLaunch || "").trim() ? "selected" : ""}" type="button" data-pb-app-launch="${escapeHtml(String(app?.launch || "").trim())}"><span class="process-binding-option-name">${escapeHtml(String(app?.name || "").trim() || String(app?.processName || "").trim())}</span><span class="process-binding-option-meta">${escapeHtml(String(app?.processName || "").trim())}</span></button>`).join("")}
+                  </div>
+                  <div class="apps-files-form-actions">
+                    ${!selectedBinding ? `<button class="btn-ghost" type="button" id="processBindingToggleSelected">${escapeHtml(selectedEntry.enabled === false ? (isDe ? "Hotkey aktivieren" : "Enable hotkey") : (isDe ? "Hotkey deaktivieren" : "Disable hotkey"))}</button>` : ""}
+                    ${selectedBinding ? `<button class="btn-ghost apps-files-delete" type="button" id="processBindingClearSelected">${escapeHtml(isDe ? "App lösen" : "Remove app")}</button>` : ""}
+                  </div>
+                ` : `<div class="automation-empty apps-files-empty">${escapeHtml(isDe ? "Wähle links einen Hotkey aus, um eine App zuzuordnen." : "Choose a hotkey on the left to assign an app.")}</div>`}
+              </div>
+            </aside>
+          </div>
+        </section>
+      `;
+
+      root.querySelector("#processBindingBack")?.addEventListener("click", goBackToCatalog);
+      root.querySelector("#processBindingRefresh")?.addEventListener("click", () => { void loadAppsFilesScannedApps(true); });
+      root.querySelector("#processBindingSearch")?.addEventListener("input", (e) => { processBindingSearchQuery = String(e.target?.value || ""); render(); });
+      root.querySelector("#processBindingAppSearch")?.addEventListener("input", (e) => { processBindingAppSearchQuery = String(e.target?.value || ""); render(); });
+      root.querySelectorAll("[data-pb-filter]").forEach((btn) => btn.addEventListener("click", () => { processBindingListFilter = btn.getAttribute("data-pb-filter") || "all"; render(); }));
+      root.querySelectorAll("[data-pb-select]").forEach((btn) => btn.addEventListener("click", () => { processBindingSelectedHotkeyId = btn.getAttribute("data-pb-select") || ""; processBindingAppSearchQuery = ""; render(); }));
+      root.querySelectorAll("[data-pb-toggle]").forEach((btn) => btn.addEventListener("click", () => {
+        const id = String(btn.getAttribute("data-pb-toggle") || "").trim();
+        const entry = allEntries.find((item) => item.id === id);
+        if (toggleProcessBindingEntryEnabled(entry)) render();
+      }));
+      root.querySelectorAll("[data-pb-clear]").forEach((btn) => btn.addEventListener("click", () => { if (removeHotkeyAppBinding(btn.getAttribute("data-pb-clear") || "")) render(); }));
+      root.querySelector("#processBindingToggleSelected")?.addEventListener("click", () => {
+        if (toggleProcessBindingEntryEnabled(selectedEntry)) render();
+      });
+      root.querySelector("#processBindingClearSelected")?.addEventListener("click", () => { if (selectedEntry && removeHotkeyAppBinding(selectedEntry.id)) render(); });
+      root.querySelectorAll("[data-pb-app-launch]").forEach((btn) => btn.addEventListener("click", () => {
+        if (!selectedEntry) return;
+        const launch = String(btn.getAttribute("data-pb-app-launch") || "").trim();
+        const selectedApp = (Array.isArray(appsFilesScannedApps) ? appsFilesScannedApps : []).find((app) => String(app?.launch || "").trim() === launch);
+        if (!selectedApp) return;
+        if (upsertHotkeyAppBinding(selectedEntry.id, selectedApp)) {
+          processBindingAppSearchQuery = "";
+          render();
+        }
+      }));
+    }
+
     function render() {
       syncBodyViewClass();
       document.body?.classList.toggle("profile-editor-open", currentView === "automations" && (profileCreateOpen || Boolean(profileEditingId)));
-      if (currentView !== "apps-files" && currentView !== "keyboard-input" && currentView !== "mouse-input" && currentView !== "system" && currentView !== "automations") {
+      if (currentView !== "apps-files" && currentView !== "keyboard-input" && currentView !== "mouse-input" && currentView !== "system" && currentView !== "automations" && currentView !== "process-detection") {
         renderAppsFilesDeleteModalHost("");
       }
       if (currentView === "apps-files") {
@@ -5509,6 +6336,10 @@
       }
       if (currentView === "automations") {
         renderProfilesMenu();
+        return;
+      }
+      if (currentView === "process-detection") {
+        renderProcessDetectionMenu();
         return;
       }
       renderCatalog();
@@ -5586,8 +6417,14 @@
       profileReorderStepId = null;
       profileKindMenuStepId = null;
       profileTargetMenuStepId = null;
+      profileGameAppMenuOpen = false;
+      resetProfileGameAppTypeahead();
       profileLoopControllers.forEach((_, id) => stopProfileLoop(id));
       profileRunningOnce.clear();
+      processBindingSelectedHotkeyId = "";
+      processBindingSearchQuery = "";
+      processBindingListFilter = "all";
+      processBindingAppSearchQuery = "";
       renderAppsFilesDeleteModalHost("");
       syncBodyViewClass();
     }

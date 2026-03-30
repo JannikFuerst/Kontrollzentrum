@@ -57,8 +57,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const DEFAULT_QUICK_LAUNCHER_SHORTCUT = IS_MAC_PLATFORM ? "Super+Space" : "Ctrl+Space";
   const WINDOW_SHOWN_EVENT = "kc://window-shown-by-shortcut";
   const QUICK_LAUNCHER_OPEN_EVENT = "kc://quick-launcher-open";
+  const RUNNING_PROCESSES_CHANGED_EVENT = "kc://running-processes-changed";
   let unlistenWindowShownByShortcut = null;
   let unlistenQuickLauncherOpen = null;
+  let unlistenRunningProcessesChanged = null;
+  let runtimeHotkeysReady = false;
+  let pendingRunningProcessNames = null;
   let quickLauncherShortcut = localStorage.getItem(QUICK_LAUNCHER_HOTKEY_KEY) || DEFAULT_QUICK_LAUNCHER_SHORTCUT;
   const surfaceSwitchToast = document.createElement("div");
   surfaceSwitchToast.className = "surface-switch-toast";
@@ -421,6 +425,43 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_capture: "Aufnehmen",
       settings_capture_listen: "Drücke Tasten...",
       settings_hotkey_help: "Klicke auf \"Aufnehmen\" und drücke die gewünschte Kombination.",
+      settings_game_profiles_label: "Spielprofile",
+      settings_game_profiles_help: "Ordne einem Spiel ein Profil zu und entscheide, welche Hotkeys aktiv bleiben.",
+      settings_game_profiles_add: "Profil hinzufügen",
+      settings_game_profiles_name_label: "Profilname",
+      settings_game_profiles_name_placeholder: "z.B. Valorant",
+      settings_game_profiles_match_label: "Spiel / Prozess",
+      settings_game_profiles_match_placeholder: "z.B. valorant.exe oder VALORANT",
+      settings_game_profiles_mode_label: "Hotkey-Modus",
+      settings_game_profiles_mode_all: "Alle",
+      settings_game_profiles_mode_none: "Aus",
+      settings_game_profiles_mode_selected: "Auswahl",
+      settings_game_profiles_mode_help: "Bei mehreren Treffern gewinnt das oberste aktivierte Profil.",
+      settings_game_profiles_keep_main: "Fenster-Hotkey weiter aktiv lassen",
+      settings_game_profiles_hotkeys_label: "Aktive Hotkeys",
+      settings_game_profiles_hotkeys_help: "Nur diese Automations-Hotkeys bleiben bei diesem Spiel aktiv.",
+      settings_game_profiles_hotkeys_empty: "Noch keine Hotkeys vorhanden.",
+      settings_game_profiles_empty: "Noch keine Spielprofile.",
+      settings_game_profiles_status_active: "Aktiv",
+      settings_game_profiles_status_enabled: "Bereit",
+      settings_game_profiles_status_disabled: "Deaktiviert",
+      settings_game_profiles_runtime_active: "Aktiv: {profile} für {target}.",
+      settings_game_profiles_runtime_idle: "Kein Spielprofil aktiv. Aktives Fenster: {target}.",
+      settings_game_profiles_runtime_none: "Kein aktives Spiel/Fenster erkannt.",
+      settings_game_profiles_summary_all: "Alle Automations-Hotkeys aktiv",
+      settings_game_profiles_summary_none: "Alle Automations-Hotkeys aus",
+      settings_game_profiles_summary_selected: "{count} Automations-Hotkeys aktiv",
+      settings_game_profiles_match_prefix: "Treffer: {value}",
+      settings_game_profiles_hotkey_prefix: "Modus: {value}",
+      settings_game_profiles_group_apps_files: "Apps & Dateien",
+      settings_game_profiles_group_keyboard: "Tastatur",
+      settings_game_profiles_group_mouse: "Maus",
+      settings_game_profiles_group_system: "System",
+      settings_game_profiles_group_profile: "Kombinationen",
+      settings_game_profiles_validation: "Bitte gib Profilname und Spiel/Prozess an.",
+      settings_game_profiles_enable: "Aktivieren",
+      settings_game_profiles_disable: "Deaktivieren",
+      settings_game_profiles_delete_confirm: "Spielprofil \"{name}\" wirklich löschen?",
       settings_voice_activation: "Sprachaktivierung",
       settings_voice_wake_mode_label: "Ansprache",
       settings_voice_wake_mode_standard: "Standard (Kontrollzentrum / Control Center)",
@@ -639,6 +680,43 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_capture: "Capture",
       settings_capture_listen: "Press keys...",
       settings_hotkey_help: "Click \"Capture\" and press the desired combination.",
+      settings_game_profiles_label: "Game combinations",
+      settings_game_profiles_help: "Assign a combination to a game and choose which hotkeys stay active.",
+      settings_game_profiles_add: "Add combination",
+      settings_game_profiles_name_label: "Combination name",
+      settings_game_profiles_name_placeholder: "e.g. Valorant",
+      settings_game_profiles_match_label: "Game / process",
+      settings_game_profiles_match_placeholder: "e.g. valorant.exe or VALORANT",
+      settings_game_profiles_mode_label: "Hotkey mode",
+      settings_game_profiles_mode_all: "All",
+      settings_game_profiles_mode_none: "Off",
+      settings_game_profiles_mode_selected: "Selected",
+      settings_game_profiles_mode_help: "If multiple rules match, the top enabled profile wins.",
+      settings_game_profiles_keep_main: "Keep the window hotkey active",
+      settings_game_profiles_hotkeys_label: "Active hotkeys",
+      settings_game_profiles_hotkeys_help: "Only these automation hotkeys stay active for this game.",
+      settings_game_profiles_hotkeys_empty: "No hotkeys available yet.",
+      settings_game_profiles_empty: "No game combinations yet.",
+      settings_game_profiles_status_active: "Active",
+      settings_game_profiles_status_enabled: "Ready",
+      settings_game_profiles_status_disabled: "Disabled",
+      settings_game_profiles_runtime_active: "Active: {profile} for {target}.",
+      settings_game_profiles_runtime_idle: "No game profile active. Current window: {target}.",
+      settings_game_profiles_runtime_none: "No active game/window detected.",
+      settings_game_profiles_summary_all: "All automation hotkeys active",
+      settings_game_profiles_summary_none: "All automation hotkeys off",
+      settings_game_profiles_summary_selected: "{count} automation hotkeys active",
+      settings_game_profiles_match_prefix: "Match: {value}",
+      settings_game_profiles_hotkey_prefix: "Mode: {value}",
+      settings_game_profiles_group_apps_files: "Apps & Files",
+      settings_game_profiles_group_keyboard: "Keyboard",
+      settings_game_profiles_group_mouse: "Mouse",
+      settings_game_profiles_group_system: "System",
+      settings_game_profiles_group_profile: "Combinations",
+      settings_game_profiles_validation: "Please enter a combination name and game/process match.",
+      settings_game_profiles_enable: "Enable",
+      settings_game_profiles_disable: "Disable",
+      settings_game_profiles_delete_confirm: "Delete game combination \"{name}\"?",
       settings_voice_activation: "Voice activation",
       settings_voice_wake_mode_label: "Addressing",
       settings_voice_wake_mode_standard: "Default (Kontrollzentrum / Control Center)",
@@ -728,7 +806,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   window.__KC_SET_EXTERNAL_HOTKEYS = (source, entries) => {
     const bucket = String(source || "default");
     externalHotkeyBuckets[bucket] = Array.isArray(entries) ? entries : [];
-    void applyAppGlobalHotkeys(apps);
+    if (runtimeHotkeysReady) {
+      void queueRuntimeHotkeyRefresh();
+    }
   };
 
   const automationUi = window.AutomationSurface?.create({
@@ -2899,17 +2979,19 @@ document.addEventListener("DOMContentLoaded", async () => {
           openQuickLauncher();
         });
       });
+      unlistenRunningProcessesChanged = await tauriApi.event.listen(RUNNING_PROCESSES_CHANGED_EVENT, (event) => {
+        updateRunningProcessNames(event?.payload);
+      });
     }
 
     if (tauriApi?.core?.invoke){
-      let savedHotkey = localStorage.getItem("kc_hotkey") || "";
-      if (isQuickLauncherShortcut(savedHotkey)){
-        savedHotkey = "";
-        localStorage.removeItem("kc_hotkey");
+      try{
+        const runningProcesses = await tauriApi.core.invoke("get_running_process_names");
+        updateRunningProcessNames(runningProcesses);
+      }catch(e){
+        console.error("get_running_process_names failed:", e);
       }
-      if (savedHotkey){
-        await tauriApi.core.invoke("set_global_shortcut", { shortcut: savedHotkey });
-      }
+      await queueRuntimeHotkeyRefresh();
     }
   }catch(e){
     console.error("tauri startup shortcut/events init failed:", e);
@@ -2923,6 +3005,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (typeof unlistenQuickLauncherOpen === "function") {
       unlistenQuickLauncherOpen();
       unlistenQuickLauncherOpen = null;
+    }
+    if (typeof unlistenRunningProcessesChanged === "function") {
+      unlistenRunningProcessesChanged();
+      unlistenRunningProcessesChanged = null;
     }
   });
 
@@ -3114,7 +3200,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function openSettings(){
     if (!settingsOverlay) return;
     applyModalI18n();
-    const saved = localStorage.getItem("kc_hotkey") || "";
+    const saved = getStoredMainWindowHotkey();
     if (hotkeyInput) hotkeyInput.value = saved;
     if (quickLauncherHotkeyInput) quickLauncherHotkeyInput.value = getQuickLauncherShortcut();
     if (themeToggle) themeToggle.checked = false;
@@ -3530,16 +3616,10 @@ function openCatManage(){
       return;
     }
     const current = localStorage.getItem("kc_hotkey") || "";
-    if (shortcut === current) return;
-    localStorage.setItem("kc_hotkey", shortcut);
-    try{
-      const tauriApi = window.__TAURI__;
-      if (tauriApi?.core?.invoke){
-        await tauriApi.core.invoke("set_global_shortcut", { shortcut });
-      }
-    }catch(e){
-      console.error("set_global_shortcut failed:", e);
+    if (shortcut !== current){
+      localStorage.setItem("kc_hotkey", shortcut);
     }
+    await queueRuntimeHotkeyRefresh();
   }
 
   function applyQuickLauncherHotkey(value){
@@ -4371,17 +4451,153 @@ function openCatManage(){
 
   await initializeProfileState();
 
+  function normalizeProcessName(value){
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/^.*[\\/]/, "");
+  }
+
+  function normalizeRunningProcessNames(raw){
+    const items = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.process_names)
+        ? raw.process_names
+        : Array.isArray(raw?.processNames)
+          ? raw.processNames
+          : [];
+    return Array.from(new Set(items.map((item) => normalizeProcessName(item)).filter(Boolean))).sort();
+  }
+
+  function normalizeProcessMatchTokens(value){
+    return Array.from(new Set(
+      String(value || "")
+        .split(/[;,]/)
+        .map((item) => normalizeProcessName(item))
+        .filter(Boolean)
+    ));
+  }
+
+  function processMatchTokenIsRunning(token, runningNames){
+    const needle = normalizeProcessName(token);
+    if (!needle) return false;
+    const needleBare = needle.endsWith(".exe") ? needle.slice(0, -4) : needle;
+    return (Array.isArray(runningNames) ? runningNames : []).some((name) => {
+      const normalizedName = normalizeProcessName(name);
+      if (!normalizedName) return false;
+      const bareName = normalizedName.endsWith(".exe") ? normalizedName.slice(0, -4) : normalizedName;
+      return (
+        normalizedName === needle ||
+        bareName === needle ||
+        normalizedName === `${needle}.exe` ||
+        bareName === needleBare
+      );
+    });
+  }
+
+  function isProcessMatchTextActive(value){
+    const tokens = normalizeProcessMatchTokens(value);
+    if (!tokens.length) {
+      return false;
+    }
+    return tokens.some((token) => processMatchTokenIsRunning(token, activeRunningProcessNames));
+  }
+
+  let activeRunningProcessNames = [];
+  let runtimeHotkeyRefreshChain = Promise.resolve();
+  window.__KC_ACTIVE_PROCESS_NAMES = [];
+  window.__KC_IS_PROCESS_MATCH_ACTIVE = (value) => isProcessMatchTextActive(value);
+  runtimeHotkeysReady = true;
+  if (pendingRunningProcessNames){
+    const pending = pendingRunningProcessNames;
+    pendingRunningProcessNames = null;
+    updateRunningProcessNames(pending);
+  }
+
+  function getPublishedHotkeyEntries(){
+    const seen = new Set();
+    return Object.values(externalHotkeyBuckets)
+      .flat()
+      .map((item) => {
+        const id = String(item?.id || "").trim();
+        const shortcut = String(item?.shortcut || "").trim();
+        const launch = String(item?.launch || "").trim();
+        if (!id || !shortcut || !launch || seen.has(id)) return null;
+        seen.add(id);
+        return {
+          id,
+          label: String(item?.label || id).trim(),
+          sourceType: String(item?.sourceType || "").trim(),
+          shortcut,
+          launch,
+          gameBindingEnabled: item?.gameBindingEnabled === true,
+          gameMatchText: String(item?.gameMatchText || "").trim()
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function getStoredMainWindowHotkey(){
+    const saved = String(localStorage.getItem("kc_hotkey") || "").trim();
+    return isQuickLauncherShortcut(saved) ? "" : saved;
+  }
+
+  function getRuntimeMainWindowHotkey(){
+    return getStoredMainWindowHotkey();
+  }
+
+  function getFilteredPublishedHotkeyEntries(){
+    return getPublishedHotkeyEntries();
+  }
+
+  function queueRuntimeHotkeyRefresh(){
+    if (!runtimeHotkeysReady) {
+      return Promise.resolve();
+    }
+    runtimeHotkeyRefreshChain = runtimeHotkeyRefreshChain
+      .catch(() => {})
+      .then(async () => {
+        await applyWindowToggleHotkey();
+        await applyAppGlobalHotkeys(apps);
+      });
+    return runtimeHotkeyRefreshChain;
+  }
+
+  function updateRunningProcessNames(raw){
+    if (!runtimeHotkeysReady){
+      pendingRunningProcessNames = raw;
+      return;
+    }
+    const nextNames = normalizeRunningProcessNames(raw);
+    const changed = nextNames.length !== activeRunningProcessNames.length ||
+      nextNames.some((value, index) => value !== activeRunningProcessNames[index]);
+    if (!changed) return;
+    activeRunningProcessNames = nextNames;
+    window.__KC_ACTIVE_PROCESS_NAMES = nextNames.slice();
+  }
+
   function loadApps(){
     const raw = getProfileValue(PROFILE_APPS_KEY);
     return Array.isArray(raw) ? raw.map((item) => repairMojibakeValue(item)) : [];
+  }
+
+  async function applyWindowToggleHotkey(){
+    try{
+      const tauriApi = window.__TAURI__;
+      if (!tauriApi?.core?.invoke) return;
+      await tauriApi.core.invoke("set_global_shortcut", {
+        shortcut: getRuntimeMainWindowHotkey()
+      });
+    }catch(e){
+      console.error("set_global_shortcut failed:", e);
+    }
   }
 
   async function applyAppGlobalHotkeys(list){
     try{
       const tauriApi = window.__TAURI__;
       if (!tauriApi?.core?.invoke) return;
-      const externalShortcuts = Object.values(externalHotkeyBuckets)
-        .flat()
+      const externalShortcuts = getFilteredPublishedHotkeyEntries()
         .map((item) => {
           const shortcut = String(item?.shortcut || "").trim();
           const launch = String(item?.launch || "").trim();
@@ -4399,7 +4615,7 @@ function openCatManage(){
 
   function saveApps(list){
     setProfileValue(PROFILE_APPS_KEY, list);
-    void applyAppGlobalHotkeys(list);
+    void queueRuntimeHotkeyRefresh();
   }
 
   apps = loadApps();

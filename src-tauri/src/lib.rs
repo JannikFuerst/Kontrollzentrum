@@ -23,6 +23,7 @@ const QUICK_LAUNCH_SHORTCUT: &str = "Ctrl+Space";
 const PROFILE_FILE_NAME: &str = "profile.json";
 const SHARED_PROFILE_FILE_NAME: &str = "profile.shared.json";
 const PROFILE_SOURCE_META_KEY: &str = "__profile_source";
+const RUNNING_PROCESSES_CHANGED_EVENT: &str = "kc://running-processes-changed";
 
 fn default_profile_state() -> serde_json::Value {
   serde_json::json!({
@@ -63,6 +64,7 @@ struct ScannedApp {
   name: String,
   launch: String,
   icon: Option<String>,
+  process_name: Option<String>,
 }
 
 struct ShortcutState {
@@ -357,6 +359,79 @@ fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
     .shell()
     .open(url, None)
     .map_err(|e| e.to_string())
+}
+
+#[cfg(windows)]
+fn get_current_running_process_names() -> Vec<String> {
+  use windows::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+  use windows::Win32::System::Diagnostics::ToolHelp::{
+    CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+    TH32CS_SNAPPROCESS,
+  };
+
+  unsafe {
+    let snapshot = match CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) {
+      Ok(handle) => handle,
+      Err(_) => return Vec::new(),
+    };
+    if snapshot == INVALID_HANDLE_VALUE {
+      return Vec::new();
+    }
+
+    let mut names = HashSet::<String>::new();
+    let mut entry = PROCESSENTRY32W::default();
+    entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+
+    if Process32FirstW(snapshot, &mut entry).is_ok() {
+      loop {
+        let end = entry
+          .szExeFile
+          .iter()
+          .position(|value| *value == 0)
+          .unwrap_or(entry.szExeFile.len());
+        let process_name = String::from_utf16_lossy(&entry.szExeFile[..end])
+          .trim()
+          .to_lowercase();
+        if !process_name.is_empty() {
+          names.insert(process_name);
+        }
+
+        if Process32NextW(snapshot, &mut entry).is_err() {
+          break;
+        }
+      }
+    }
+
+    let _ = CloseHandle(snapshot);
+    let mut out = names.into_iter().collect::<Vec<_>>();
+    out.sort_unstable();
+    out
+  }
+}
+
+#[cfg(not(windows))]
+fn get_current_running_process_names() -> Vec<String> {
+  Vec::new()
+}
+
+#[cfg(windows)]
+fn start_running_process_watch_thread(app: tauri::AppHandle) {
+  std::thread::spawn(move || {
+    let mut previous = Vec::<String>::new();
+    loop {
+      let current = get_current_running_process_names();
+      if current != previous {
+        previous = current.clone();
+        let _ = app.emit_to("main", RUNNING_PROCESSES_CHANGED_EVENT, current);
+      }
+      std::thread::sleep(Duration::from_millis(1000));
+    }
+  });
+}
+
+#[tauri::command]
+fn get_running_process_names() -> Result<Vec<String>, String> {
+  Ok(get_current_running_process_names())
 }
 
 #[tauri::command]
@@ -1631,6 +1706,18 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
       extract_icon_from_location(&icon_path, info.iIcon)
     }
 
+    fn process_name_from_target_path(target_path: &str) -> Option<String> {
+      let trimmed = target_path.trim();
+      if trimmed.is_empty() {
+        return None;
+      }
+      Path::new(trimmed)
+        .file_name()
+        .and_then(|value| value.to_str())
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+    }
+
     let mut roots: Vec<PathBuf> = Vec::new();
     if let Ok(appdata) = std::env::var("APPDATA") {
       let ad = PathBuf::from(appdata);
@@ -1677,6 +1764,9 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
         if out[idx].icon.is_none() && app.icon.is_some() {
           out[idx].icon = app.icon;
         }
+        if out[idx].process_name.is_none() && app.process_name.is_some() {
+          out[idx].process_name = app.process_name;
+        }
       } else {
         seen_by_name.insert(key, out.len());
         out.push(app);
@@ -1690,6 +1780,9 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
       if let Some(idx) = seen_by_name.get(&key).copied() {
         if out[idx].icon.is_none() && app.icon.is_some() {
           out[idx].icon = app.icon;
+        }
+        if out[idx].process_name.is_none() && app.process_name.is_some() {
+          out[idx].process_name = app.process_name;
         }
       } else {
         seen_by_name.insert(key, out.len());
@@ -1725,14 +1818,28 @@ fn scan_desktop_apps() -> Vec<ScannedApp> {
         } else {
           None
         };
+        let process_name = if ext == "lnk" {
+          shortcut_info(path)
+            .and_then(|(_, _, target_path)| process_name_from_target_path(&target_path))
+        } else {
+          None
+        };
         let key = name.to_lowercase();
         if let Some(idx) = seen_by_name.get(&key).copied() {
           if out[idx].icon.is_none() && icon.is_some() {
             out[idx].icon = icon;
           }
+          if out[idx].process_name.is_none() && process_name.is_some() {
+            out[idx].process_name = process_name;
+          }
         } else {
           seen_by_name.insert(key, out.len());
-          out.push(ScannedApp { name, launch, icon });
+          out.push(ScannedApp {
+            name,
+            launch,
+            icon,
+            process_name,
+          });
         }
       }
     }
@@ -1768,6 +1875,7 @@ pub fn run() {
         let _ = MOUSE_SHORTCUTS_PRESSED.set(Arc::new(Mutex::new(HashSet::new())));
         let _ = MOUSE_SHORTCUTS_FIRED.set(Arc::new(Mutex::new(HashMap::new())));
         start_mouse_shortcut_hook_thread();
+        start_running_process_watch_thread(app.handle().clone());
       }
       if cfg!(debug_assertions) {
         // Logging in dev disabled to keep terminal clean.
@@ -1824,6 +1932,7 @@ pub fn run() {
       run_system_sequence,
       load_profile_state,
       save_profile_state,
+      get_running_process_names,
       set_global_shortcut,
       set_app_shortcuts,
       get_clipboard_text,
@@ -2194,7 +2303,12 @@ $out | ConvertTo-Json -Depth 4
           continue;
         }
         let launch = format!("shell:AppsFolder\\{}", app_id);
-        apps.push(ScannedApp { name, launch, icon });
+        apps.push(ScannedApp {
+          name,
+          launch,
+          icon,
+          process_name: None,
+        });
       }
 
       apps
@@ -2398,6 +2512,135 @@ fn scan_steam_games() -> Vec<ScannedApp> {
     ))
   }
 
+  fn normalize_compare_key(value: &str) -> String {
+    value
+      .chars()
+      .filter(|ch| ch.is_ascii_alphanumeric())
+      .flat_map(|ch| ch.to_lowercase())
+      .collect()
+  }
+
+  fn collect_steam_process_names(game_root: &Path, app_name: &str, install_dir_name: &str) -> Option<String> {
+    if !game_root.exists() {
+      return None;
+    }
+
+    let normalized_app = normalize_compare_key(app_name);
+    let normalized_dir = normalize_compare_key(install_dir_name);
+    let ignore_terms = [
+      "launcher",
+      "launch",
+      "crash",
+      "report",
+      "unins",
+      "uninstall",
+      "setup",
+      "install",
+      "redist",
+      "helper",
+      "service",
+      "anticheat",
+      "easyanticheat",
+      "eac",
+      "battleye",
+      "vc_redist",
+      "benchmark",
+      "config",
+      "updater",
+    ];
+
+    let mut candidates = Vec::<(String, i32)>::new();
+    for entry in WalkDir::new(game_root)
+      .max_depth(6)
+      .follow_links(false)
+      .into_iter()
+      .filter_map(Result::ok)
+    {
+      if !entry.file_type().is_file() {
+        continue;
+      }
+      let path = entry.path();
+      let ext = path
+        .extension()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+      if ext != "exe" {
+        continue;
+      }
+
+      let file_name = match path.file_name().and_then(|value| value.to_str()) {
+        Some(value) => value.trim().to_string(),
+        None => continue,
+      };
+      if file_name.is_empty() {
+        continue;
+      }
+
+      let stem_lower = path
+        .file_stem()
+        .and_then(|value| value.to_str())
+        .unwrap_or("")
+        .trim()
+        .to_ascii_lowercase();
+      if stem_lower.is_empty() {
+        continue;
+      }
+
+      let mut score = 0i32;
+      let normalized_stem = normalize_compare_key(&stem_lower);
+      if !normalized_stem.is_empty() {
+        if normalized_stem == normalized_app || normalized_stem == normalized_dir {
+          score += 12;
+        } else if (!normalized_app.is_empty() && normalized_app.contains(&normalized_stem))
+          || (!normalized_dir.is_empty() && normalized_dir.contains(&normalized_stem))
+        {
+          score += 6;
+        }
+      }
+
+      let path_lower = path.to_string_lossy().to_ascii_lowercase();
+      if path_lower.contains("win64") || path_lower.contains("x64") {
+        score += 5;
+      }
+      if path_lower.contains("\\bin\\") || path_lower.contains("/bin/") {
+        score += 3;
+      }
+      if stem_lower.len() <= 16 {
+        score += 2;
+      }
+
+      if ignore_terms.iter().any(|term| stem_lower.contains(term) || path_lower.contains(term)) {
+        score -= 10;
+      }
+
+      candidates.push((file_name, score));
+    }
+
+    candidates.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+
+    let mut seen = HashSet::<String>::new();
+    let selected = candidates
+      .into_iter()
+      .filter(|(_, score)| *score > -8)
+      .filter_map(|(file_name, _)| {
+        let key = file_name.to_ascii_lowercase();
+        if seen.insert(key) {
+          Some(file_name)
+        } else {
+          None
+        }
+      })
+      .take(6)
+      .collect::<Vec<_>>();
+
+    if selected.is_empty() {
+      None
+    } else {
+      Some(selected.join(", "))
+    }
+  }
+
   let mut apps = Vec::<ScannedApp>::new();
   let mut seen_app_ids = HashMap::<String, usize>::new();
   let mut seen_name = HashSet::<String>::new();
@@ -2438,11 +2681,24 @@ fn scan_steam_games() -> Vec<ScannedApp> {
           Some(n) if !n.trim().is_empty() => n.trim().to_string(),
           _ => continue,
         };
+        let install_dir_name = get_vdf_value(&content, "installdir").unwrap_or_default();
+        let process_name = if !install_dir_name.trim().is_empty() {
+          collect_steam_process_names(
+            &steamapps.join("common").join(install_dir_name.trim()),
+            &name,
+            install_dir_name.trim(),
+          )
+        } else {
+          None
+        };
         let icon = find_steam_icon(&steam_root, &app_id).or_else(|| steam_icon_cdn_fallback(&app_id));
 
         if let Some(idx) = seen_app_ids.get(&app_id).copied() {
           if apps[idx].icon.is_none() && icon.is_some() {
             apps[idx].icon = icon;
+          }
+          if apps[idx].process_name.is_none() && process_name.is_some() {
+            apps[idx].process_name = process_name;
           }
           continue;
         }
@@ -2458,6 +2714,7 @@ fn scan_steam_games() -> Vec<ScannedApp> {
           name,
           launch: format!("steam://run/{}", app_id),
           icon,
+          process_name,
         });
       }
     }
