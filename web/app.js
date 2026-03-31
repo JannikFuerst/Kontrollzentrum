@@ -927,6 +927,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   function updateSurfaceUi(persist = true){
     activeSurface = normalizeSurfaceMode(activeSurface);
     document.body.setAttribute("data-surface", activeSurface);
+    applyCategoryRailState();
     if (persist){
       localStorage.setItem(SURFACE_STORAGE_KEY, activeSurface);
     }
@@ -1175,11 +1176,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   tabsEl?.addEventListener("pointercancel", hideRailTooltip);
 
   function applyCategoryRailState(){
+    const railCollapsedActive = catRailCollapsed && activeSurface !== SURFACE_MACRO;
     if (tabsWrapEl){
       tabsWrapEl.classList.toggle("cat-collapsed", catRailCollapsed);
     }
     if (layout){
-      layout.classList.toggle("cat-rail-collapsed", catRailCollapsed);
+      // Keep the hidden app-start rail from shifting the macro surface.
+      layout.classList.toggle("cat-rail-collapsed", railCollapsedActive);
     }
     if (catCollapseToggle){
       const label = catRailCollapsed
