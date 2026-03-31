@@ -11,6 +11,7 @@
     "updater:default",
     "shell:default",
     "shell:allow-open",
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "notification:default"
   ]
 }

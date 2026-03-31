@@ -49,6 +49,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   const SURFACE_APPSTART = "appstart";
   const SURFACE_MACRO = "macro";
   const QUICK_LAUNCHER_HOTKEY_KEY = "kc_quick_launcher_hotkey";
+  const CARD_SIZE_MODE_KEY = "kc_card_size_mode";
+  const CARD_SIZE_DEFAULT = "large";
+  const CARD_SIZE_ALLOWED = ["large", "medium", "small"];
+  const CARD_SIZE_SCALE_KEY = "kc_card_size_scale_pct";
+  const CARD_SIZE_SCALE_DEFAULT = 100;
+  const CARD_SIZE_SCALE_MIN = 70;
+  const CARD_SIZE_SCALE_MAX = 140;
+  const GRID_GLASS_KEY = "kc_grid_glass";
+  const FAVORITES_GLASS_KEY = "kc_favorites_glass";
+  const GRID_GLASS_DEFAULT = true;
+  const FAVORITES_GLASS_DEFAULT = true;
+  const CARD_SIZE_PRESETS = {
+    large: { minWidth: 228, gap: 16, padding: 16, radius: 20, minHeight: 196, iconSize: 56, iconRadius: 18, nameSize: 27 },
+    medium:{ minWidth: 204, gap: 14, padding: 14, radius: 18, minHeight: 176, iconSize: 50, iconRadius: 16, nameSize: 24 },
+    small: { minWidth: 182, gap: 12, padding: 10, radius: 16, minHeight: 132, iconSize: 44, iconRadius: 14, nameSize: 19 }
+  };
   let activeSurface =
     localStorage.getItem(SURFACE_STORAGE_KEY) === SURFACE_MACRO ? SURFACE_MACRO : SURFACE_APPSTART;
   const CAT_RAIL_COLLAPSED_KEY = "kc_cat_rail_collapsed";
@@ -421,6 +437,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_title: "Einstellungen",
       settings_hotkey_label: "Hotkey (App ein/ausblenden)",
       settings_quick_start_hotkey_label: "Hotkey (Quick Start öffnen)",
+      settings_card_size_label: "Kachelgröße",
+      settings_card_size_large: "Groß",
+      settings_card_size_medium: "Mittel",
+      settings_card_size_small: "Klein",
+      settings_card_size_custom: "Feintuning",
+      settings_card_glass_grid_label: "Kacheln im Grid",
+      settings_card_glass_favorites_label: "Favoritenleiste",
+      settings_card_glass_on: "Glas",
+      settings_card_glass_off: "Kein Glas",
       settings_hotkey_placeholder: "Drücke 'Aufnehmen'...",
       settings_capture: "Aufnehmen",
       settings_capture_listen: "Drücke Tasten...",
@@ -676,6 +701,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       settings_title: "Settings",
       settings_hotkey_label: "Hotkey (toggle app)",
       settings_quick_start_hotkey_label: "Hotkey (open Quick Start)",
+      settings_card_size_label: "Tile size",
+      settings_card_size_large: "Large",
+      settings_card_size_medium: "Medium",
+      settings_card_size_small: "Small",
+      settings_card_size_custom: "Fine tuning",
+      settings_card_glass_grid_label: "Grid cards",
+      settings_card_glass_favorites_label: "Favorites row",
+      settings_card_glass_on: "Glass",
+      settings_card_glass_off: "No glass",
       settings_hotkey_placeholder: "Press 'Capture'...",
       settings_capture: "Capture",
       settings_capture_listen: "Press keys...",
@@ -1399,6 +1433,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const hotkeyCapture = document.getElementById("hotkeyCapture");
   const quickLauncherHotkeyInput = document.getElementById("quickLauncherHotkeyInput");
   const quickLauncherHotkeyCapture = document.getElementById("quickLauncherHotkeyCapture");
+  const cardSizeMode = document.getElementById("cardSizeMode");
+  const cardSizeButtons = document.getElementById("cardSizeButtons");
+  const cardSizeScale = document.getElementById("cardSizeScale");
+  const cardSizeScaleValue = document.getElementById("cardSizeScaleValue");
+  const gridGlassMode = document.getElementById("gridGlassMode");
+  const gridGlassButtons = document.getElementById("gridGlassButtons");
+  const favoritesGlassMode = document.getElementById("favoritesGlassMode");
+  const favoritesGlassButtons = document.getElementById("favoritesGlassButtons");
   const hotkeySave = document.getElementById("hotkeySave");
   const hotkeyCancel = document.getElementById("hotkeyCancel");
   const themeToggle = document.getElementById("themeToggle");
@@ -1552,6 +1594,21 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     setText("#settingsOverlay [data-i18n='settings_hotkey_label']", "settings_hotkey_label");
     setText("#settingsOverlay [data-i18n='settings_quick_start_hotkey_label']", "settings_quick_start_hotkey_label");
+    setText("#settingsOverlay [data-i18n='settings_card_size_label']", "settings_card_size_label");
+    setText("#cardSizeButtons [data-value='large']", "settings_card_size_large");
+    setText("#cardSizeButtons [data-value='medium']", "settings_card_size_medium");
+    setText("#cardSizeButtons [data-value='small']", "settings_card_size_small");
+    setText("#settingsOverlay [data-i18n='settings_card_size_custom']", "settings_card_size_custom");
+    setAttr("#cardSizeButtons", "aria-label", "settings_card_size_label");
+    setAttr("#cardSizeScale", "aria-label", "settings_card_size_custom");
+    setText("#settingsOverlay [data-i18n='settings_card_glass_grid_label']", "settings_card_glass_grid_label");
+    setText("#settingsOverlay [data-i18n='settings_card_glass_favorites_label']", "settings_card_glass_favorites_label");
+    setText("#gridGlassButtons [data-value='on']", "settings_card_glass_on");
+    setText("#gridGlassButtons [data-value='off']", "settings_card_glass_off");
+    setText("#favoritesGlassButtons [data-value='on']", "settings_card_glass_on");
+    setText("#favoritesGlassButtons [data-value='off']", "settings_card_glass_off");
+    setAttr("#gridGlassButtons", "aria-label", "settings_card_glass_grid_label");
+    setAttr("#favoritesGlassButtons", "aria-label", "settings_card_glass_favorites_label");
     setText("#settingsOverlay [data-i18n='settings_hotkey_help']", "settings_hotkey_help");
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_activation']", "settings_voice_activation");
     setText("#voiceSettingsOverlay [data-i18n='settings_voice_wake_mode_label']", "settings_voice_wake_mode_label");
@@ -2411,6 +2468,152 @@ document.addEventListener("DOMContentLoaded", async () => {
     localStorage.setItem(CLIPBOARD_RETENTION_COUNT_KEY, String(safeMaxItems));
   }
 
+  function normalizeCardSizeMode(value){
+    const normalized = String(value || "").trim().toLowerCase();
+    if (CARD_SIZE_ALLOWED.includes(normalized)) return normalized;
+    return CARD_SIZE_DEFAULT;
+  }
+
+  function normalizeCardSizeScale(value){
+    const parsed = parseInt(String(value || ""), 10);
+    if (!Number.isFinite(parsed)) return CARD_SIZE_SCALE_DEFAULT;
+    return Math.max(CARD_SIZE_SCALE_MIN, Math.min(CARD_SIZE_SCALE_MAX, parsed));
+  }
+
+  function normalizeGlassMode(value, defaultEnabled){
+    const normalized = String(value || "").trim().toLowerCase();
+    if (["on", "1", "true", "yes"].includes(normalized)) return "on";
+    if (["off", "0", "false", "no"].includes(normalized)) return "off";
+    return defaultEnabled ? "on" : "off";
+  }
+
+  function getCardSizeMode(){
+    return normalizeCardSizeMode(localStorage.getItem(CARD_SIZE_MODE_KEY) || CARD_SIZE_DEFAULT);
+  }
+
+  function getCardSizeScale(){
+    return normalizeCardSizeScale(localStorage.getItem(CARD_SIZE_SCALE_KEY) || CARD_SIZE_SCALE_DEFAULT);
+  }
+
+  function getGridGlassMode(){
+    return normalizeGlassMode(localStorage.getItem(GRID_GLASS_KEY), GRID_GLASS_DEFAULT);
+  }
+
+  function getFavoritesGlassMode(){
+    return normalizeGlassMode(localStorage.getItem(FAVORITES_GLASS_KEY), FAVORITES_GLASS_DEFAULT);
+  }
+
+  function ensureCardSizeDefaults(){
+    const rawMode = localStorage.getItem(CARD_SIZE_MODE_KEY);
+    const safeMode = normalizeCardSizeMode(rawMode || CARD_SIZE_DEFAULT);
+    if (rawMode !== safeMode){
+      localStorage.setItem(CARD_SIZE_MODE_KEY, safeMode);
+    }
+
+    const rawScale = localStorage.getItem(CARD_SIZE_SCALE_KEY);
+    const safeScale = normalizeCardSizeScale(rawScale || CARD_SIZE_SCALE_DEFAULT);
+    if (String(rawScale) !== String(safeScale)){
+      localStorage.setItem(CARD_SIZE_SCALE_KEY, String(safeScale));
+    }
+  }
+
+  function ensureCardGlassDefaults(){
+    const gridMode = getGridGlassMode();
+    if (localStorage.getItem(GRID_GLASS_KEY) !== gridMode){
+      localStorage.setItem(GRID_GLASS_KEY, gridMode);
+    }
+    const favoritesMode = getFavoritesGlassMode();
+    if (localStorage.getItem(FAVORITES_GLASS_KEY) !== favoritesMode){
+      localStorage.setItem(FAVORITES_GLASS_KEY, favoritesMode);
+    }
+  }
+
+  function formatCardSizeScaleLabel(scalePct){
+    return `${normalizeCardSizeScale(scalePct)}%`;
+  }
+
+  function setCardSizeCssVariables(mode, scalePct){
+    const preset = CARD_SIZE_PRESETS[normalizeCardSizeMode(mode)] || CARD_SIZE_PRESETS[CARD_SIZE_DEFAULT];
+    const scale = normalizeCardSizeScale(scalePct) / 100;
+    const setPx = (name, base) => {
+      const value = Math.round(base * scale * 100) / 100;
+      document.body.style.setProperty(name, `${value}px`);
+    };
+    setPx("--app-card-min-width", preset.minWidth);
+    setPx("--app-card-gap", preset.gap);
+    setPx("--app-card-padding", preset.padding);
+    setPx("--app-card-radius", preset.radius);
+    setPx("--app-card-min-height", preset.minHeight);
+    setPx("--app-card-icon-size", preset.iconSize);
+    setPx("--app-card-icon-radius", preset.iconRadius);
+    setPx("--app-card-name-size", preset.nameSize);
+  }
+
+  function applyCardSizeMode(value){
+    const mode = normalizeCardSizeMode(value);
+    document.body.setAttribute("data-card-size", mode);
+    localStorage.setItem(CARD_SIZE_MODE_KEY, mode);
+    setCardSizeCssVariables(mode, getCardSizeScale());
+    return mode;
+  }
+
+  function applyCardSizeScale(value){
+    const scalePct = normalizeCardSizeScale(value);
+    localStorage.setItem(CARD_SIZE_SCALE_KEY, String(scalePct));
+    setCardSizeCssVariables(getCardSizeMode(), scalePct);
+    return scalePct;
+  }
+
+  function syncCardSizeSettingsUI(){
+    const mode = getCardSizeMode();
+    const scalePct = getCardSizeScale();
+    if (cardSizeMode) cardSizeMode.value = mode;
+    if (cardSizeButtons){
+      cardSizeButtons.querySelectorAll(".card-size-option-btn").forEach((btn) => {
+        const active = String(btn.dataset.value || "") === mode;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+    if (cardSizeScale) cardSizeScale.value = String(scalePct);
+    if (cardSizeScaleValue) cardSizeScaleValue.textContent = formatCardSizeScaleLabel(scalePct);
+  }
+
+  function applyGridGlassMode(value){
+    const mode = normalizeGlassMode(value, GRID_GLASS_DEFAULT);
+    localStorage.setItem(GRID_GLASS_KEY, mode);
+    document.body.setAttribute("data-grid-glass", mode);
+    return mode;
+  }
+
+  function applyFavoritesGlassMode(value){
+    const mode = normalizeGlassMode(value, FAVORITES_GLASS_DEFAULT);
+    localStorage.setItem(FAVORITES_GLASS_KEY, mode);
+    document.body.setAttribute("data-favorites-glass", mode);
+    return mode;
+  }
+
+  function syncCardGlassSettingsUI(){
+    const gridMode = getGridGlassMode();
+    const favoritesMode = getFavoritesGlassMode();
+    if (gridGlassMode) gridGlassMode.value = gridMode;
+    if (favoritesGlassMode) favoritesGlassMode.value = favoritesMode;
+    if (gridGlassButtons){
+      gridGlassButtons.querySelectorAll(".card-glass-option-btn").forEach((btn) => {
+        const active = String(btn.dataset.value || "") === gridMode;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+    if (favoritesGlassButtons){
+      favoritesGlassButtons.querySelectorAll(".card-glass-option-btn").forEach((btn) => {
+        const active = String(btn.dataset.value || "") === favoritesMode;
+        btn.classList.toggle("active", active);
+        btn.setAttribute("aria-pressed", active ? "true" : "false");
+      });
+    }
+  }
+
   function syncClipboardSettingsUI(){
     const cfg = getClipboardRetentionSettings();
     if (clipboardRetentionMode) clipboardRetentionMode.value = cfg.mode;
@@ -2711,6 +2914,35 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
+  function onCardSizeModeChanged(options = {}){
+    const resetScale = options?.resetScale !== false;
+    const nextMode = applyCardSizeMode(cardSizeMode?.value || getCardSizeMode());
+    if (cardSizeMode) cardSizeMode.value = nextMode;
+    if (resetScale){
+      const nextScale = applyCardSizeScale(CARD_SIZE_SCALE_DEFAULT);
+      if (cardSizeScale) cardSizeScale.value = String(nextScale);
+    }
+    syncCardSizeSettingsUI();
+  }
+
+  function onCardSizeScaleChanged(){
+    const nextScale = applyCardSizeScale(cardSizeScale?.value || CARD_SIZE_SCALE_DEFAULT);
+    if (cardSizeScale) cardSizeScale.value = String(nextScale);
+    syncCardSizeSettingsUI();
+  }
+
+  function onGridGlassModeChanged(){
+    const nextMode = applyGridGlassMode(gridGlassMode?.value || getGridGlassMode());
+    if (gridGlassMode) gridGlassMode.value = nextMode;
+    syncCardGlassSettingsUI();
+  }
+
+  function onFavoritesGlassModeChanged(){
+    const nextMode = applyFavoritesGlassMode(favoritesGlassMode?.value || getFavoritesGlassMode());
+    if (favoritesGlassMode) favoritesGlassMode.value = nextMode;
+    syncCardGlassSettingsUI();
+  }
+
   function onClipboardRetentionModeChanged(){
     saveClipboardRetentionSettings({
       mode: clipboardRetentionMode?.value || "count",
@@ -2723,6 +2955,29 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   clipboardRetentionMode?.addEventListener("change", onClipboardRetentionModeChanged);
+  cardSizeMode?.addEventListener("change", () => onCardSizeModeChanged({ resetScale: true }));
+  cardSizeButtons?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".card-size-option-btn");
+    if (!btn) return;
+    if (cardSizeMode) cardSizeMode.value = String(btn.dataset.value || CARD_SIZE_DEFAULT);
+    onCardSizeModeChanged({ resetScale: true });
+  });
+  cardSizeScale?.addEventListener("input", onCardSizeScaleChanged);
+  cardSizeScale?.addEventListener("change", onCardSizeScaleChanged);
+  gridGlassMode?.addEventListener("change", onGridGlassModeChanged);
+  gridGlassButtons?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".card-glass-option-btn");
+    if (!btn) return;
+    if (gridGlassMode) gridGlassMode.value = String(btn.dataset.value || "on");
+    onGridGlassModeChanged();
+  });
+  favoritesGlassMode?.addEventListener("change", onFavoritesGlassModeChanged);
+  favoritesGlassButtons?.addEventListener("click", (e) => {
+    const btn = e.target.closest(".card-glass-option-btn");
+    if (!btn) return;
+    if (favoritesGlassMode) favoritesGlassMode.value = String(btn.dataset.value || "on");
+    onFavoritesGlassModeChanged();
+  });
   clipboardModeCountBtn?.addEventListener("click", () => {
     if (clipboardRetentionMode) clipboardRetentionMode.value = "count";
     onClipboardRetentionModeChanged();
@@ -2761,8 +3016,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   saveClipboardRetentionSettings(getClipboardRetentionSettings());
+  ensureCardSizeDefaults();
+  ensureCardGlassDefaults();
+  applyCardSizeMode(getCardSizeMode());
+  applyGridGlassMode(getGridGlassMode());
+  applyFavoritesGlassMode(getFavoritesGlassMode());
   clipboardItems = loadClipboardItems();
   persistAndRenderClipboard();
+  syncCardSizeSettingsUI();
+  syncCardGlassSettingsUI();
   syncClipboardSettingsUI();
   updateClipboardModeBadge();
   startClipboardPolling();
@@ -3207,6 +3469,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     applyAccent(localStorage.getItem("kc_accent") || "purple");
     const bgMode = localStorage.getItem("kc_bg_mode") || "theme";
     syncBackgroundUI(bgMode);
+    syncCardSizeSettingsUI();
+    syncCardGlassSettingsUI();
     syncClipboardSettingsUI();
     updateClipboardModeBadge();
     showBgError(false);
@@ -3850,6 +4114,12 @@ function openCatManage(){
       const val = hotkeyInput?.value || "";
       await applyHotkey(val);
       applyQuickLauncherHotkey(quickLauncherHotkeyInput?.value || "");
+      applyCardSizeMode(cardSizeMode?.value || getCardSizeMode());
+      applyCardSizeScale(cardSizeScale?.value || CARD_SIZE_SCALE_DEFAULT);
+      applyGridGlassMode(gridGlassMode?.value || getGridGlassMode());
+      applyFavoritesGlassMode(favoritesGlassMode?.value || getFavoritesGlassMode());
+      syncCardSizeSettingsUI();
+      syncCardGlassSettingsUI();
       saveClipboardRetentionSettings({
         mode: clipboardRetentionMode?.value || "count",
         hours: clipboardTimeCycle?.value || "24",
@@ -4451,11 +4721,27 @@ function openCatManage(){
 
   await initializeProfileState();
 
+  const PROCESS_NAME_ALIASES = {
+    "chrome_proxy": "chrome.exe",
+    "chrome_proxy.exe": "chrome.exe",
+    "msedge_proxy": "msedge.exe",
+    "msedge_proxy.exe": "msedge.exe",
+    "brave_proxy": "brave.exe",
+    "brave_proxy.exe": "brave.exe"
+  };
+
   function normalizeProcessName(value){
-    return String(value || "")
+    let normalized = String(value || "")
       .trim()
       .toLowerCase()
       .replace(/^.*[\\/]/, "");
+    if (!normalized) return "";
+    const aliasDirect = PROCESS_NAME_ALIASES[normalized];
+    if (aliasDirect) return aliasDirect;
+    const withExe = normalized.endsWith(".exe") ? normalized : `${normalized}.exe`;
+    const aliasWithExe = PROCESS_NAME_ALIASES[withExe];
+    if (aliasWithExe) return aliasWithExe;
+    return normalized;
   }
 
   function normalizeRunningProcessNames(raw){
@@ -4495,15 +4781,20 @@ function openCatManage(){
     });
   }
 
-  function isProcessMatchTextActive(value){
+  function isProcessMatchTextActiveForNames(value, runningNames){
     const tokens = normalizeProcessMatchTokens(value);
     if (!tokens.length) {
       return false;
     }
-    return tokens.some((token) => processMatchTokenIsRunning(token, activeRunningProcessNames));
+    return tokens.some((token) => processMatchTokenIsRunning(token, runningNames));
+  }
+
+  function isProcessMatchTextActive(value){
+    return isProcessMatchTextActiveForNames(value, activeRunningProcessNames);
   }
 
   let activeRunningProcessNames = [];
+  let processActivationNotificationsPrimed = false;
   let runtimeHotkeyRefreshChain = Promise.resolve();
   window.__KC_ACTIVE_PROCESS_NAMES = [];
   window.__KC_IS_PROCESS_MATCH_ACTIVE = (value) => isProcessMatchTextActive(value);
@@ -4547,7 +4838,49 @@ function openCatManage(){
   }
 
   function getFilteredPublishedHotkeyEntries(){
-    return getPublishedHotkeyEntries();
+    return getPublishedHotkeyEntries().filter((item) => {
+      if (item?.gameBindingEnabled !== true) return true;
+      const matchText = String(item?.gameMatchText || "").trim();
+      if (!matchText) return false;
+      return isProcessMatchTextActive(matchText);
+    });
+  }
+
+  function getProcessBoundActiveHotkeyIds(entries, runningNames){
+    const activeIds = new Set();
+    (Array.isArray(entries) ? entries : []).forEach((item) => {
+      if (item?.gameBindingEnabled !== true) return;
+      const id = String(item?.id || "").trim();
+      const matchText = String(item?.gameMatchText || "").trim();
+      if (!id || !matchText) return;
+      if (isProcessMatchTextActiveForNames(matchText, runningNames)) {
+        activeIds.add(id);
+      }
+    });
+    return activeIds;
+  }
+
+  async function notifyProcessBoundHotkeysActivated(entries){
+    const tauriApi = window.__TAURI__;
+    if (!tauriApi?.core?.invoke) return;
+    const isDe = currentLang === "de";
+    const title = "Kontrollzentrum";
+    for (const item of (Array.isArray(entries) ? entries : [])) {
+      const name = String(item?.label || item?.id || "").trim();
+      const shortcut = String(item?.shortcut || "").trim();
+      if (!name || !shortcut) continue;
+      const body = isDe
+        ? `${name} ist jetzt mit ${shortcut} aktiv`
+        : `${name} is now active with ${shortcut}`;
+      try {
+        await tauriApi.core.invoke("show_native_notification", {
+          title,
+          body
+        });
+      } catch (err) {
+        console.error("notifyProcessBoundHotkeysActivated failed:", err);
+      }
+    }
   }
 
   function queueRuntimeHotkeyRefresh(){
@@ -4572,8 +4905,23 @@ function openCatManage(){
     const changed = nextNames.length !== activeRunningProcessNames.length ||
       nextNames.some((value, index) => value !== activeRunningProcessNames[index]);
     if (!changed) return;
+    const publishedEntries = getPublishedHotkeyEntries();
+    const prevActiveIds = getProcessBoundActiveHotkeyIds(publishedEntries, activeRunningProcessNames);
     activeRunningProcessNames = nextNames;
     window.__KC_ACTIVE_PROCESS_NAMES = nextNames.slice();
+    const nextActiveIds = getProcessBoundActiveHotkeyIds(publishedEntries, nextNames);
+    const shouldNotifyTransitions = processActivationNotificationsPrimed;
+    processActivationNotificationsPrimed = true;
+    if (shouldNotifyTransitions) {
+      const activatedEntries = publishedEntries.filter((item) => {
+        const id = String(item?.id || "").trim();
+        return Boolean(id) && nextActiveIds.has(id) && !prevActiveIds.has(id);
+      });
+      if (activatedEntries.length) {
+        void notifyProcessBoundHotkeysActivated(activatedEntries);
+      }
+    }
+    void queueRuntimeHotkeyRefresh();
   }
 
   function loadApps(){
@@ -6700,6 +7048,8 @@ function openCatManage(){
       const cat = activeTab.slice(4);
       const orderIds = categoryOrders[cat] || [];
       orderedShown = orderByList(shown, orderIds);
+    } else if (activeTab === "fav"){
+      orderedShown = orderByList(shown, pinnedOrder);
     }
     orderedShown.forEach(app => {
       const card = document.createElement("div");
@@ -6760,7 +7110,11 @@ function openCatManage(){
   let dragGhost = null;
 
   function canReorder(){
-    return activeTab.startsWith("cat:") && !searchTerm;
+    if (searchTerm) return false;
+    if (activeTab.startsWith("cat:")) return true;
+    if (activeTab === "all") return true;
+    if (activeTab === "fav") return true;
+    return false;
   }
 
   function activeCategoryName(){
@@ -7679,10 +8033,16 @@ function openCatManage(){
       draggingEl.style.display = "";
       let newOrder = Array.from(container.querySelectorAll(".card")).map(el => el.dataset.id);
       if (mode === "category"){
-        const cat = activeCategoryName();
-        if (cat){
+        if (activeTab.startsWith("cat:")){
+          const cat = activeCategoryName();
           categoryOrders[cat] = newOrder;
           saveCategoryOrders(categoryOrders);
+        } else if (activeTab === "all"){
+          apps = orderByList(apps, newOrder);
+          saveApps(apps);
+        } else if (activeTab === "fav"){
+          pinnedOrder = newOrder;
+          savePinnedOrder(pinnedOrder);
         }
       } else if (mode === "pinned"){
         pinnedOrder = newOrder;

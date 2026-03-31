@@ -179,6 +179,40 @@
           <button class="btn-primary" id="quickLauncherHotkeyCapture" type="button" data-i18n="settings_capture">Aufnehmen</button>
         </div>
       </div>
+      <div class="field" id="settingsCardSizeField">
+        <div class="label" data-i18n="settings_card_size_label">Kachelgröße</div>
+        <div class="card-size-option-row" id="cardSizeButtons" role="group" aria-label="Kachelgröße">
+          <button class="clipboard-option-btn card-size-option-btn" type="button" data-value="small" data-i18n="settings_card_size_small">Klein</button>
+          <button class="clipboard-option-btn card-size-option-btn" type="button" data-value="medium" data-i18n="settings_card_size_medium">Mittel</button>
+          <button class="clipboard-option-btn card-size-option-btn" type="button" data-value="large" data-i18n="settings_card_size_large">Groß</button>
+        </div>
+        <div class="card-size-scale-wrap">
+          <div class="card-size-scale-head">
+            <span class="card-size-scale-label" data-i18n="settings_card_size_custom">Feintuning</span>
+            <span class="card-size-scale-value" id="cardSizeScaleValue">100%</span>
+          </div>
+          <input type="range" id="cardSizeScale" min="70" max="140" step="1" value="100" />
+        </div>
+        <div class="card-glass-toggle-wrap">
+          <div class="card-glass-toggle-row">
+            <span class="card-glass-toggle-label" data-i18n="settings_card_glass_grid_label">Kacheln im Grid</span>
+            <div class="voice-activation-choice card-glass-choice" id="gridGlassButtons" role="group" aria-label="Kacheln im Grid">
+              <button class="voice-activation-btn is-on card-glass-option-btn" type="button" data-value="on" data-i18n="settings_card_glass_on">Glas</button>
+              <button class="voice-activation-btn is-off card-glass-option-btn" type="button" data-value="off" data-i18n="settings_card_glass_off">Kein Glas</button>
+            </div>
+            <input type="hidden" id="gridGlassMode" value="on" />
+          </div>
+          <div class="card-glass-toggle-row">
+            <span class="card-glass-toggle-label" data-i18n="settings_card_glass_favorites_label">Favoritenleiste</span>
+            <div class="voice-activation-choice card-glass-choice" id="favoritesGlassButtons" role="group" aria-label="Favoritenleiste">
+              <button class="voice-activation-btn is-on card-glass-option-btn" type="button" data-value="on" data-i18n="settings_card_glass_on">Glas</button>
+              <button class="voice-activation-btn is-off card-glass-option-btn" type="button" data-value="off" data-i18n="settings_card_glass_off">Kein Glas</button>
+            </div>
+            <input type="hidden" id="favoritesGlassMode" value="on" />
+          </div>
+        </div>
+        <input type="hidden" id="cardSizeMode" value="large" />
+      </div>
       <div class="field" id="settingsClipboardField">
         <div class="label" data-i18n="settings_clipboard_label">Clipboard Verlauf</div>
         <div class="clipboard-mode-toggle" id="clipboardModeToggle" role="group" aria-label="Clipboard Modus">
@@ -322,4 +356,3 @@
     </div>
   </div>
 </div>
-

@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "3.5.0"
+version = "3.6.0"
 description = "A Tauri App"
 authors = ["you"]
 license = ""
@@ -30,4 +30,5 @@ tauri-plugin-log = "2"
 tauri-plugin-updater = "2.10.0"
 tauri-plugin-shell = "2"
 tauri-plugin-global-shortcut = "2"
+tauri-plugin-notification = "2"
 rfd = "0.15"

@@ -6,6 +6,7 @@ use std::time::{Duration, Instant};
 use base64::Engine;
 use tauri::{Emitter, Manager};
 use tauri_plugin_shell::ShellExt;
+use tauri_plugin_notification::NotificationExt;
 use walkdir::WalkDir;
 use tauri_plugin_global_shortcut::{Builder as GlobalShortcutBuilder, GlobalShortcutExt, ShortcutState as HotkeyState};
 #[cfg(windows)]
@@ -358,6 +359,17 @@ fn open_external(app: tauri::AppHandle, url: String) -> Result<(), String> {
   app
     .shell()
     .open(url, None)
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn show_native_notification(app: tauri::AppHandle, title: String, body: String) -> Result<(), String> {
+  app
+    .notification()
+    .builder()
+    .title(&title)
+    .body(&body)
+    .show()
     .map_err(|e| e.to_string())
 }
 
@@ -1854,6 +1866,7 @@ pub fn run() {
   tauri::Builder::default()
     .plugin(tauri_plugin_updater::Builder::new().build())
     .plugin(tauri_plugin_shell::init())
+    .plugin(tauri_plugin_notification::init())
     .plugin(GlobalShortcutBuilder::new().build())
     .manage(ShortcutState {
       registered: Mutex::new(None),
@@ -1923,6 +1936,7 @@ pub fn run() {
     })
     .invoke_handler(tauri::generate_handler![
       open_external,
+      show_native_notification,
       close_app_target,
       pick_filesystem_target,
       scan_desktop_apps,
