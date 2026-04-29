@@ -19,6 +19,8 @@
     }
 
     const APPS_FILES_STORAGE_KEY = "kc_apps_files_automations_v1";
+    const APPS_FILES_SCAN_CACHE_KEY = "kc_scan_cache_v9";
+    const APPS_FILES_SCAN_CACHE_TTL = 1000 * 60 * 60 * 6;
     const KEYBOARD_STORAGE_KEY = "kc_keyboard_automations_v1";
     const MOUSE_STORAGE_KEY = "kc_mouse_automations_v1";
     const SYSTEM_STORAGE_KEY = "kc_system_automations_v1";
@@ -2883,6 +2885,54 @@
       });
     }
 
+    function normalizeAppsFilesScannedAppsList(list) {
+      const normalized = Array.isArray(list)
+        ? list
+          .map((entry) => ({
+            name: String(entry?.name || "").trim(),
+            launch: String(entry?.launch || "").trim(),
+            icon: String(entry?.icon || "").trim(),
+            process_name: String(entry?.process_name || entry?.processName || "").trim(),
+            processName: String(entry?.process_name || entry?.processName || "").trim()
+          }))
+          .filter((entry) => entry.name && entry.launch)
+        : [];
+      normalized.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+      return normalized;
+    }
+
+    function loadAppsFilesScanCache() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(APPS_FILES_SCAN_CACHE_KEY) || "null");
+        if (!raw || typeof raw.ts !== "number" || !Array.isArray(raw.apps)) return null;
+        return {
+          ts: raw.ts,
+          apps: normalizeAppsFilesScannedAppsList(raw.apps)
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    function saveAppsFilesScanCache(list) {
+      try {
+        localStorage.setItem(APPS_FILES_SCAN_CACHE_KEY, JSON.stringify({
+          ts: Date.now(),
+          apps: normalizeAppsFilesScannedAppsList(list)
+        }));
+      } catch {
+        // Ignore cache write errors.
+      }
+    }
+
+    function hydrateAppsFilesScannedAppsFromCache() {
+      const cache = loadAppsFilesScanCache();
+      if (!cache) return false;
+      appsFilesScannedApps = cache.apps;
+      appsFilesScanLoaded = true;
+      return true;
+    }
+
     function appsFilesScanStatusLabel(isDe) {
       if (appsFilesScanLoading) return isDe ? "Desktop wird gescannt..." : "Scanning desktop...";
       if (appsFilesScanError) return isDe ? "Scan fehlgeschlagen" : "Scan failed";
@@ -2912,35 +2962,40 @@
 
     async function loadAppsFilesScannedApps(force = false) {
       if (appsFilesScanLoading) return;
-      if (!force && appsFilesScanLoaded && appsFilesScannedApps.length) return;
+      if (!force && appsFilesScanLoaded) return;
       appsFilesScanLoading = true;
       appsFilesScanError = "";
       render();
       try {
+        if (!force) {
+          const cache = loadAppsFilesScanCache();
+          if (cache) {
+            appsFilesScannedApps = cache.apps;
+            appsFilesScanLoaded = true;
+            if (Date.now() - cache.ts < APPS_FILES_SCAN_CACHE_TTL) {
+              return;
+            }
+          }
+        }
         const tauriApi = window.__TAURI__;
         if (!tauriApi?.core?.invoke) {
           appsFilesScannedApps = [];
           appsFilesScanLoaded = true;
+          saveAppsFilesScanCache([]);
           return;
         }
         const result = await tauriApi.core.invoke("scan_desktop_apps");
-        const normalized = Array.isArray(result)
-          ? result
-            .map((entry) => ({
-              name: String(entry?.name || "").trim(),
-              launch: String(entry?.launch || "").trim(),
-              processName: String(entry?.process_name || entry?.processName || "").trim()
-            }))
-            .filter((entry) => entry.name && entry.launch)
-          : [];
-        normalized.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+        const normalized = normalizeAppsFilesScannedAppsList(result);
         appsFilesScannedApps = normalized;
         appsFilesScanLoaded = true;
+        saveAppsFilesScanCache(normalized);
       } catch (err) {
         console.error("scan_desktop_apps failed:", err);
         appsFilesScanError = String(err?.message || err || "scan_failed");
-        appsFilesScannedApps = [];
-        appsFilesScanLoaded = true;
+        if (!hydrateAppsFilesScannedAppsFromCache()) {
+          appsFilesScannedApps = [];
+          appsFilesScanLoaded = true;
+        }
       } finally {
         appsFilesScanLoading = false;
         render();
