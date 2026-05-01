@@ -2,7 +2,7 @@
 
 Zentrale Windows-/Desktop-Oberflaeche auf Basis von Tauri 2 und Vanilla JavaScript fuer App-Starts, Kategorien, globale Hotkeys, Schnellstart, Sprachsteuerung sowie Makroautomatisierung.
 
-**Version:** `3.6.3`
+**Version:** `3.6.4`
 
 ## Inhalt
 
@@ -20,7 +20,7 @@ Zentrale Windows-/Desktop-Oberflaeche auf Basis von Tauri 2 und Vanilla JavaScri
 12. [Voraussetzungen](#voraussetzungen)
 13. [Lokale Entwicklung](#lokale-entwicklung)
 14. [Build und Release](#build-und-release)
-15. [Versionierung auf 3.6.3](#versionierung-auf-363)
+15. [Versionierung auf 3.6.4](#versionierung-auf-364)
 16. [Plattformhinweise und Grenzen](#plattformhinweise-und-grenzen)
 17. [Troubleshooting](#troubleshooting)
 18. [Lizenz](#lizenz)
@@ -635,9 +635,9 @@ In [`src-tauri/tauri.conf.json`](src-tauri/tauri.conf.json) ist der Update-Endpu
 
 Die UI prueft beim Start auf Updates und vergleicht `latest.json` mit der lokal installierten App-Version.
 
-## Versionierung auf 3.6.3
+## Versionierung auf 3.6.4
 
-Fuer dieses Release wurde die Version konsistent auf `3.6.3` angehoben.
+Fuer dieses Release wurde die Version konsistent auf `3.6.4` angehoben.
 
 Betroffene Dateien:
 
@@ -649,7 +649,7 @@ Betroffene Dateien:
 - [`web/index.html`](web/index.html)
 - [`README.md`](README.md)
 
-Fuer den GitHub-Release-Workflow sollte das Tag als `v3.6.3` gepusht werden, weil genau dieses Format den Release-Workflow startet.
+Fuer den GitHub-Release-Workflow sollte das Tag als `v3.6.4` gepusht werden, weil genau dieses Format den Release-Workflow startet.
 
 ## Plattformhinweise und Grenzen
 
@@ -701,5 +701,4 @@ Fuer den GitHub-Release-Workflow sollte das Tag als `v3.6.3` gepusht werden, wei
 Laut [`package.json`](package.json) ist aktuell `ISC` eingetragen.
 
 Wenn du spaeter eine eigene Lizenzdatei pflegen willst, kannst du zusaetzlich eine `LICENSE` im Repo-Root anlegen.
-
 

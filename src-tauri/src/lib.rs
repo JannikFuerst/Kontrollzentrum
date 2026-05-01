@@ -4,7 +4,7 @@ use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use base64::Engine;
-use tauri::{Emitter, Manager};
+use tauri::{Emitter, Manager, PhysicalPosition, PhysicalSize, WindowEvent};
 use tauri_plugin_shell::ShellExt;
 use tauri_plugin_notification::NotificationExt;
 use walkdir::WalkDir;
@@ -23,6 +23,7 @@ const QUICK_LAUNCH_SHORTCUT: &str = "Super+Space";
 const QUICK_LAUNCH_SHORTCUT: &str = "Ctrl+Space";
 const PROFILE_FILE_NAME: &str = "profile.json";
 const SHARED_PROFILE_FILE_NAME: &str = "profile.shared.json";
+const WINDOW_STATE_FILE_NAME: &str = "window-state.json";
 const PROFILE_SOURCE_META_KEY: &str = "__profile_source";
 const RUNNING_PROCESSES_CHANGED_EVENT: &str = "kc://running-processes-changed";
 
@@ -48,6 +49,12 @@ fn profile_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
 
 fn shared_profile_file_path() -> PathBuf {
   PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(SHARED_PROFILE_FILE_NAME)
+}
+
+fn window_state_file_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+  let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+  std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+  Ok(dir.join(WINDOW_STATE_FILE_NAME))
 }
 
 fn with_profile_source(mut state: serde_json::Value, source: &str) -> serde_json::Value {
@@ -79,6 +86,110 @@ struct AppShortcutState {
 }
 struct QuickLauncherShortcutState {
   last_fired: Arc<Mutex<Option<Instant>>>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct WindowState {
+  x: i32,
+  y: i32,
+  width: u32,
+  height: u32,
+  maximized: bool,
+}
+
+fn load_window_state(app: &tauri::AppHandle) -> Option<WindowState> {
+  let path = window_state_file_path(app).ok()?;
+  let text = std::fs::read_to_string(path).ok()?;
+  serde_json::from_str(&text).ok()
+}
+
+fn save_window_state(app: &tauri::AppHandle, state: &WindowState) -> Result<(), String> {
+  let path = window_state_file_path(app)?;
+  let json = serde_json::to_string_pretty(state).map_err(|e| e.to_string())?;
+  std::fs::write(path, json).map_err(|e| e.to_string())
+}
+
+fn capture_window_state(
+  window: &tauri::WebviewWindow,
+  keep_existing_bounds_when_maximized: bool,
+) -> Result<WindowState, String> {
+  let is_maximized = window.is_maximized().map_err(|e| e.to_string())?;
+  if is_maximized && keep_existing_bounds_when_maximized {
+    if let Some(existing) = load_window_state(&window.app_handle()) {
+      return Ok(WindowState {
+        maximized: true,
+        ..existing
+      });
+    }
+  }
+
+  let position = window.outer_position().map_err(|e| e.to_string())?;
+  let size = window.outer_size().map_err(|e| e.to_string())?;
+  Ok(WindowState {
+    x: position.x,
+    y: position.y,
+    width: size.width,
+    height: size.height,
+    maximized: is_maximized,
+  })
+}
+
+fn persist_window_state(
+  window: &tauri::WebviewWindow,
+  keep_existing_bounds_when_maximized: bool,
+) {
+  match capture_window_state(window, keep_existing_bounds_when_maximized) {
+    Ok(state) => {
+      if let Err(err) = save_window_state(&window.app_handle(), &state) {
+        eprintln!("save window state failed: {}", err);
+      }
+    }
+    Err(err) => eprintln!("capture window state failed: {}", err),
+  }
+}
+
+fn restore_window_state(window: &tauri::WebviewWindow) {
+  let Some(state) = load_window_state(&window.app_handle()) else {
+    return;
+  };
+
+  if state.width < 200 || state.height < 150 {
+    return;
+  }
+
+  let center_x = state.x as f64 + (state.width as f64 / 2.0);
+  let center_y = state.y as f64 + (state.height as f64 / 2.0);
+  let is_visible = window
+    .monitor_from_point(center_x, center_y)
+    .ok()
+    .flatten()
+    .is_some();
+
+  if is_visible {
+    let _ = window.set_position(PhysicalPosition::new(state.x, state.y));
+  }
+  let _ = window.set_size(PhysicalSize::new(state.width, state.height));
+  if state.maximized {
+    let _ = window.maximize();
+  }
+}
+
+fn attach_main_window_state_tracking(window: &tauri::WebviewWindow) {
+  window.on_window_event({
+    let window = window.clone();
+    move |event| match event {
+      WindowEvent::Moved(_) | WindowEvent::Resized(_) => {
+        if window.is_maximized().ok() == Some(false) {
+          persist_window_state(&window, false);
+        }
+      }
+      WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed => {
+        persist_window_state(&window, true);
+      }
+      _ => {}
+    }
+  });
 }
 
 #[derive(serde::Deserialize)]
@@ -1932,6 +2043,10 @@ pub fn run() {
         eprintln!("quick launcher shortcut registration failed: {}", err);
       }
       apply_default_main_window_icon(app.handle());
+      if let Some(window) = app.get_webview_window("main") {
+        restore_window_state(&window);
+        attach_main_window_state_tracking(&window);
+      }
       Ok(())
     })
     .invoke_handler(tauri::generate_handler![
